@@ -32,7 +32,7 @@ endif()
 
 # Options
 set(GLAD_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}" CACHE STRING "Output directory")
-set(GLAD_PROFILE "compatibility" CACHE STRING "OpenGL profile")
+set(GLAD_PROFILE "core" CACHE STRING "OpenGL profile")
 set(GLAD_API "" CACHE STRING "API type/version pairs, like \"gl=3.2,gles=\", no version means latest")
 set(GLAD_GENERATOR "c" CACHE STRING "Language to generate the binding for")
 set(GLAD_EXTENSIONS "" CACHE STRING "Path to extensions file or comma separated list of extensions, if missing all extensions are included")
@@ -45,7 +45,7 @@ if (CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR)
 else()
   option(GLAD_EXPORT "Set export variables for external project" ON)
 endif()
-option(GLAD_INSTALL "Generate installation target" OFF)
+option(GLAD_INSTALL "Generate installation target" ON)
 
 if (MSVC)
     option(USE_MSVC_RUNTIME_LIBRARY_DLL "Use MSVC runtime library DLL" ON)
