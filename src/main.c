@@ -4,18 +4,31 @@
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
 
-int main()
+#include "config.h"
+#include "shader.h"
+
+GLFWwindow* init_libs_create_window()
 {
     if (!glfwInit())
     {
-        printf("GLFW not init\n");
+        fprintf(stderr, "GLFW failed to init.\n");
         exit(EXIT_FAILURE);
     }
-    
-    GLFWwindow* window = glfwCreateWindow(640, 480, "Window", NULL, NULL);
+
+    // require to use this version of openGL
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+    // will fail if version is not supported
+    GLFWwindow* window = glfwCreateWindow(
+        WINDOW_WIDTH, WINDOW_HEIGHT, 
+        WINDOW_TITLE, NULL, NULL
+    );
+
     if (!window)
     {
-        printf("GLFW window not init\n");
+        fprintf(stderr, "GLFW window failed to init.\n");
         glfwTerminate();
         exit(EXIT_FAILURE);
     }
@@ -24,17 +37,55 @@ int main()
 
     if (!gladLoadGL())
     {
-        printf("GLAD not init\n");
+        fprintf(stderr, "GLAD failed to init\n");
+        glfwDestroyWindow(window);
+        glfwTerminate();
         exit(EXIT_FAILURE);
     }
 
-    int width = 1280, height = 720;
+    const GLubyte* version = glGetString(GL_VERSION);
+    fprintf(stdout, "Using OpenGL %s\n", version);
+
+    return window;
+}
+
+int main()
+{
+    GLFWwindow* window = init_libs_create_window();
+
+    float vertices[] = {
+        -0.5f, -0.5f, 0.0f,
+         0.5f, -0.5f, 0.0f, 
+         0.0f,  0.5f, 0.0f
+    };
+
+    GLuint VAO;
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+
+    GLuint VBO;
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(
+        GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW
+    );
+    glVertexAttribPointer(0, 3, GL_FLOAT, 0, 3 * sizeof(float), NULL);
+    glEnableVertexAttribArray(0);
+
+    GLuint shader = create_shader_program(
+        "shaders/test_vertex.glsl",
+        "shaders/test_fragment.glsl"
+    );
 
     while (!glfwWindowShouldClose(window))
     {
-        glViewport(0, 0, width, height);
         glClearColor(0.5, 0.3, 0.2, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
+
+        glBindVertexArray(VAO);
+        glUseProgram(shader);
+        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glBindVertexArray(0);
  
         glfwSwapBuffers(window);
         glfwPollEvents();
