@@ -18,12 +18,12 @@ static char* get_file_data(const char* path)
     int data_size = ftell(f);
     fseek(f, 0, SEEK_SET);
 
-    char* shader_src = malloc(data_size + 1);
-    fread(shader_src, 1, data_size, f);
-    shader_src[data_size - 1] = '\0';
+    char* file_content = malloc(data_size + 1);
+    fread(file_content, 1, data_size, f);
+    file_content[data_size - 1] = '\0';
 
     fclose(f);
-    return shader_src;
+    return file_content;
 }
 
 static GLuint compile_shader(const char* path, GLenum shader_type)
@@ -58,7 +58,6 @@ GLuint create_shader_program(const char* vs_path, const char* fs_path)
 {
     GLuint vs_id = compile_shader(vs_path, GL_VERTEX_SHADER);
     GLuint fs_id = compile_shader(fs_path, GL_FRAGMENT_SHADER);
-
 
     if (!vs_id || !fs_id)
         return 0;

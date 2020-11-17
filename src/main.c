@@ -15,12 +15,12 @@ GLFWwindow* init_libs_create_window()
         exit(EXIT_FAILURE);
     }
 
-    // require to use this version of openGL
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    // require to use particular version of OpenGL
+    glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, OPENGL_VERSION_MAJOR_REQUIRED);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, OPENGL_VERSION_MINOR_REQUIRED);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    // will fail if version is not supported
+    // will fail if openGL version is not supported
     GLFWwindow* window = glfwCreateWindow(
         WINDOW_WIDTH, WINDOW_HEIGHT, 
         WINDOW_TITLE, NULL, NULL
@@ -29,6 +29,12 @@ GLFWwindow* init_libs_create_window()
     if (!window)
     {
         fprintf(stderr, "GLFW window failed to init.\n");
+        fprintf(stderr, 
+            "Probably, the required version of OpenGL is not supported:\n"
+        );
+        fprintf(stderr, "OpenGL %d.%d\n", 
+            OPENGL_VERSION_MAJOR_REQUIRED, OPENGL_VERSION_MINOR_REQUIRED
+        );
         glfwTerminate();
         exit(EXIT_FAILURE);
     }
