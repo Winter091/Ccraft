@@ -10,7 +10,7 @@
 #include "shader.h"
 #include "camera.h"
 
-GLFWwindow* init_libs_create_window()
+GLFWwindow* window_create()
 {
     if (!glfwInit())
     {
@@ -23,10 +23,23 @@ GLFWwindow* init_libs_create_window()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, OPENGL_VERSION_MINOR_REQUIRED);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    // will fail if openGL version is not supported
+    GLFWmonitor* monitor = FULLSCREEN ? glfwGetPrimaryMonitor() : NULL;
+
+    // setup windowed full screen mode
+    if (monitor)
+    {
+        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+        glfwWindowHint(GLFW_RED_BITS, mode->redBits);
+        glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
+        glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
+        glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
+        glfwWindowHint(GLFW_CENTER_CURSOR, GLFW_TRUE);
+    }
+
+    // will fail if OpenGL version is not supported
     GLFWwindow* window = glfwCreateWindow(
         WINDOW_WIDTH, WINDOW_HEIGHT, 
-        WINDOW_TITLE, NULL, NULL
+        WINDOW_TITLE, monitor, NULL
     );
 
     if (!window)
@@ -43,8 +56,15 @@ GLFWwindow* init_libs_create_window()
     }
 
     glfwMakeContextCurrent(window);
-
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSwapInterval(VSYNC);
+
+    return window;
+}
+
+int main()
+{    
+    GLFWwindow* window = window_create();
 
     if (!gladLoadGL())
     {
@@ -56,13 +76,6 @@ GLFWwindow* init_libs_create_window()
 
     const GLubyte* version = glGetString(GL_VERSION);
     fprintf(stdout, "Using OpenGL %s\n", version);
-
-    return window;
-}
-
-int main()
-{    
-    GLFWwindow* window = init_libs_create_window();
 
     float vertices[] = {
         -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
@@ -90,27 +103,25 @@ int main()
         "shaders/test_fragment.glsl"
     );
 
-    Camera* cam = camera_create((vec3){0.0f, 0.0f, -3.0f});
+    Camera* cam = camera_create((vec3){0.0f, 0.0f, -1.5f});
 
-    time_t last_time = clock();
+    double last_time = glfwGetTime();
 
     while (!glfwWindowShouldClose(window))
     {
-        // todo: make time more precise
-        time_t curr_time = clock();
-        int dt = curr_time - last_time;
+        double curr_time = glfwGetTime();
+        double dt = curr_time - last_time;
         last_time = curr_time;
         
-        glClearColor(0.5, 0.3, 0.2, 1.0);
+        glClearColor(0.26f, 0.32f, 0.32f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         camera_update(cam, window, dt);
-        shader_set_mat4(shader, "mvp_matrix", cam->vp_matrix);
 
         glBindVertexArray(VAO);
         glUseProgram(shader);
+        shader_set_mat4(shader, "mvp_matrix", cam->vp_matrix);
         glDrawArrays(GL_TRIANGLES, 0, 3);
-        glBindVertexArray(0);
  
         glfwSwapBuffers(window);
         glfwPollEvents();

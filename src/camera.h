@@ -17,6 +17,9 @@ typedef struct
     float mouse_last_x;
     float mouse_last_y;
 
+    float clip_near;
+    float clip_far;
+
     mat4 view_matrix;
     mat4 proj_matrix;
     mat4 vp_matrix;
@@ -24,4 +27,4 @@ typedef struct
 Camera;
 
 Camera* camera_create(vec3 pos);
-void camera_update(Camera* cam, GLFWwindow* window, float dt);
+void camera_update(Camera* cam, GLFWwindow* window, double dt);
