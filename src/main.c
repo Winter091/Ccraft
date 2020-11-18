@@ -1,11 +1,14 @@
 #include "stdio.h"
 #include "stdlib.h"
+#include "time.h"
 
 #include "glad/glad.h"
 #include "GLFW/glfw3.h"
+#include "cglm/cglm.h"
 
 #include "config.h"
 #include "shader.h"
+#include "camera.h"
 
 GLFWwindow* init_libs_create_window()
 {
@@ -41,6 +44,8 @@ GLFWwindow* init_libs_create_window()
 
     glfwMakeContextCurrent(window);
 
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
     if (!gladLoadGL())
     {
         fprintf(stderr, "GLAD failed to init\n");
@@ -56,13 +61,13 @@ GLFWwindow* init_libs_create_window()
 }
 
 int main()
-{
+{    
     GLFWwindow* window = init_libs_create_window();
 
     float vertices[] = {
-        -0.5f, -0.5f, 0.0f,
-         0.5f, -0.5f, 0.0f, 
-         0.0f,  0.5f, 0.0f
+        -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
+         0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
+         0.0f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f
     };
 
     GLuint VAO;
@@ -75,18 +80,32 @@ int main()
     glBufferData(
         GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW
     );
-    glVertexAttribPointer(0, 3, GL_FLOAT, 0, 3 * sizeof(float), NULL);
+    glVertexAttribPointer(0, 3, GL_FLOAT, 0, 6 * sizeof(float), NULL);
+    glVertexAttribPointer(1, 3, GL_FLOAT, 0, 6 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
 
     GLuint shader = create_shader_program(
         "shaders/test_vertex.glsl",
         "shaders/test_fragment.glsl"
     );
 
+    Camera* cam = camera_create((vec3){0.0f, 0.0f, -3.0f});
+
+    time_t last_time = clock();
+
     while (!glfwWindowShouldClose(window))
     {
+        // todo: make time more precise
+        time_t curr_time = clock();
+        int dt = curr_time - last_time;
+        last_time = curr_time;
+        
         glClearColor(0.5, 0.3, 0.2, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
+
+        camera_update(cam, window, dt);
+        shader_set_mat4(shader, "mvp_matrix", cam->vp_matrix);
 
         glBindVertexArray(VAO);
         glUseProgram(shader);

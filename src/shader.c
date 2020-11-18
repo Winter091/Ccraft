@@ -84,3 +84,12 @@ GLuint create_shader_program(const char* vs_path, const char* fs_path)
 
     return shader_prog;
 }
+
+void shader_set_mat4(GLuint shader, char* name, mat4 matrix)
+{
+    GLint location = glGetUniformLocation(shader, name);
+    if (location == -1)
+        fprintf(stderr, "Shader attrib location is -1!\n");
+    else
+        glUniformMatrix4fv(location, 1, GL_FALSE, matrix[0]);
+}
