@@ -9,63 +9,12 @@
 #include "config.h"
 #include "shader.h"
 #include "camera.h"
-
-GLFWwindow* window_create()
-{
-    if (!glfwInit())
-    {
-        fprintf(stderr, "GLFW failed to init.\n");
-        exit(EXIT_FAILURE);
-    }
-
-    // require to use particular version of OpenGL
-    glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, OPENGL_VERSION_MAJOR_REQUIRED);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, OPENGL_VERSION_MINOR_REQUIRED);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-    GLFWmonitor* monitor = FULLSCREEN ? glfwGetPrimaryMonitor() : NULL;
-
-    // setup windowed full screen mode
-    if (monitor)
-    {
-        const GLFWvidmode* mode = glfwGetVideoMode(monitor);
-        glfwWindowHint(GLFW_RED_BITS, mode->redBits);
-        glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
-        glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
-        glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
-        glfwWindowHint(GLFW_CENTER_CURSOR, GLFW_TRUE);
-    }
-
-    // will fail if OpenGL version is not supported
-    GLFWwindow* window = glfwCreateWindow(
-        WINDOW_WIDTH, WINDOW_HEIGHT, 
-        WINDOW_TITLE, monitor, NULL
-    );
-
-    if (!window)
-    {
-        fprintf(stderr, "GLFW window failed to init.\n");
-        fprintf(stderr, 
-            "Probably, the required version of OpenGL is not supported:\n"
-        );
-        fprintf(stderr, "OpenGL %d.%d\n", 
-            OPENGL_VERSION_MAJOR_REQUIRED, OPENGL_VERSION_MINOR_REQUIRED
-        );
-        glfwTerminate();
-        exit(EXIT_FAILURE);
-    }
-
-    glfwMakeContextCurrent(window);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    glfwSwapInterval(VSYNC);
-
-    return window;
-}
+#include "window.h"
 
 int main()
 {    
     GLFWwindow* window = window_create();
-
+    
     if (!gladLoadGL())
     {
         fprintf(stderr, "GLAD failed to init\n");
@@ -74,8 +23,17 @@ int main()
         exit(EXIT_FAILURE);
     }
 
+    glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+
     const GLubyte* version = glGetString(GL_VERSION);
     fprintf(stdout, "Using OpenGL %s\n", version);
+
+    GameObjects* game_obj = malloc(sizeof(GameObjects));
+    game_obj->cam = camera_create((vec3){ 0.0f, 0.0f, -1.5f });
+
+    // GameObj will be available in glfw callback
+    // functions (with glfwGetWindowUserPointer)
+    glfwSetWindowUserPointer(window, game_obj);
 
     float vertices[] = {
         -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
@@ -103,8 +61,6 @@ int main()
         "shaders/test_fragment.glsl"
     );
 
-    Camera* cam = camera_create((vec3){0.0f, 0.0f, -1.5f});
-
     double last_time = glfwGetTime();
 
     while (!glfwWindowShouldClose(window))
@@ -116,11 +72,11 @@ int main()
         glClearColor(0.26f, 0.32f, 0.32f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        camera_update(cam, window, dt);
+        camera_update(game_obj->cam, window, dt);
 
         glBindVertexArray(VAO);
         glUseProgram(shader);
-        shader_set_mat4(shader, "mvp_matrix", cam->vp_matrix);
+        shader_set_mat4(shader, "mvp_matrix", game_obj->cam->vp_matrix);
         glDrawArrays(GL_TRIANGLES, 0, 3);
  
         glfwSwapBuffers(window);

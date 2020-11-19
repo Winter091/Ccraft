@@ -1,3 +1,6 @@
+#ifndef CAMERA_H_
+#define CAMERA_H_
+
 #include "cglm/cglm.h"
 #include "GLFW/glfw3.h"
 
@@ -14,6 +17,7 @@ typedef struct
     float sens;
     float move_speed;
 
+    int active;
     float mouse_last_x;
     float mouse_last_y;
 
@@ -28,3 +32,7 @@ Camera;
 
 Camera* camera_create(vec3 pos);
 void camera_update(Camera* cam, GLFWwindow* window, double dt);
+
+void camera_set_aspect_ratio(Camera* cam, float new_ratio);
+
+#endif

@@ -27,6 +27,7 @@ Camera* camera_create(vec3 pos)
     cam->sens = 0.1f;
     cam->move_speed = 3.0f;
 
+    cam->active = 0;
     cam->mouse_last_x = 0;
     cam->mouse_last_y = 0;
 
@@ -53,10 +54,9 @@ static void update_mouse_movement(Camera* cam, GLFWwindow* window)
     double mouse_x, mouse_y;
     glfwGetCursorPos(window, &mouse_x, &mouse_y);
 
-    static int first_update = 1;
-    if (first_update)
+    if (!cam->active)
     {
-        first_update = 0;
+        cam->active = 1;
         cam->mouse_last_x = mouse_x;
         cam->mouse_last_y = mouse_y;
         return;
@@ -75,6 +75,9 @@ static void update_mouse_movement(Camera* cam, GLFWwindow* window)
         cam->pitch = -89.9f;
     else if (cam->pitch > 89.9f)
         cam->pitch = 89.9f;
+
+    if (cam->yaw >= 360.0f) cam->yaw -= 360.0f;
+    if (cam->yaw <= 0.0f) cam->yaw += 360.0f;
     
     vec3 front;
     front[0] = cosf(glm_rad(cam->yaw)) * cosf(glm_rad(cam->pitch));
@@ -127,8 +130,16 @@ static void update_keyboard(Camera* cam, GLFWwindow* window, double dt)
 
 void camera_update(Camera* cam, GLFWwindow* window, double dt)
 {
-    update_mouse_movement(cam, window);
-    update_keyboard(cam, window, dt);
+    int focused = 
+        glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED;
+    
+    if (!focused)
+        cam->active = 0;
+    else
+    {
+        update_mouse_movement(cam, window);
+        update_keyboard(cam, window, dt);
+    }
 
     // update view matrix
     vec3 center;
@@ -137,4 +148,13 @@ void camera_update(Camera* cam, GLFWwindow* window, double dt)
 
     // then update view-projection matrix
     glm_mat4_mul(cam->proj_matrix, cam->view_matrix, cam->vp_matrix);
+}
+
+void camera_set_aspect_ratio(Camera* cam, float new_ratio)
+{
+    // set new projection matrix
+    glm_perspective(
+        glm_rad(cam->fov), new_ratio, cam->clip_near, 
+        cam->clip_far, cam->proj_matrix
+    );
 }
