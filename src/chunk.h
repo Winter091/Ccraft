@@ -3,6 +3,7 @@
 
 #include "glad/glad.h"
 #include "config.h"
+#include "stdlib.h"
 
 typedef struct
 {
