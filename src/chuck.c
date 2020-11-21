@@ -13,7 +13,7 @@ typedef struct
 }
 Vertex;
 
-// ofsset = curr_vertex_count into vertices array
+// ofsset = offset into vertices array
 // x, y, z = cube world coordinates
 // faces = determine whether to draw face or not
 // tiles = choise of texture for each face
