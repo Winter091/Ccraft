@@ -21,7 +21,7 @@ Camera* camera_create(vec3 pos)
     cam->up[2] = 0.0f;
 
     cam->pitch = 0.0f;
-    cam->yaw = 90.0f;
+    cam->yaw = -90.0f;
 
     cam->fov = FOV;
     cam->sens = 0.1f;
@@ -111,9 +111,14 @@ static void update_keyboard(Camera* cam, GLFWwindow* window, double dt)
 
     if (key_a || key_d)
     {
-        vec3 move2;
         glm_vec3_copy(cam->front, move);
+
+        // can't store move in itself, it will
+        // overwrite its own data during computation 
+        // and the result won't be correct
+        vec3 move2;
         glm_vec3_crossn(move, cam->up, move2);
+        
         glm_vec3_scale(move2, cam->move_speed * dt, move2);
         if (key_d) glm_vec3_scale(move2, -1, move2);
         glm_vec3_sub(cam->pos, move2, cam->pos);
