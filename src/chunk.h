@@ -12,6 +12,6 @@ typedef struct
 }
 Chunk;
 
-Chunk* chunk_create(int chunk_x, int chunk_y);
+Chunk* chunk_create(int chunk_x, int chunk_z);
 
 #endif

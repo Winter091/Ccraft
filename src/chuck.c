@@ -53,8 +53,8 @@ static void gen_cube_vertices(Vertex* vertices, int curr_vertex_count, int x, in
             int index = indices[f][v];
 
             vertices[curr_vertex_count + curr_vertex].pos[0] = (positions[f][index][0] + x) * BLOCK_SIZE;
-            vertices[curr_vertex_count + curr_vertex].pos[1] = (positions[f][index][1] + z) * BLOCK_SIZE;
-            vertices[curr_vertex_count + curr_vertex].pos[2] = (positions[f][index][2] + y) * BLOCK_SIZE;
+            vertices[curr_vertex_count + curr_vertex].pos[1] = (positions[f][index][1] + y) * BLOCK_SIZE;
+            vertices[curr_vertex_count + curr_vertex].pos[2] = (positions[f][index][2] + z) * BLOCK_SIZE;
 
             vertices[curr_vertex_count + curr_vertex].tile = tiles[f];
 
@@ -63,12 +63,10 @@ static void gen_cube_vertices(Vertex* vertices, int curr_vertex_count, int x, in
     }
 }
 
-Chunk* chunk_create(int chunk_x, int chunk_y)
+Chunk* chunk_create(int chunk_x, int chunk_z)
 {
     Chunk* c = malloc(sizeof(Chunk));
 
-    // probably i shouldn't allocate memory for each block,
-    // because there's no need to add air blocks to vertices
     Vertex* vertices = malloc(CHUNK_WIDTH * CHUNK_WIDTH * CHUNK_HEIGHT * 36 * sizeof(Vertex));
 
     size_t curr_vert_size = 0;
@@ -77,11 +75,11 @@ Chunk* chunk_create(int chunk_x, int chunk_y)
     c->blocks = malloc(CHUNK_WIDTH * sizeof(char**));
     for (int x = 0; x < CHUNK_WIDTH; x++)
     {
-        c->blocks[x] = malloc(CHUNK_WIDTH * sizeof(char*));
-        for (int y = 0; y < CHUNK_WIDTH; y++)
+        c->blocks[x] = malloc(CHUNK_HEIGHT * sizeof(char*));
+        for (int y = 0; y < CHUNK_HEIGHT; y++)
         {
-            c->blocks[x][y] = malloc(CHUNK_HEIGHT * sizeof(char));
-            for (int z = 0; z < CHUNK_HEIGHT; z++)
+            c->blocks[x][y] = malloc(CHUNK_WIDTH * sizeof(char));
+            for (int z = 0; z < CHUNK_WIDTH; z++)
             {
                 // blocks array determine a type of
                 // block at particular coordinate
@@ -92,8 +90,8 @@ Chunk* chunk_create(int chunk_x, int chunk_y)
                 {
 
                     int block_x = x + chunk_x * CHUNK_WIDTH;
-                    int block_y = y + chunk_y * CHUNK_WIDTH;
-                    int block_z = z;
+                    int block_y = y;
+                    int block_z = z + chunk_z * CHUNK_WIDTH;
 
                     int faces[6] = {1, 1, 1, 1, 1, 1};
                     int tiles[6] = {1, 1, 2, 2, 3, 3};
