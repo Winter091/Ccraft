@@ -6,6 +6,7 @@
 
 GLuint create_shader_program(const char* vs_path, const char* fs_path);
 
+void shader_set_int1(GLuint shader, char* name, int value);
 void shader_set_mat4(GLuint shader, char* name, mat4 matrix);
 
 #endif

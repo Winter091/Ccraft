@@ -12,6 +12,7 @@
 #include "camera.h"
 #include "window.h"
 #include "map.h"
+#include "texture.h"
 
 int main()
 {    
@@ -27,6 +28,9 @@ int main()
 
     glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     const GLubyte* version = glGetString(GL_VERSION);
     fprintf(stdout, "Using OpenGL %s\n", version);
@@ -40,9 +44,9 @@ int main()
 
     /*
     float vertices[] = {
-        -0.5f, -0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
-         0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
-         0.0f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f
+        -0.5f, -0.5f, 0.0f,     0.0f, 0.0f,
+         0.5f, -0.5f, 0.0f,     1.0f, 0.0f,
+         0.0f,  0.5f, 0.0f,     0.5f, 1.0f
     };
 
     GLuint VAO;
@@ -55,8 +59,8 @@ int main()
     glBufferData(
         GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW
     );
-    glVertexAttribPointer(0, 3, GL_FLOAT, 0, 6 * sizeof(float), NULL);
-    glVertexAttribPointer(1, 3, GL_FLOAT, 0, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(0, 3, GL_FLOAT, 0, 5 * sizeof(float), NULL);
+    glVertexAttribPointer(1, 2, GL_FLOAT, 0, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
 
@@ -68,14 +72,23 @@ int main()
     );
     */
 
+    GLuint texture_blocks = texture_create("textures/blocks.png");
+    if (!texture_blocks)
+    {
+        fprintf(stderr, "Texture was not loaded!\n");
+        glfwDestroyWindow(window);
+        glfwTerminate();
+        exit(EXIT_FAILURE);
+    }
+
     GLuint shader_chunk = create_shader_program(
         "shaders/chunk_vertex.glsl",
         "shaders/chunk_fragment.glsl"
     );
 
     Map* map = map_create(); 
-    for (int i = 0; i < 3; i += 1)
-        for (int j = 0; j < 3; j += 1)
+    for (int i = 0; i < 1; i++)
+        for (int j = 0; j < 1; j++)
             map_add_chunk(map, i, j);
 
     double last_time = glfwGetTime();
@@ -90,23 +103,32 @@ int main()
 
         camera_update(game_obj->cam, window, dt);
 
+        
         glUseProgram(shader_chunk);
         shader_set_mat4(shader_chunk, "mvp_matrix", game_obj->cam->vp_matrix);
+        shader_set_int1(shader_chunk, "texture_sampler", 0);
+        texture_bind(texture_blocks, 0);
+
         for (int i = 0; i < map->chunk_count; i++)
         {
             glBindVertexArray(map->chunks[i]->VAO);
             glDrawArrays(GL_TRIANGLES, 0, map->chunks[i]->vertex_count);
         }
-      
+        
         /*
         glBindVertexArray(VAO);
         glUseProgram(shader_test);
+
         mat4 mvp;
         mat4 model;
         glm_mat4_identity(model);
         glm_translate(model, (vec3){0.0f, 0.0f, 0.0f});
         glm_mat4_mul(game_obj->cam->vp_matrix, model, mvp);
         shader_set_mat4(shader_test, "mvp_matrix", mvp);
+
+        texture_bind(texture_test, 0);
+        shader_set_int1(shader_test, "tex_sampler", 0);
+        
         glDrawArrays(GL_TRIANGLES, 0, 3);
         */
  

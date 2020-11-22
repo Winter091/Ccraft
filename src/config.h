@@ -14,3 +14,7 @@
 #define CHUNK_WIDTH 16
 #define CHUNK_HEIGHT 256
 #define BLOCK_SIZE 0.1
+
+// block id's
+#define BLOCK_AIR   0
+#define BLOCK_GRASS 1

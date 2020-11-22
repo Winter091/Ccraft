@@ -4,11 +4,10 @@
 #include "string.h"
 #include "stdio.h"
 
-// #### #### #### #---
-// p[0] p[1] p[2] tile
 typedef struct
 {
     float pos[3];
+    float tex_coord[2];
     unsigned char tile;
 }
 Vertex;
@@ -17,7 +16,7 @@ Vertex;
 // x, y, z = cube world coordinates
 // faces = determine whether to draw face or not
 // tiles = choise of texture for each face
-static void gen_cube_vertices(Vertex* vertices, int curr_vertex_count, int x, int y, int z, int faces[6], int tiles[6])
+static void gen_cube_vertices(Vertex* vertices, int curr_vertex_count, int x, int y, int z, int block_type, int faces[6])
 {    
     // row = face (6 faces), each face has 4 points forming a square
     static const float positions[6][4][3] = 
@@ -39,6 +38,24 @@ static void gen_cube_vertices(Vertex* vertices, int curr_vertex_count, int x, in
         {0, 3, 2, 0, 1, 3},
         {0, 3, 1, 0, 2, 3}
     };
+
+    static const float uvs[6][4][2] = 
+    {
+        {{0, 0}, {1, 0}, {0, 1}, {1, 1}},
+        {{1, 0}, {0, 0}, {1, 1}, {0, 1}},
+        {{0, 1}, {0, 0}, {1, 1}, {1, 0}},
+        {{0, 0}, {0, 1}, {1, 0}, {1, 1}},
+        {{0, 0}, {0, 1}, {1, 0}, {1, 1}},
+        {{1, 0}, {1, 1}, {0, 0}, {0, 1}}
+    };
+
+    // texture number in texture atlas; order:
+    // left right top bottom front back
+    static const int tiles[2][6] = 
+    {
+        { 0,  0,  0,  0,  0,  0}, // 0 = air (not used)
+        {16, 16, 32,  0, 16, 16}  // 1 = grass
+    };
     
     int curr_vertex = 0;
 
@@ -56,11 +73,21 @@ static void gen_cube_vertices(Vertex* vertices, int curr_vertex_count, int x, in
             vertices[curr_vertex_count + curr_vertex].pos[1] = (positions[f][index][1] + y) * BLOCK_SIZE;
             vertices[curr_vertex_count + curr_vertex].pos[2] = (positions[f][index][2] + z) * BLOCK_SIZE;
 
-            vertices[curr_vertex_count + curr_vertex].tile = tiles[f];
+            vertices[curr_vertex_count + curr_vertex].tex_coord[0] = uvs[f][index][0];
+            vertices[curr_vertex_count + curr_vertex].tex_coord[1] = uvs[f][index][1];
+
+            vertices[curr_vertex_count + curr_vertex].tile = tiles[block_type][f];
 
             curr_vertex++;
         }
     }
+}
+
+static unsigned char terrain_generation_func(int x, int y, int z)
+{
+    // very advanced generation algorithm!
+    if (y > 60) return BLOCK_AIR;
+    return BLOCK_GRASS;
 }
 
 Chunk* chunk_create(int chunk_x, int chunk_z)
@@ -81,21 +108,24 @@ Chunk* chunk_create(int chunk_x, int chunk_z)
             c->blocks[x][y] = malloc(CHUNK_WIDTH * sizeof(char));
             for (int z = 0; z < CHUNK_WIDTH; z++)
             {
-                // blocks array determine a type of
+                int block_x = x + chunk_x * CHUNK_WIDTH;
+                int block_y = y;
+                int block_z = z + chunk_z * CHUNK_WIDTH;
+
+                // blocks array determine the type of
                 // block at particular coordinate
                 // for example, 0 is air, 1 is grass
-                c->blocks[x][y][z] = 1;
+                c->blocks[x][y][z] = terrain_generation_func(
+                    block_x, block_y, block_z
+                );
 
-                if (c->blocks[x][y][z])
+                if (c->blocks[x][y][z] != BLOCK_AIR)
                 {
-
-                    int block_x = x + chunk_x * CHUNK_WIDTH;
-                    int block_y = y;
-                    int block_z = z + chunk_z * CHUNK_WIDTH;
-
                     int faces[6] = {1, 1, 1, 1, 1, 1};
-                    int tiles[6] = {1, 1, 2, 2, 3, 3};
-                    gen_cube_vertices(vertices, curr_vertex_count, block_x, block_y, block_z, faces, tiles);
+                    gen_cube_vertices(
+                        vertices, curr_vertex_count, block_x, block_y, 
+                        block_z, c->blocks[x][y][z], faces
+                    );
 
                     for (int i = 0; i < 6; i++)
                         if (faces[i])
@@ -103,8 +133,7 @@ Chunk* chunk_create(int chunk_x, int chunk_z)
                             curr_vertex_count += 6;
                             curr_vert_size += 6 * sizeof(Vertex);
                         }  
-                }
-                
+                }            
             }
         }
     }
@@ -118,10 +147,12 @@ Chunk* chunk_create(int chunk_x, int chunk_z)
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, curr_vert_size, vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 16, (void*)0);
-    glVertexAttribIPointer(1, 1, GL_UNSIGNED_BYTE, 16, (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(3 * sizeof(float)));
+    glVertexAttribIPointer(2, 1, GL_UNSIGNED_BYTE,  sizeof(Vertex), (void*)(5 * sizeof(float)));
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
 
     glBindVertexArray(0);
 
