@@ -36,7 +36,7 @@ int main()
     fprintf(stdout, "Using OpenGL %s\n", version);
 
     GameObjects* game_obj = malloc(sizeof(GameObjects));
-    game_obj->cam = camera_create((vec3){ 0.0f, 0.0f, 3.0f });
+    game_obj->cam = camera_create((vec3){ 0.0f, 5.0f, 3.0f });
 
     // GameObj will be available in glfw callback
     // functions (with glfwGetWindowUserPointer)
@@ -87,8 +87,8 @@ int main()
     );
 
     Map* map = map_create(); 
-    for (int i = 0; i < 4; i++)
-        for (int j = 0; j < 4; j++)
+    for (int i = 0; i < 2; i++)
+        for (int j = 0; j < 2; j++)
             map_add_chunk(map, i, j);
 
     double last_time = glfwGetTime();

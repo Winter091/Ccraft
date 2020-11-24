@@ -11,10 +11,11 @@
 
 // game settings
 #define FOV 65
-#define CHUNK_WIDTH 16
+#define CHUNK_WIDTH 256
 #define CHUNK_HEIGHT 256
 #define BLOCK_SIZE 0.1
 
 // block id's
 #define BLOCK_AIR   0
 #define BLOCK_GRASS 1
+#define BLOCK_SAND  2

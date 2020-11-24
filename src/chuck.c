@@ -1,5 +1,6 @@
 #include "chunk.h"
 
+#include "perlin_noise.h"
 #include "stdlib.h"
 #include "string.h"
 #include "stdio.h"
@@ -51,10 +52,11 @@ static void gen_cube_vertices(Vertex* vertices, int curr_vertex_count, int x, in
 
     // texture number in texture atlas; order:
     // left right top bottom front back
-    static const int tiles[2][6] = 
+    static const int tiles[3][6] = 
     {
-        { 0,  0,  0,  0,  0,  0}, // 0 = air (not used)
-        {16, 16, 32,  0, 16, 16}  // 1 = grass
+        { 0,  0,  0,  0,  0,  0},  // 0 = air (not used)
+        {16, 16, 32,  0, 16, 16},  // 1 = grass
+        { 1,  1,  1,  1,  1,  1}   // 2 = sand
     };
     
     int curr_vertex = 0;
@@ -85,18 +87,49 @@ static void gen_cube_vertices(Vertex* vertices, int curr_vertex_count, int x, in
 
 static unsigned char terrain_generation_func(int x, int y, int z)
 {
-    // very advanced generation algorithm!
-    return BLOCK_GRASS;
+    float value = perlin2d(x, z, 0.002, 8) * CHUNK_HEIGHT / 2.0f;
+
+    if (y > value)
+        return BLOCK_AIR;
+    else if (y > 50)
+        return BLOCK_GRASS;
+    else
+        return BLOCK_SAND;
+}
+
+static inline int is_block_visible(Chunk* c, int x, int y, int z)
+{
+    if (x > 0 && x < CHUNK_WIDTH - 1)
+    {
+        if (!c->blocks[x - 1][y][z] || !c->blocks[x + 1][y][z])
+            return 1;
+    }
+    else return 1;
+
+    if (y > 0 && y < CHUNK_HEIGHT - 1)
+    {
+        if (!c->blocks[x][y - 1][z] || !c->blocks[x][y + 1][z])
+            return 1;
+    }
+    else return 1;
+
+    if (z > 0 && z < CHUNK_WIDTH - 1)
+    {
+        if (!c->blocks[x][y][z - 1] || !c->blocks[x][y][z + 1])
+            return 1;
+    }
+    else return 1;
+
+    return 0;
 }
 
 Chunk* chunk_create(int chunk_x, int chunk_z)
 {
     Chunk* c = malloc(sizeof(Chunk));
-
-    Vertex* vertices = malloc(CHUNK_WIDTH * CHUNK_WIDTH * CHUNK_HEIGHT * 36 * sizeof(Vertex));
-
-    size_t curr_vert_size = 0;
-    int curr_vertex_count = 0;
+    c->x = chunk_x;
+    c->z = chunk_z;
+    c->VAO = 0;
+    c->vertex_count = 0;
 
     c->blocks = malloc(CHUNK_WIDTH * sizeof(char**));
     for (int x = 0; x < CHUNK_WIDTH; x++)
@@ -116,26 +149,52 @@ Chunk* chunk_create(int chunk_x, int chunk_z)
                 // for example, 0 is air, 1 is grass
                 c->blocks[x][y][z] = terrain_generation_func(
                     block_x, block_y, block_z
-                );
-
-                if (c->blocks[x][y][z] != BLOCK_AIR)
-                {
-                    int faces[6] = {1, 1, 1, 1, 1, 1};
-                    gen_cube_vertices(
-                        vertices, curr_vertex_count, block_x, block_y, 
-                        block_z, c->blocks[x][y][z], faces
-                    );
-
-                    for (int i = 0; i < 6; i++)
-                        if (faces[i])
-                        {
-                            curr_vertex_count += 6;
-                            curr_vert_size += 6 * sizeof(Vertex);
-                        }  
-                }            
+                );           
             }
         }
     }
+
+    chunk_update_buffer(c);
+
+    return c;
+}
+
+void chunk_update_buffer(Chunk* c)
+{
+    Vertex* vertices = malloc(
+        CHUNK_WIDTH * CHUNK_WIDTH * CHUNK_HEIGHT * 36 * sizeof(Vertex)
+    );
+
+    size_t curr_vert_size = 0;
+    int curr_vertex_count = 0;
+    
+    for (int x = 0; x < CHUNK_WIDTH; x++)
+        for (int y = 0; y < CHUNK_HEIGHT; y++)
+            for (int z = 0; z < CHUNK_WIDTH; z++)
+            {
+                if (c->blocks[x][y][z] == BLOCK_AIR)
+                    continue;
+
+                if (!is_block_visible(c, x, y, z))
+                    continue;
+
+                int block_x = x + c->x * CHUNK_WIDTH;
+                int block_y = y;
+                int block_z = z + c->z * CHUNK_WIDTH;
+                    
+                int faces[6] = {1, 1, 1, 1, 1, 1};
+                gen_cube_vertices(
+                    vertices, curr_vertex_count, block_x, block_y, 
+                    block_z, c->blocks[x][y][z], faces
+                );
+
+                for (int i = 0; i < 6; i++)
+                    if (faces[i])
+                    {
+                        curr_vertex_count += 6;
+                        curr_vert_size += 6 * sizeof(Vertex);
+                    }
+            }
 
     // Generate VAO and VBO, send vertices to videocard
     GLuint VAO;
@@ -153,12 +212,8 @@ Chunk* chunk_create(int chunk_x, int chunk_z)
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
 
-    glBindVertexArray(0);
-
     free(vertices);
 
     c->VAO = VAO;
-    c->vertex_count = curr_vertex_count;
-
-    return c;
+    c->vertex_count = curr_vertex_count;     
 }
