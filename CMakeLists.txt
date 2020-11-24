@@ -4,13 +4,16 @@ cmake_minimum_required(VERSION 3.10)
 project(Ccraft)
 
 file(GLOB SOURCE_FILES src/*.c)
-add_executable(Ccraft ${SOURCE_FILES})
+add_executable(
+    Ccraft 
+    ${SOURCE_FILES} 
+    deps/glad-0.1.34/src/glad.c
+)
 
 target_compile_options(Ccraft PRIVATE -Wall -std=c99)
 
 # add deps to the build process
 add_subdirectory(deps/glfw-3.3.2)
-add_subdirectory(deps/glad-0.1.34)
 add_subdirectory(deps/cglm-0.7.8)
 
 # specify include directories
@@ -20,7 +23,6 @@ target_include_directories(Ccraft PRIVATE deps/cglm-0.7.8/include)
 
 # link static libs
 target_link_libraries(Ccraft glfw ${GLFW_LIBRARIES})
-target_link_libraries(Ccraft glad)
 target_link_libraries(Ccraft cglm)
 
 # copy shaders dir to build folder
