@@ -18,7 +18,7 @@ int main()
 {    
     GLFWwindow* window = window_create();
     
-    if (!gladLoadGL())
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
         fprintf(stderr, "GLAD failed to init\n");
         glfwDestroyWindow(window);
@@ -72,7 +72,7 @@ int main()
     );
     */
 
-    GLuint texture_blocks = texture_create("textures/blocks.png");
+    GLuint texture_blocks = array_texture_create("textures/blocks.png");
     if (!texture_blocks)
     {
         fprintf(stderr, "Texture was not loaded!\n");
@@ -87,8 +87,8 @@ int main()
     );
 
     Map* map = map_create(); 
-    for (int i = 0; i < 1; i++)
-        for (int j = 0; j < 1; j++)
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
             map_add_chunk(map, i, j);
 
     double last_time = glfwGetTime();
@@ -107,13 +107,14 @@ int main()
         glUseProgram(shader_chunk);
         shader_set_mat4(shader_chunk, "mvp_matrix", game_obj->cam->vp_matrix);
         shader_set_int1(shader_chunk, "texture_sampler", 0);
-        texture_bind(texture_blocks, 0);
+        array_texture_bind(texture_blocks, 0);
 
         for (int i = 0; i < map->chunk_count; i++)
         {
             glBindVertexArray(map->chunks[i]->VAO);
             glDrawArrays(GL_TRIANGLES, 0, map->chunks[i]->vertex_count);
         }
+        
         
         /*
         glBindVertexArray(VAO);
@@ -126,7 +127,7 @@ int main()
         glm_mat4_mul(game_obj->cam->vp_matrix, model, mvp);
         shader_set_mat4(shader_test, "mvp_matrix", mvp);
 
-        texture_bind(texture_test, 0);
+        array_texture_bind(texture_blocks, 0);
         shader_set_int1(shader_test, "tex_sampler", 0);
         
         glDrawArrays(GL_TRIANGLES, 0, 3);

@@ -86,7 +86,6 @@ static void gen_cube_vertices(Vertex* vertices, int curr_vertex_count, int x, in
 static unsigned char terrain_generation_func(int x, int y, int z)
 {
     // very advanced generation algorithm!
-    if (y > 60) return BLOCK_AIR;
     return BLOCK_GRASS;
 }
 
