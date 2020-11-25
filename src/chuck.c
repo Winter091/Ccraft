@@ -1,5 +1,6 @@
 #include "chunk.h"
 
+#include "map.h"
 #include "perlin_noise.h"
 #include "stdlib.h"
 #include "string.h"
@@ -26,8 +27,8 @@ static void gen_cube_vertices(Vertex* vertices, int curr_vertex_count, int x, in
         { {+1, 0, 0}, {+1, 0, +1}, {+1, +1, 0}, {+1, +1, +1} }, // right
         { {0, +1, 0}, {0, +1, +1}, {+1, +1, 0}, {+1, +1, +1} }, // top
         { {0, 0, 0 }, {0, 0, +1 }, {+1, 0, 0 }, {+1, 0, +1 } }, // bottom
-        { {0, 0, 0 }, {0, +1, 0 }, {+1, 0, 0 }, {+1, +1, 0 } }, // front
-        { {0, 0, +1}, {0, +1, +1}, {+1, 0, +1}, {+1, +1, +1} }  // back
+        { {0, 0, 0 }, {0, +1, 0 }, {+1, 0, 0 }, {+1, +1, 0 } }, // back
+        { {0, 0, +1}, {0, +1, +1}, {+1, 0, +1}, {+1, +1, +1} }  // front
     };
 
     static const int indices[6][6] = 
@@ -85,7 +86,7 @@ static void gen_cube_vertices(Vertex* vertices, int curr_vertex_count, int x, in
     }
 }
 
-static unsigned char terrain_generation_func(int x, int y, int z)
+static inline unsigned char terrain_generation_func(int x, int y, int z)
 {
     float value = perlin2d(x, z, 0.002, 8) * CHUNK_HEIGHT / 2.0f;
 
@@ -97,30 +98,172 @@ static unsigned char terrain_generation_func(int x, int y, int z)
         return BLOCK_SAND;
 }
 
-static inline int is_block_visible(Chunk* c, int x, int y, int z)
+static inline int block_is_visible(Chunk* c, int x, int y, int z, Chunk* left, Chunk* right, Chunk* front, Chunk* back)
 {
-    if (x > 0 && x < CHUNK_WIDTH - 1)
+    if (x == 0)
+    {
+        if (!left)
+            return 1;
+        else
+            if (!left->blocks[CHUNK_WIDTH - 1][y][z])
+                return 1;
+        
+    }
+    else if (x == CHUNK_WIDTH - 1)
+    {
+        if (!right)
+            return 1;
+        else
+            if (!right->blocks[0][y][z])
+                return 1;
+    }
+    else
     {
         if (!c->blocks[x - 1][y][z] || !c->blocks[x + 1][y][z])
             return 1;
     }
-    else return 1;
 
-    if (y > 0 && y < CHUNK_HEIGHT - 1)
+    if (y == 0)
+    {
+        if (!c->blocks[x][y + 1][z])
+            return 1;
+    }
+    else if (y == CHUNK_HEIGHT)
+    {
+        if (!c->blocks[x][y - 1][z])
+            return 1;
+    }
+    else
     {
         if (!c->blocks[x][y - 1][z] || !c->blocks[x][y + 1][z])
             return 1;
     }
-    else return 1;
 
-    if (z > 0 && z < CHUNK_WIDTH - 1)
+    if (z == 0)
     {
-        if (!c->blocks[x][y][z - 1] || !c->blocks[x][y][z + 1])
+        if (!back)
+            return 1;
+        else
+            if (!back->blocks[x][y][CHUNK_WIDTH - 1])
+                return 1;
+        
+    }
+    else if (z == CHUNK_WIDTH - 1)
+    {
+        if (!front)
+            return 1;
+        else
+            if (!front->blocks[x][y][0])
+                return 1;
+    }
+    else
+    {
+        if (!c->blocks[x][y][z + 1] || !c->blocks[x][y][z - 1])
             return 1;
     }
-    else return 1;
 
     return 0;
+}
+
+static inline void block_set_visible_faces(Chunk* c, int x, int y, int z, Chunk* left, Chunk* right, Chunk* front, Chunk* back, int faces[6])
+{
+    // left
+    if (x == 0)
+    {
+        if (!left)
+            faces[0] = 1;
+        else if (!left->blocks[CHUNK_WIDTH - 1][y][z])
+            faces[0] = 1;
+        else
+            faces[0] = 0;
+    }
+    else
+    {
+        if (!c->blocks[x - 1][y][z])
+            faces[0] = 1;
+        else
+            faces[0] = 0;
+    }
+
+    // right
+    if (x == CHUNK_WIDTH - 1)
+    {
+        if (!right)
+            faces[1] = 1;
+        else if (!right->blocks[0][y][z])
+            faces[1] = 1;
+        else
+            faces[1] = 0;
+    }
+    else
+    {
+        if (!c->blocks[x + 1][y][z])
+            faces[1] = 1;
+        else
+            faces[1] = 0;
+    }
+
+    // top
+    if (y == CHUNK_HEIGHT - 1)
+    {
+        faces[2] = 1;
+    }
+    else
+    {
+        if (!c->blocks[x][y + 1][z])
+            faces[2] = 1;
+        else
+            faces[2] = 0;
+    }
+
+    // bottom
+    if (y == 0)
+    {
+        faces[3] = 1;
+    }
+    else
+    {
+        if (!c->blocks[x][y - 1][z])
+            faces[3] = 1;
+        else
+            faces[3] = 0;
+    }
+
+    // back
+    if (z == 0)
+    {
+        if (!back)
+            faces[4] = 1;
+        else if (!back->blocks[x][y][CHUNK_WIDTH - 1])
+            faces[4] = 1;
+        else
+            faces[4] = 0;
+    }
+    else
+    {
+        if (!c->blocks[x][y][z - 1])
+            faces[4] = 1;
+        else
+            faces[4] = 0;
+    }
+
+    // front
+    if (z == CHUNK_WIDTH - 1)
+    {
+        if (!front)
+            faces[5] = 1;
+        else if (!front->blocks[x][y][0])
+            faces[5] = 1;
+        else
+            faces[5] = 0;
+    }
+    else
+    {
+        if (!c->blocks[x][y][z + 1])
+            faces[5] = 1;
+        else
+            faces[5] = 0;
+    }
 }
 
 Chunk* chunk_create(int chunk_x, int chunk_z)
@@ -154,12 +297,10 @@ Chunk* chunk_create(int chunk_x, int chunk_z)
         }
     }
 
-    chunk_update_buffer(c);
-
     return c;
 }
 
-void chunk_update_buffer(Chunk* c)
+void chunk_update_buffer(Chunk* c, Chunk* left, Chunk* right, Chunk* front, Chunk* back)
 {
     Vertex* vertices = malloc(
         CHUNK_WIDTH * CHUNK_WIDTH * CHUNK_HEIGHT * 36 * sizeof(Vertex)
@@ -175,14 +316,20 @@ void chunk_update_buffer(Chunk* c)
                 if (c->blocks[x][y][z] == BLOCK_AIR)
                     continue;
 
-                if (!is_block_visible(c, x, y, z))
+                if (!block_is_visible(c, x, y, z, left, right, front, back))
                     continue;
 
                 int block_x = x + c->x * CHUNK_WIDTH;
                 int block_y = y;
                 int block_z = z + c->z * CHUNK_WIDTH;
+
+                // a lot of faces are not visible from any
+                // angle, so don't draw these faces
+                int faces[6];
+                block_set_visible_faces(
+                    c, x, y, z, left, right, front, back, faces
+                );
                     
-                int faces[6] = {1, 1, 1, 1, 1, 1};
                 gen_cube_vertices(
                     vertices, curr_vertex_count, block_x, block_y, 
                     block_z, c->blocks[x][y][z], faces

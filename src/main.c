@@ -87,16 +87,26 @@ int main()
     );
 
     Map* map = map_create(); 
-    for (int i = 0; i < 2; i++)
-        for (int j = 0; j < 2; j++)
+    for (int i = 0; i < 40; i++)
+        for (int j = 0; j < 40; j++)
             map_add_chunk(map, i, j);
+    map_gen_chunks_buffers(map);
 
     double last_time = glfwGetTime();
+    double last_fps_time = last_time;
+    int frames = 0;
     while (!glfwWindowShouldClose(window))
     {
         double curr_time = glfwGetTime();
         double dt = curr_time - last_time;
         last_time = curr_time;
+        frames++;
+        if (curr_time - last_fps_time >= 1.0)
+        {
+            //printf("%d\n", frames);
+            frames = 0;
+            last_fps_time = curr_time;
+        }
         
         glClearColor(0.26f, 0.32f, 0.32f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

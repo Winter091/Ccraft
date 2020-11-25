@@ -25,7 +25,7 @@ Camera* camera_create(vec3 pos)
 
     cam->fov = FOV;
     cam->sens = 0.1f;
-    cam->move_speed = 3.0f;
+    cam->move_speed = 2.0f;
 
     cam->active = 0;
     cam->mouse_last_x = 0;

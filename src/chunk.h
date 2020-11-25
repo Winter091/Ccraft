@@ -15,6 +15,6 @@ typedef struct
 Chunk;
 
 Chunk* chunk_create(int chunk_x, int chunk_z);
-void chunk_update_buffer(Chunk* chunk);
+void chunk_update_buffer(Chunk* c, Chunk* left, Chunk* right, Chunk* front, Chunk* back);
 
 #endif
