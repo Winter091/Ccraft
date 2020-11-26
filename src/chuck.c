@@ -88,7 +88,7 @@ static void gen_cube_vertices(Vertex* vertices, int curr_vertex_count, int x, in
 
 static inline unsigned char terrain_generation_func(int x, int y, int z)
 {
-    float value = perlin2d(x, z, 0.02, 8) * CHUNK_HEIGHT / 2.0f;
+    float value = perlin2d(x, z, 0.02, 5) * CHUNK_HEIGHT / 2.0f;
 
     if (y > value)
         return BLOCK_AIR;
@@ -105,14 +105,14 @@ static inline void block_set_visible_faces(Chunk* c, int x, int y, int z, Chunk*
     {
         if (!left)
             faces[0] = 1;
-        else if (!left->blocks[CHUNK_WIDTH - 1][y][z])
+        else if (!left->blocks[XYZ(CHUNK_WIDTH - 1, y, z)])
             faces[0] = 1;
         else
             faces[0] = 0;
     }
     else
     {
-        if (!c->blocks[x - 1][y][z])
+        if (!c->blocks[XYZ(x - 1, y, z)])
             faces[0] = 1;
         else
             faces[0] = 0;
@@ -123,14 +123,14 @@ static inline void block_set_visible_faces(Chunk* c, int x, int y, int z, Chunk*
     {
         if (!right)
             faces[1] = 1;
-        else if (!right->blocks[0][y][z])
+        else if (!right->blocks[XYZ(0, y, z)])
             faces[1] = 1;
         else
             faces[1] = 0;
     }
     else
     {
-        if (!c->blocks[x + 1][y][z])
+        if (!c->blocks[XYZ(x + 1, y, z)])
             faces[1] = 1;
         else
             faces[1] = 0;
@@ -143,7 +143,7 @@ static inline void block_set_visible_faces(Chunk* c, int x, int y, int z, Chunk*
     }
     else
     {
-        if (!c->blocks[x][y + 1][z])
+        if (!c->blocks[XYZ(x, y + 1, z)])
             faces[2] = 1;
         else
             faces[2] = 0;
@@ -156,7 +156,7 @@ static inline void block_set_visible_faces(Chunk* c, int x, int y, int z, Chunk*
     }
     else
     {
-        if (!c->blocks[x][y - 1][z])
+        if (!c->blocks[XYZ(x, y - 1, z)])
             faces[3] = 1;
         else
             faces[3] = 0;
@@ -167,14 +167,14 @@ static inline void block_set_visible_faces(Chunk* c, int x, int y, int z, Chunk*
     {
         if (!back)
             faces[4] = 1;
-        else if (!back->blocks[x][y][CHUNK_WIDTH - 1])
+        else if (!back->blocks[XYZ(x, y, CHUNK_WIDTH - 1)])
             faces[4] = 1;
         else
             faces[4] = 0;
     }
     else
     {
-        if (!c->blocks[x][y][z - 1])
+        if (!c->blocks[XYZ(x, y, z - 1)])
             faces[4] = 1;
         else
             faces[4] = 0;
@@ -185,14 +185,14 @@ static inline void block_set_visible_faces(Chunk* c, int x, int y, int z, Chunk*
     {
         if (!front)
             faces[5] = 1;
-        else if (!front->blocks[x][y][0])
+        else if (!front->blocks[XYZ(x, y, 0)])
             faces[5] = 1;
         else
             faces[5] = 0;
     }
     else
     {
-        if (!c->blocks[x][y][z + 1])
+        if (!c->blocks[XYZ(x, y, z + 1)])
             faces[5] = 1;
         else
             faces[5] = 0;
@@ -207,13 +207,11 @@ Chunk* chunk_create(int chunk_x, int chunk_z)
     c->VAO = 0;
     c->vertex_count = 0;
 
-    c->blocks = malloc(CHUNK_WIDTH * sizeof(char**));
+    c->blocks = malloc(CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH);
     for (int x = 0; x < CHUNK_WIDTH; x++)
     {
-        c->blocks[x] = malloc(CHUNK_HEIGHT * sizeof(char*));
         for (int y = 0; y < CHUNK_HEIGHT; y++)
         {
-            c->blocks[x][y] = malloc(CHUNK_WIDTH * sizeof(char));
             for (int z = 0; z < CHUNK_WIDTH; z++)
             {
                 int block_x = x + chunk_x * CHUNK_WIDTH;
@@ -223,7 +221,7 @@ Chunk* chunk_create(int chunk_x, int chunk_z)
                 // blocks array determine the type of
                 // block at particular coordinate
                 // for example, 0 is air, 1 is grass
-                c->blocks[x][y][z] = terrain_generation_func(
+                c->blocks[XYZ(x, y, z)] = terrain_generation_func(
                     block_x, block_y, block_z
                 );           
             }
@@ -246,7 +244,7 @@ void chunk_update_buffer(Chunk* c, Chunk* left, Chunk* right, Chunk* front, Chun
         for (int y = 0; y < CHUNK_HEIGHT; y++)
             for (int z = 0; z < CHUNK_WIDTH; z++)
             {
-                if (c->blocks[x][y][z] == BLOCK_AIR)
+                if (c->blocks[XYZ(x, y, z)] == BLOCK_AIR)
                     continue;
 
                 int block_x = x + c->x * CHUNK_WIDTH;
@@ -275,7 +273,7 @@ void chunk_update_buffer(Chunk* c, Chunk* left, Chunk* right, Chunk* front, Chun
                     
                 gen_cube_vertices(
                     vertices, curr_vertex_count, block_x, block_y, 
-                    block_z, c->blocks[x][y][z], faces
+                    block_z, c->blocks[XYZ(x, y, z)], faces
                 );
 
                 for (int i = 0; i < 6; i++)

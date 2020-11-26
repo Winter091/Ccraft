@@ -5,9 +5,11 @@
 #include "config.h"
 #include "stdlib.h"
 
+#define XYZ(x, y, z) ((x) * CHUNK_WIDTH * CHUNK_HEIGHT) + ((y) * CHUNK_WIDTH) + (z)
+
 typedef struct
 {
-    unsigned char*** blocks;
+    unsigned char* blocks;
     GLuint VAO;
     size_t vertex_count;
     int x, z;
