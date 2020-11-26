@@ -88,7 +88,7 @@ static void gen_cube_vertices(Vertex* vertices, int curr_vertex_count, int x, in
 
 static inline unsigned char terrain_generation_func(int x, int y, int z)
 {
-    float value = perlin2d(x, z, 0.002, 8) * CHUNK_HEIGHT / 2.0f;
+    float value = perlin2d(x, z, 0.02, 8) * CHUNK_HEIGHT / 2.0f;
 
     if (y > value)
         return BLOCK_AIR;
@@ -96,73 +96,6 @@ static inline unsigned char terrain_generation_func(int x, int y, int z)
         return BLOCK_GRASS;
     else
         return BLOCK_SAND;
-}
-
-static inline int block_is_visible(Chunk* c, int x, int y, int z, Chunk* left, Chunk* right, Chunk* front, Chunk* back)
-{
-    if (x == 0)
-    {
-        if (!left)
-            return 1;
-        else
-            if (!left->blocks[CHUNK_WIDTH - 1][y][z])
-                return 1;
-        
-    }
-    else if (x == CHUNK_WIDTH - 1)
-    {
-        if (!right)
-            return 1;
-        else
-            if (!right->blocks[0][y][z])
-                return 1;
-    }
-    else
-    {
-        if (!c->blocks[x - 1][y][z] || !c->blocks[x + 1][y][z])
-            return 1;
-    }
-
-    if (y == 0)
-    {
-        if (!c->blocks[x][y + 1][z])
-            return 1;
-    }
-    else if (y == CHUNK_HEIGHT)
-    {
-        if (!c->blocks[x][y - 1][z])
-            return 1;
-    }
-    else
-    {
-        if (!c->blocks[x][y - 1][z] || !c->blocks[x][y + 1][z])
-            return 1;
-    }
-
-    if (z == 0)
-    {
-        if (!back)
-            return 1;
-        else
-            if (!back->blocks[x][y][CHUNK_WIDTH - 1])
-                return 1;
-        
-    }
-    else if (z == CHUNK_WIDTH - 1)
-    {
-        if (!front)
-            return 1;
-        else
-            if (!front->blocks[x][y][0])
-                return 1;
-    }
-    else
-    {
-        if (!c->blocks[x][y][z + 1] || !c->blocks[x][y][z - 1])
-            return 1;
-    }
-
-    return 0;
 }
 
 static inline void block_set_visible_faces(Chunk* c, int x, int y, int z, Chunk* left, Chunk* right, Chunk* front, Chunk* back, int faces[6])
@@ -316,9 +249,6 @@ void chunk_update_buffer(Chunk* c, Chunk* left, Chunk* right, Chunk* front, Chun
                 if (c->blocks[x][y][z] == BLOCK_AIR)
                     continue;
 
-                if (!block_is_visible(c, x, y, z, left, right, front, back))
-                    continue;
-
                 int block_x = x + c->x * CHUNK_WIDTH;
                 int block_y = y;
                 int block_z = z + c->z * CHUNK_WIDTH;
@@ -329,6 +259,19 @@ void chunk_update_buffer(Chunk* c, Chunk* left, Chunk* right, Chunk* front, Chun
                 block_set_visible_faces(
                     c, x, y, z, left, right, front, back, faces
                 );
+
+                int visible = 0;
+                for (int i = 0; i < 6; i++)
+                {
+                    if (faces[i])
+                    {
+                        visible = 1;
+                        break;
+                    }
+                }
+
+                if (!visible)
+                    continue;
                     
                 gen_cube_vertices(
                     vertices, curr_vertex_count, block_x, block_y, 
@@ -336,11 +279,13 @@ void chunk_update_buffer(Chunk* c, Chunk* left, Chunk* right, Chunk* front, Chun
                 );
 
                 for (int i = 0; i < 6; i++)
+                {
                     if (faces[i])
                     {
                         curr_vertex_count += 6;
                         curr_vert_size += 6 * sizeof(Vertex);
                     }
+                }
             }
 
     // Generate VAO and VBO, send vertices to videocard
