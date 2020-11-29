@@ -24,6 +24,8 @@ typedef struct
     float clip_near;
     float clip_far;
 
+    vec4 frustum_planes[6];
+
     mat4 view_matrix;
     mat4 proj_matrix;
     mat4 vp_matrix;

@@ -25,19 +25,17 @@ Camera* camera_create(vec3 pos)
 
     cam->fov = FOV;
     cam->sens = 0.1f;
-    cam->move_speed = 2.0f;
+    cam->move_speed = 5.0f;
 
     cam->active = 0;
     cam->mouse_last_x = 0;
     cam->mouse_last_y = 0;
 
-    cam->clip_near = 0.1f;
-    cam->clip_far = 500.0f;
+    cam->clip_near = BLOCK_SIZE / 10.0f;
+    cam->clip_far = (5 + CHUNK_RENDER_RADIUS) * CHUNK_SIZE;
 
     // generate view, proj and vp matrices
-    vec3 center;
-    glm_vec3_add(cam->pos, cam->front, center);
-    glm_lookat(cam->pos, center, cam->up, cam->view_matrix);
+    glm_look(cam->pos, cam->front, cam->up, cam->view_matrix);
 
     glm_perspective(
         glm_rad(FOV), (float)WINDOW_WIDTH / WINDOW_HEIGHT, 
@@ -120,7 +118,7 @@ static void update_keyboard(Camera* cam, GLFWwindow* window, double dt)
         glm_vec3_crossn(move, cam->up, move2);
         
         glm_vec3_scale(move2, cam->move_speed * dt, move2);
-        if (key_d) glm_vec3_scale(move2, -1, move2);
+        if (key_d) glm_vec3_negate(move2);
         glm_vec3_sub(cam->pos, move2, cam->pos);
     }
 
@@ -128,7 +126,7 @@ static void update_keyboard(Camera* cam, GLFWwindow* window, double dt)
     {
         glm_vec3_copy(cam->up, move);
         glm_vec3_scale(move, cam->move_speed * dt, move);
-        if (key_ctrl) glm_vec3_scale(move, -1, move);
+        if (key_ctrl) glm_vec3_negate(move);
         glm_vec3_add(cam->pos, move, cam->pos);
     }
 }
@@ -147,19 +145,17 @@ void camera_update(Camera* cam, GLFWwindow* window, double dt)
     }
 
     // update view matrix
-    vec3 center;
-    glm_vec3_add(cam->pos, cam->front, center);
-    glm_lookat(cam->pos, center, cam->up, cam->view_matrix);
+    glm_look(cam->pos, cam->front, cam->up, cam->view_matrix);
 
     // then update view-projection matrix
     glm_mat4_mul(cam->proj_matrix, cam->view_matrix, cam->vp_matrix);
+
+    // update frustum planes
+    glm_frustum_planes(cam->vp_matrix, cam->frustum_planes);
 }
 
 void camera_set_aspect_ratio(Camera* cam, float new_ratio)
 {
-    // set new projection matrix
-    glm_perspective(
-        glm_rad(cam->fov), new_ratio, cam->clip_near, 
-        cam->clip_far, cam->proj_matrix
-    );
+    glm_perspective_resize(new_ratio, cam->proj_matrix);
+    glm_frustum_planes(cam->vp_matrix, cam->frustum_planes);
 }

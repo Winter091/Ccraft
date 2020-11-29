@@ -25,13 +25,12 @@ GLuint texture_create(const char* path)
         return 0;
     }
     
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(
+        GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data
+    );
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-    //glGenerateMipmap(GL_TEXTURE_2D);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -65,37 +64,37 @@ GLuint array_texture_create(const char* path)
 
     int atlas_row_size = w * channels;
 
-    int texels = 256;
-    int texel_w = 16; 
-    int texel_h = 16;
-    int texel_row_size = texel_w * channels;
+    int tiles = 256;
+    int tile_w = 16; 
+    int tile_h = 16;
+    int tile_row_size = tile_w * channels;
 
     glTexImage3D(
-        GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, texel_w, texel_h, 
-        texels, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL
+        GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, tile_w, tile_h, 
+        tiles, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL
     );
 
     // 16 x 16 pixels, 4 bytes per pixel
-    unsigned char* texel_data = malloc(texel_w * texel_h * channels);
+    unsigned char* tile_data = malloc(tile_w * tile_h * channels);
     
     for (int y = 0; y < 16; y++)
     {
         for (int x = 0; x < 16; x++)
         {
-            // extract texel data from texture atlas
-            for (int row = 0; row < texel_h; row++)
+            // extract tile data from texture atlas
+            for (int row = 0; row < tile_h; row++)
             {
                 memcpy(
-                    texel_data + row * texel_row_size, 
-                    data + (x * texel_row_size) + atlas_row_size * (y * texel_h + row), 
-                    texel_row_size
+                    tile_data + row * tile_row_size, 
+                    data + (x * tile_row_size) + atlas_row_size * (y * tile_h + row), 
+                    tile_row_size
                 );
             }
 
-            int curr_texel = x + y * 16;
+            int curr_tile = x + y * 16;
             glTexSubImage3D(
-                GL_TEXTURE_2D_ARRAY, 0, 0, 0, curr_texel, texel_w, 
-                texel_h, 1, GL_RGBA, GL_UNSIGNED_BYTE, texel_data
+                GL_TEXTURE_2D_ARRAY, 0, 0, 0, curr_tile, tile_w, 
+                tile_h, 1, GL_RGBA, GL_UNSIGNED_BYTE, tile_data
             );
         }
     }
@@ -112,7 +111,7 @@ GLuint array_texture_create(const char* path)
     glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
 
     stbi_image_free(data);
-    free(texel_data);
+    free(tile_data);
 
     return texture;
 }

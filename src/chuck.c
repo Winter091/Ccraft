@@ -15,20 +15,22 @@ typedef struct
 Vertex;
 
 // ofsset = offset into vertices array
-// x, y, z = cube world coordinates
+// x, y, z = cube's world coordinates
 // faces = determine whether to draw face or not
-// tiles = choise of texture for each face
-static void gen_cube_vertices(Vertex* vertices, int curr_vertex_count, int x, int y, int z, int block_type, int faces[6])
+static void gen_cube_vertices(
+    Vertex* vertices, int curr_vertex_count, 
+    int x, int y, int z, int block_type, int faces[6]
+)
 {    
     // row = face (6 faces), each face has 4 points forming a square
     static const float positions[6][4][3] = 
     {
-        { {0, 0, 0 }, {0, 0, +1 }, {0, +1, 0 }, {0, +1, +1 } }, // left
-        { {+1, 0, 0}, {+1, 0, +1}, {+1, +1, 0}, {+1, +1, +1} }, // right
-        { {0, +1, 0}, {0, +1, +1}, {+1, +1, 0}, {+1, +1, +1} }, // top
-        { {0, 0, 0 }, {0, 0, +1 }, {+1, 0, 0 }, {+1, 0, +1 } }, // bottom
-        { {0, 0, 0 }, {0, +1, 0 }, {+1, 0, 0 }, {+1, +1, 0 } }, // back
-        { {0, 0, +1}, {0, +1, +1}, {+1, 0, +1}, {+1, +1, +1} }  // front
+        { {0, 0, 0}, {0, 0, 1}, {0, 1, 0}, {0, 1, 1} }, // left
+        { {1, 0, 0}, {1, 0, 1}, {1, 1, 0}, {1, 1, 1} }, // right
+        { {0, 1, 0}, {0, 1, 1}, {1, 1, 0}, {1, 1, 1} }, // top
+        { {0, 0, 0}, {0, 0, 1}, {1, 0, 0}, {1, 0, 1} }, // bottom
+        { {0, 0, 0}, {0, 1, 0}, {1, 0, 0}, {1, 1, 0} }, // back
+        { {0, 0, 1}, {0, 1, 1}, {1, 0, 1}, {1, 1, 1} }  // front
     };
 
     static const int indices[6][6] = 
@@ -71,24 +73,25 @@ static void gen_cube_vertices(Vertex* vertices, int curr_vertex_count, int x, in
         for (int v = 0; v < 6; v++)
         {
             int index = indices[f][v];
+            int vert_index = curr_vertex_count + curr_vertex;
 
-            vertices[curr_vertex_count + curr_vertex].pos[0] = (positions[f][index][0] + x) * BLOCK_SIZE;
-            vertices[curr_vertex_count + curr_vertex].pos[1] = (positions[f][index][1] + y) * BLOCK_SIZE;
-            vertices[curr_vertex_count + curr_vertex].pos[2] = (positions[f][index][2] + z) * BLOCK_SIZE;
+            vertices[vert_index].pos[0] = (positions[f][index][0] + x) * BLOCK_SIZE;
+            vertices[vert_index].pos[1] = (positions[f][index][1] + y) * BLOCK_SIZE;
+            vertices[vert_index].pos[2] = (positions[f][index][2] + z) * BLOCK_SIZE;
 
-            vertices[curr_vertex_count + curr_vertex].tex_coord[0] = uvs[f][index][0];
-            vertices[curr_vertex_count + curr_vertex].tex_coord[1] = uvs[f][index][1];
+            vertices[vert_index].tex_coord[0] = uvs[f][index][0];
+            vertices[vert_index].tex_coord[1] = uvs[f][index][1];
 
-            vertices[curr_vertex_count + curr_vertex].tile = tiles[block_type][f];
+            vertices[vert_index].tile = tiles[block_type][f];
 
             curr_vertex++;
         }
     }
 }
 
-static inline unsigned char terrain_generation_func(int x, int y, int z)
+static unsigned char terrain_generation_func(int x, int y, int z)
 {
-    float value = perlin2d(x, z, 0.02, 5) * CHUNK_HEIGHT / 2.0f;
+    float value = perlin2d(x, z, 0.002, 5) * CHUNK_HEIGHT / 2.0f;
 
     if (y > value)
         return BLOCK_AIR;
@@ -98,7 +101,10 @@ static inline unsigned char terrain_generation_func(int x, int y, int z)
         return BLOCK_SAND;
 }
 
-static inline void block_set_visible_faces(Chunk* c, int x, int y, int z, Chunk* left, Chunk* right, Chunk* front, Chunk* back, int faces[6])
+static void block_set_visible_faces(
+    Chunk* c, int x, int y, int z, 
+    Chunk* left, Chunk* right, Chunk* front, Chunk* back, int faces[6]
+)
 {
     // left
     if (x == 0)
@@ -152,7 +158,7 @@ static inline void block_set_visible_faces(Chunk* c, int x, int y, int z, Chunk*
     // bottom
     if (y == 0)
     {
-        faces[3] = 1;
+        faces[3] = 0;
     }
     else
     {
@@ -231,7 +237,9 @@ Chunk* chunk_create(int chunk_x, int chunk_z)
     return c;
 }
 
-void chunk_update_buffer(Chunk* c, Chunk* left, Chunk* right, Chunk* front, Chunk* back)
+void chunk_update_buffer(
+    Chunk* c, Chunk* left, Chunk* right, Chunk* front, Chunk* back
+)
 {
     Vertex* vertices = malloc(
         CHUNK_WIDTH * CHUNK_WIDTH * CHUNK_HEIGHT * 36 * sizeof(Vertex)
@@ -295,9 +303,15 @@ void chunk_update_buffer(Chunk* c, Chunk* left, Chunk* right, Chunk* front, Chun
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, curr_vert_size, vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(3 * sizeof(float)));
-    glVertexAttribIPointer(2, 1, GL_UNSIGNED_BYTE,  sizeof(Vertex), (void*)(5 * sizeof(float)));
+    glVertexAttribPointer(
+        0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0
+    );
+    glVertexAttribPointer(
+        1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(3 * sizeof(float))
+    );
+    glVertexAttribIPointer(
+        2, 1, GL_UNSIGNED_BYTE,  sizeof(Vertex), (void*)(5 * sizeof(float))
+    );
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
@@ -306,4 +320,65 @@ void chunk_update_buffer(Chunk* c, Chunk* left, Chunk* right, Chunk* front, Chun
 
     c->VAO = VAO;
     c->vertex_count = curr_vertex_count;     
+}
+
+int chunk_is_visible(Chunk* c, vec4 planes[6])
+{
+    int x = (c->x - 2) * CHUNK_SIZE;
+    int z = (c->z - 2) * CHUNK_SIZE;
+    int d = 5 * CHUNK_SIZE;
+    int min_y = 0;
+    int max_y = CHUNK_HEIGHT * BLOCK_SIZE;
+    
+    // set chunk borders;
+    // in order not to have culling errors,
+    // borders are much larger than the 
+    // actual chunk
+    float vertices[8][3] = {
+        {x + 0, min_y, z + 0},
+        {x + d, min_y, z + 0},
+        {x + 0, min_y, z + d},
+        {x + d, min_y, z + d},
+        {x + 0, max_y, z + 0},
+        {x + d, max_y, z + 0},
+        {x + 0, max_y, z + d},
+        {x + d, max_y, z + d}
+    };
+
+    // for each camera frustum's plane
+    for (int i = 0; i < 6; i++)
+    {
+        int in = 0;
+        int out = 0;
+
+        // count the amount of vertices that are
+        // inside the frustum and that are outside
+        for (int j = 0; j < 8; j++)
+        {
+            // the sign of (Ax + By + Cz + D) determines
+            // whether the point is above or below the plane;
+            // below here means 'outside'
+            float value =
+                planes[i][0] * vertices[j][0] +
+                planes[i][1] * vertices[j][1] +
+                planes[i][2] * vertices[j][2] +
+                planes[i][3];
+
+            if (value < 0) 
+                out++;
+            else 
+                in++;
+
+            // chunk intersects the plane
+            if (in && out)
+                break;
+        }
+
+        // every chunk's vertex is outside of one of
+        // the frustum planes, chunk is not visible
+        if (!in)
+            return 0;
+    }
+
+    return 1;
 }

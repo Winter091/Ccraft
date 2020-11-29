@@ -2,6 +2,7 @@
 #define CHUNK_H_
 
 #include "glad/glad.h"
+#include "cglm/cglm.h"
 #include "config.h"
 #include "stdlib.h"
 
@@ -18,5 +19,6 @@ Chunk;
 
 Chunk* chunk_create(int chunk_x, int chunk_z);
 void chunk_update_buffer(Chunk* c, Chunk* left, Chunk* right, Chunk* front, Chunk* back);
+int chunk_is_visible(Chunk* c, vec4 planes[6]);
 
 #endif

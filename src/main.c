@@ -87,8 +87,8 @@ int main()
     );
 
     Map* map = map_create(); 
-    for (int i = 0; i < 40; i++)
-        for (int j = 0; j < 40; j++)
+    for (int i = 0; i < CHUNK_RENDER_RADIUS * 2; i++)
+        for (int j = 0; j < CHUNK_RENDER_RADIUS * 2; j++)
             map_add_chunk(map, i, j);
     map_gen_chunks_buffers(map);
 
@@ -103,7 +103,7 @@ int main()
         frames++;
         if (curr_time - last_fps_time >= 1.0)
         {
-            //printf("%d\n", frames);
+            printf("%d\n", frames);
             frames = 0;
             last_fps_time = curr_time;
         }
@@ -113,18 +113,12 @@ int main()
 
         camera_update(game_obj->cam, window, dt);
 
-        
         glUseProgram(shader_chunk);
         shader_set_mat4(shader_chunk, "mvp_matrix", game_obj->cam->vp_matrix);
         shader_set_int1(shader_chunk, "texture_sampler", 0);
         array_texture_bind(texture_blocks, 0);
 
-        for (int i = 0; i < map->chunk_count; i++)
-        {
-            glBindVertexArray(map->chunks[i]->VAO);
-            glDrawArrays(GL_TRIANGLES, 0, map->chunks[i]->vertex_count);
-        }
-        
+        map_render_chunks(map, game_obj->cam->frustum_planes);
         
         /*
         glBindVertexArray(VAO);

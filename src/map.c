@@ -43,3 +43,17 @@ void map_delete_chunk(Map* map, int chunk_x, int chunk_z)
 {
 
 }
+
+void map_render_chunks(Map* map, vec4 cam_frustum_planes[6])
+{
+    for (int i = 0; i < map->chunk_count; i++)
+        {
+            Chunk* c = map->chunks[i];
+            
+            if (!chunk_is_visible(c, cam_frustum_planes))
+                continue;
+            
+            glBindVertexArray(c->VAO);
+            glDrawArrays(GL_TRIANGLES, 0, c->vertex_count);
+        }
+}
