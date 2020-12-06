@@ -5,6 +5,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include "stdio.h"
+#include "GLFW/glfw3.h"
 
 typedef struct
 {
@@ -91,11 +92,17 @@ static void gen_cube_vertices(
 
 static unsigned char terrain_generation_func(int x, int y, int z)
 {
-    float value = perlin2d(x, z, 0.002, 5) * CHUNK_HEIGHT / 2.0f;
+    //if (y > 60) return BLOCK_AIR;
+    //return BLOCK_GRASS;
+
+    x = x < 0 ? -x : x;
+    z = z < 0 ? -z : z;
+    
+    float value = perlin2d(x * 0.002, z * 0.002, 4) * CHUNK_HEIGHT / 2.0f;
 
     if (y > value)
         return BLOCK_AIR;
-    else if (y > 50)
+    else if (y > 40)
         return BLOCK_GRASS;
     else
         return BLOCK_SAND;
@@ -205,14 +212,23 @@ static void block_set_visible_faces(
     }
 }
 
-Chunk* chunk_create(int chunk_x, int chunk_z)
+Chunk* chunk_init(int chunk_x, int chunk_z)
 {
     Chunk* c = malloc(sizeof(Chunk));
+
+    c->blocks = NULL;
+    c->is_loaded = 0;
+    c->VAO = 0;
+    c->VBO = 0;
+    c->vertex_count = 0;
     c->x = chunk_x;
     c->z = chunk_z;
-    c->VAO = 0;
-    c->vertex_count = 0;
 
+    return c;
+}
+
+void chunk_generate(Chunk* c)
+{
     c->blocks = malloc(CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH);
     for (int x = 0; x < CHUNK_WIDTH; x++)
     {
@@ -220,9 +236,9 @@ Chunk* chunk_create(int chunk_x, int chunk_z)
         {
             for (int z = 0; z < CHUNK_WIDTH; z++)
             {
-                int block_x = x + chunk_x * CHUNK_WIDTH;
+                int block_x = x + c->x * CHUNK_WIDTH;
                 int block_y = y;
-                int block_z = z + chunk_z * CHUNK_WIDTH;
+                int block_z = z + c->z * CHUNK_WIDTH;
 
                 // blocks array determine the type of
                 // block at particular coordinate
@@ -233,14 +249,18 @@ Chunk* chunk_create(int chunk_x, int chunk_z)
             }
         }
     }
-
-    return c;
 }
 
 void chunk_update_buffer(
     Chunk* c, Chunk* left, Chunk* right, Chunk* front, Chunk* back
 )
 {
+    if (c->is_loaded)
+    {
+        glDeleteVertexArrays(1, &c->VAO);
+        glDeleteBuffers(1, &c->VBO);
+    }
+    
     Vertex* vertices = malloc(
         CHUNK_WIDTH * CHUNK_WIDTH * CHUNK_HEIGHT * 36 * sizeof(Vertex)
     );
@@ -319,13 +339,15 @@ void chunk_update_buffer(
     free(vertices);
 
     c->VAO = VAO;
-    c->vertex_count = curr_vertex_count;     
+    c->VBO = VBO;
+    c->vertex_count = curr_vertex_count;
+    c->is_loaded = 1;
 }
 
-int chunk_is_visible(Chunk* c, vec4 planes[6])
+int chunk_is_visible(int chunk_x, int chunk_z, vec4 planes[6])
 {
-    int x = (c->x - 2) * CHUNK_SIZE;
-    int z = (c->z - 2) * CHUNK_SIZE;
+    int x = (chunk_x - 2) * CHUNK_SIZE;
+    int z = (chunk_z - 2) * CHUNK_SIZE;
     int d = 5 * CHUNK_SIZE;
     int min_y = 0;
     int max_y = CHUNK_HEIGHT * BLOCK_SIZE;
@@ -381,4 +403,30 @@ int chunk_is_visible(Chunk* c, vec4 planes[6])
     }
 
     return 1;
+}
+
+float chunk_dist_to_player(int chunk_x, int chunk_z, int pl_x, int pl_z)
+{
+    return abs(chunk_x - pl_x) + abs(chunk_z - pl_z);
+}
+
+uint32_t chunk_hash_func(Chunk* c)
+{
+    return (c->x + c->z) * (c->x + c->z + 1) / 2 + c->z;
+}
+
+uint32_t chunk_hash_func2(int chunk_x, int chunk_z)
+{
+    return (chunk_x + chunk_z) * (chunk_x + chunk_z + 1) / 2 + chunk_z;
+}
+
+void chunk_delete(Chunk* c)
+{
+    if (c->is_loaded)
+    {
+        free(c->blocks);
+        glDeleteVertexArrays(1, &c->VAO);
+        glDeleteBuffers(1, &c->VBO);
+    }
+    free(c);
 }

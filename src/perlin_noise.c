@@ -1,5 +1,7 @@
 #include "perlin_noise.h"
 
+#include "math.h"
+
 static int SEED = 155;
 
 static int hash[] = {
@@ -48,22 +50,22 @@ static float noise2d(float x, float y)
     return smooth_inter(low, high, y_frac);
 }
 
-float perlin2d(float x, float y, float freq, int octaves)
+float perlin2d(float x, float y, int octaves)
 {
-    float xa = x * freq;
-    float ya = y * freq;
-    float amp = 1.0;
-    float fin = 0;
-    float div = 0.0;
+    float gain = 2.0f;
+    float total = 0.0f;
+    float frequency = 0.9f;
+    float amplitude = gain;
+    float lacunarity = 2.0;
+    float div = 128 * gain;
 
-    for(int i = 0; i < octaves; i++)
+    for (int i = 0; i < octaves; i++)
     {
-        div += 256 * amp;
-        fin += noise2d(xa, ya) * amp;
-        amp /= 2;
-        xa *= 2;
-        ya *= 2;
-    }
+        total += noise2d(x * frequency, y * frequency) * amplitude;         
+        frequency *= lacunarity;
+        amplitude *= gain;
+        div *= gain;
+    } 
 
-    return fin / div;
+    return total / div;
 }

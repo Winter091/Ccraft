@@ -6,6 +6,8 @@
 
 #include "config.h"
 
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
 Camera* camera_create(vec3 pos)
 {
     Camera* cam = malloc(sizeof(Camera));
@@ -32,7 +34,9 @@ Camera* camera_create(vec3 pos)
     cam->mouse_last_y = 0;
 
     cam->clip_near = BLOCK_SIZE / 10.0f;
-    cam->clip_far = (5 + CHUNK_RENDER_RADIUS) * CHUNK_SIZE;
+
+    // at least 512 blocks
+    cam->clip_far = MAX((CHUNK_RENDER_RADIUS + 8) * CHUNK_SIZE, 512 * BLOCK_SIZE);
 
     // generate view, proj and vp matrices
     glm_look(cam->pos, cam->front, cam->up, cam->view_matrix);

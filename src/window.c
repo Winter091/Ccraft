@@ -37,6 +37,12 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
     }
 }
 
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    GameObjects* game = glfwGetWindowUserPointer(window);
+    game->cam->move_speed += yoffset;
+}
+
 GLFWwindow* window_create()
 {
     if (!glfwInit())
@@ -49,6 +55,9 @@ GLFWwindow* window_create()
     glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, OPENGL_VERSION_MAJOR_REQUIRED);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, OPENGL_VERSION_MINOR_REQUIRED);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+    // MSAA
+    glfwWindowHint(GLFW_SAMPLES, 4);
 
     GLFWmonitor* monitor = FULLSCREEN ? glfwGetPrimaryMonitor() : NULL;
 
@@ -90,6 +99,7 @@ GLFWwindow* window_create()
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetKeyCallback(window, key_callback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
+    glfwSetScrollCallback(window, scroll_callback);
 
     return window;
 }

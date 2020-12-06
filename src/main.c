@@ -27,6 +27,7 @@ int main()
     }
 
     glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+    glEnable(GL_MULTISAMPLE);
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_CULL_FACE);
     glEnable(GL_BLEND);
@@ -36,7 +37,7 @@ int main()
     fprintf(stdout, "Using OpenGL %s\n", version);
 
     GameObjects* game_obj = malloc(sizeof(GameObjects));
-    game_obj->cam = camera_create((vec3){ 0.0f, 5.0f, 3.0f });
+    game_obj->cam = camera_create((vec3){ 0.0f, 15.0f, 0.0f });
 
     // GameObj will be available in glfw callback
     // functions (with glfwGetWindowUserPointer)
@@ -86,11 +87,7 @@ int main()
         "shaders/chunk_fragment.glsl"
     );
 
-    Map* map = map_create(); 
-    for (int i = 0; i < CHUNK_RENDER_RADIUS * 2; i++)
-        for (int j = 0; j < CHUNK_RENDER_RADIUS * 2; j++)
-            map_add_chunk(map, i, j);
-    map_gen_chunks_buffers(map);
+    Map* map = map_create(game_obj->cam->pos);
 
     double last_time = glfwGetTime();
     double last_fps_time = last_time;
@@ -103,15 +100,16 @@ int main()
         frames++;
         if (curr_time - last_fps_time >= 1.0)
         {
-            printf("%d\n", frames);
+            //printf("%d\n", frames);
             frames = 0;
             last_fps_time = curr_time;
         }
         
-        glClearColor(0.26f, 0.32f, 0.32f, 1.0f);
+        glClearColor(0.34f, 0.53f, 0.76f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         camera_update(game_obj->cam, window, dt);
+        map_update(map, game_obj->cam);
 
         glUseProgram(shader_chunk);
         shader_set_mat4(shader_chunk, "mvp_matrix", game_obj->cam->vp_matrix);
