@@ -1,6 +1,7 @@
 #include "map.h"
 
 #include "stdlib.h"
+#include "limits.h"
 #include "GLFW/glfw3.h"
 
 LINKEDLIST_IMPLEMENTATION(Chunk*, chunks);
