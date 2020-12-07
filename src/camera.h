@@ -34,7 +34,7 @@ Camera;
 
 Camera* camera_create(vec3 pos);
 void camera_update(Camera* cam, GLFWwindow* window, double dt);
-
+int camera_looks_at_block(Camera* cam, int x, int y, int z);
 void camera_set_aspect_ratio(Camera* cam, float new_ratio);
 
 #endif

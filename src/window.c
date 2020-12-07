@@ -30,14 +30,22 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
 {
     if (action != GLFW_PRESS)
         return;
+
+    GameObjects* game = glfwGetWindowUserPointer(window);
     
     if (button == GLFW_MOUSE_BUTTON_LEFT)
     {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        if (!game->cam->active)
+        {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            return;
+        }
+
+        map_handle_left_mouse_click(game->map, game->cam);
     }
 }
 
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     GameObjects* game = glfwGetWindowUserPointer(window);
     game->cam->move_speed += yoffset;

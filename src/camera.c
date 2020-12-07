@@ -1,4 +1,5 @@
 #include "camera.h"
+#include "map.h"
 
 #include "string.h"
 #include "stdlib.h"
@@ -156,6 +157,38 @@ void camera_update(Camera* cam, GLFWwindow* window, double dt)
 
     // update frustum planes
     glm_frustum_planes(cam->vp_matrix, cam->frustum_planes);
+}
+
+// ray - box hit detection, see
+// http://psgraphics.blogspot.com/2016/02/new-simple-ray-box-test-from-andrew.html
+int camera_looks_at_block(Camera* cam, int x, int y, int z)
+{
+    float min[3] = { x * BLOCK_SIZE, y * BLOCK_SIZE, z * BLOCK_SIZE };
+    float max[3] = { min[0] + BLOCK_SIZE, min[1] + BLOCK_SIZE, min[2] + BLOCK_SIZE };
+
+    float tmin = 0.001;
+    float tmax = 10000;
+
+    for (int a = 0; a < 3; a++) 
+    {
+        float invD = 1.0f / cam->front[a];
+		float t0 = (min[a] - cam->pos[a]) * invD;
+		float t1 = (max[a] - cam->pos[a]) * invD;
+		if (invD < 0.0f) 
+        {
+			float temp = t1;
+			t1 = t0;
+			t0 = temp;
+		}
+
+		tmin = t0 > tmin ? t0 : tmin;
+		tmax = t1 < tmax ? t1 : tmax;
+
+		if (tmax < tmin)
+			return 0;
+	}
+
+	return 1;
 }
 
 void camera_set_aspect_ratio(Camera* cam, float new_ratio)

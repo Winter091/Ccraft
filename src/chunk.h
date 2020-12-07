@@ -1,7 +1,6 @@
 #ifndef CHUNK_H_
 #define CHUNK_H_
 
-#include "glad/glad.h"
 #include "cglm/cglm.h"
 #include "config.h"
 #include "stdlib.h"
@@ -11,8 +10,8 @@
 typedef struct
 {
     unsigned char* blocks;
-    GLuint VAO;
-    GLuint VBO;
+    unsigned int VAO;
+    unsigned int VBO;
     size_t vertex_count;
     int x, z;
     int is_loaded;

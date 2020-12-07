@@ -19,8 +19,9 @@ typedef struct
 }
 Map;
 
-Map* map_create(vec3 cam_pos);
+Map* map_create();
 void map_update(Map* map, Camera* cam);
 void map_render_chunks(Map* map, vec4 cam_frustum_planes[6]);
+void map_handle_left_mouse_click(Map* map, Camera* cam);
 
 #endif

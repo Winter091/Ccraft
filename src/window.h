@@ -4,10 +4,12 @@
 #include "GLFW/glfw3.h"
 
 #include "camera.h"
+#include "map.h"
 
 typedef struct
 {
     Camera* cam;
+    Map* map;
 }
 GameObjects;
 

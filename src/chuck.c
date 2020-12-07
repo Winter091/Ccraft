@@ -1,5 +1,6 @@
 #include "chunk.h"
 
+#include "glad/glad.h"
 #include "map.h"
 #include "perlin_noise.h"
 #include "stdlib.h"

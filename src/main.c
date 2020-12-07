@@ -38,6 +38,7 @@ int main()
 
     GameObjects* game_obj = malloc(sizeof(GameObjects));
     game_obj->cam = camera_create((vec3){ 0.0f, 15.0f, 0.0f });
+    game_obj->map = map_create();
 
     // GameObj will be available in glfw callback
     // functions (with glfwGetWindowUserPointer)
@@ -87,8 +88,6 @@ int main()
         "shaders/chunk_fragment.glsl"
     );
 
-    Map* map = map_create(game_obj->cam->pos);
-
     double last_time = glfwGetTime();
     double last_fps_time = last_time;
     int frames = 0;
@@ -100,7 +99,7 @@ int main()
         frames++;
         if (curr_time - last_fps_time >= 1.0)
         {
-            //printf("%d\n", frames);
+            printf("%d\n", frames);
             frames = 0;
             last_fps_time = curr_time;
         }
@@ -109,14 +108,14 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         camera_update(game_obj->cam, window, dt);
-        map_update(map, game_obj->cam);
+        map_update(game_obj->map, game_obj->cam);
 
         glUseProgram(shader_chunk);
         shader_set_mat4(shader_chunk, "mvp_matrix", game_obj->cam->vp_matrix);
         shader_set_int1(shader_chunk, "texture_sampler", 0);
         array_texture_bind(texture_blocks, 0);
 
-        map_render_chunks(map, game_obj->cam->frustum_planes);
+        map_render_chunks(game_obj->map, game_obj->cam->frustum_planes);
         
         /*
         glBindVertexArray(VAO);
