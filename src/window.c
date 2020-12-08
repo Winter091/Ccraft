@@ -65,7 +65,7 @@ GLFWwindow* window_create()
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
     // MSAA
-    glfwWindowHint(GLFW_SAMPLES, 4);
+    glfwWindowHint(GLFW_SAMPLES, MSAA_LEVEL);
 
     GLFWmonitor* monitor = FULLSCREEN ? glfwGetPrimaryMonitor() : NULL;
 

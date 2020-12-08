@@ -57,11 +57,13 @@ static void gen_cube_vertices(
 
     // texture number in texture atlas; order:
     // left right top bottom front back
-    static const int tiles[3][6] = 
+    static const int tiles[5][6] = 
     {
         { 0,  0,  0,  0,  0,  0},  // 0 = air (not used)
         {16, 16, 32,  0, 16, 16},  // 1 = grass
-        { 1,  1,  1,  1,  1,  1}   // 2 = sand
+        { 6,  6,  6,  6,  6,  6},  // 2 = dirt
+        { 1,  1,  1,  1,  1,  1},  // 3 = sand
+        {24, 24, 40,  8, 24, 24}   // 4 = snow
     };
     
     int curr_vertex = 0;
@@ -91,22 +93,12 @@ static void gen_cube_vertices(
     }
 }
 
-static unsigned char terrain_generation_func(int x, int y, int z)
+static unsigned int terrain_height_at(int x, int z)
 {
-    //if (y > 60) return BLOCK_AIR;
-    //return BLOCK_GRASS;
-
     x = x < 0 ? -x : x;
     z = z < 0 ? -z : z;
     
-    float value = perlin2d(x * 0.002, z * 0.002, 4) * CHUNK_HEIGHT / 2.0f;
-
-    if (y > value)
-        return BLOCK_AIR;
-    else if (y > 40)
-        return BLOCK_GRASS;
-    else
-        return BLOCK_SAND;
+    return perlin2d(x * 0.002, z * 0.002, 4) * CHUNK_HEIGHT / 2.0f;
 }
 
 static void block_set_visible_faces(
@@ -230,24 +222,42 @@ Chunk* chunk_init(int chunk_x, int chunk_z)
 
 void chunk_generate(Chunk* c)
 {
+    const int grass_start = 75; 
+    const int snow_start  = 170;
+    
     c->blocks = malloc(CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH);
     for (int x = 0; x < CHUNK_WIDTH; x++)
     {
-        for (int y = 0; y < CHUNK_HEIGHT; y++)
+        for (int z = 0; z < CHUNK_WIDTH; z++)
         {
-            for (int z = 0; z < CHUNK_WIDTH; z++)
-            {
-                int block_x = x + c->x * CHUNK_WIDTH;
-                int block_y = y;
-                int block_z = z + c->z * CHUNK_WIDTH;
+            int block_x = x + c->x * CHUNK_WIDTH;
+            int block_z = z + c->z * CHUNK_WIDTH;
 
-                // blocks array determine the type of
-                // block at particular coordinate
-                // for example, 0 is air, 1 is grass
-                c->blocks[XYZ(x, y, z)] = terrain_generation_func(
-                    block_x, block_y, block_z
-                );           
-            }
+            int air_start = terrain_height_at(block_x, block_z);
+            for (int y = 0; y < CHUNK_HEIGHT; y++)
+            {
+                unsigned char block;
+
+                if (y > air_start)
+                    block = BLOCK_AIR;
+                else
+                {
+                    if (y < grass_start)
+                        block = BLOCK_SAND;
+                    else
+                        block = BLOCK_DIRT;
+                    
+                    if (block == BLOCK_DIRT && y == air_start)
+                    {
+                        if (y >= snow_start)
+                            block = BLOCK_SNOW;
+                        else
+                            block = BLOCK_GRASS;
+                    }
+                }
+
+                c->blocks[XYZ(x, y, z)] = block;
+            }         
         }
     }
 }

@@ -115,6 +115,7 @@ int main()
         shader_set_int1(shader_chunk, "texture_sampler", 0);
         array_texture_bind(texture_blocks, 0);
 
+        //printf("%.5f\n", 1000 * (glfwGetTime() - curr_time));
         map_render_chunks(game_obj->map, game_obj->cam->frustum_planes);
         
         /*
