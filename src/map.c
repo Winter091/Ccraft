@@ -187,10 +187,13 @@ static unsigned char map_get_block(Map* map, int x, int y, int z)
 
 static void map_delete_block(Map* map, int x, int y, int z)
 {
-    Chunk* c = map_get_chunk(map, chunked(x), chunked(z));
+    int chunk_x = chunked(x);
+    int chunk_z = chunked(z);
+    
+    Chunk* c = map_get_chunk(map, chunk_x, chunk_z);
     if (!c) return;
 
-    // get block coord in 'chunk coord space'
+    // get block coord in 'chunk coord space' ([0 - CHUNK_WIDTH))
     int block_x = x % CHUNK_WIDTH;
     int block_z = z % CHUNK_WIDTH;
     if (block_x < 0) block_x += CHUNK_WIDTH;
@@ -198,10 +201,29 @@ static void map_delete_block(Map* map, int x, int y, int z)
 
     c->blocks[XYZ(block_x, y, block_z)] = BLOCK_AIR;
 
-    // possible optimization: update neighbour
-    // only if the block destroyed is on the border
-    // of chunk
-    map_update_chunk_buffer(map, c, 1);
+    // update chunk buffer (and neighbours, if needed)
+    map_update_chunk_buffer(map, c, 0);
+    
+    if (block_x == 0)
+    {
+        Chunk* neigh = map_get_chunk(map, chunk_x - 1, chunk_z);
+        if (neigh) map_update_chunk_buffer(map, neigh, 0);
+    }
+    else if (block_x == CHUNK_WIDTH - 1)
+    {
+        Chunk* neigh = map_get_chunk(map, chunk_x + 1, chunk_z);
+        if (neigh) map_update_chunk_buffer(map, neigh, 0);
+    }
+    if (block_z == 0)
+    {
+        Chunk* neigh = map_get_chunk(map, chunk_x, chunk_z - 1);
+        if (neigh) map_update_chunk_buffer(map, neigh, 0);
+    }
+    else if (block_z == CHUNK_WIDTH - 1)
+    {
+        Chunk* neigh = map_get_chunk(map, chunk_x, chunk_z + 1);
+        if (neigh) map_update_chunk_buffer(map, neigh, 0);
+    }
 }
 
 // squared distance between 2 points in space;
