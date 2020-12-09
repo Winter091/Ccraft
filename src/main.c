@@ -14,6 +14,66 @@
 #include "map.h"
 #include "texture.h"
 
+static void print_fps()
+{
+    static double last_time = -1.0;
+    if (last_time < 0)
+    {
+        last_time = glfwGetTime();
+    }
+
+    static int frames = 0;
+    frames++;
+
+    double curr_time = glfwGetTime();
+    if (curr_time - last_time >= 1.0)
+    {
+        printf("%d\n", frames);
+        frames = 0;
+        last_time = curr_time;
+    }
+}
+
+static float get_dt()
+{
+    static double last_time = -1.0;
+    if (last_time < 0)
+    {
+        last_time = glfwGetTime();
+    }
+
+    double curr_time = glfwGetTime();
+    double dt = curr_time - last_time;
+    last_time = curr_time;
+
+    return dt;
+}
+
+void update(GLFWwindow* window, GameObjects* game)
+{
+    camera_update(game->cam, window, get_dt());
+    map_update(game->map, game->cam);
+}
+
+void render(GLFWwindow* window, GameObjects* game)
+{
+    glClearColor(0.34f, 0.53f, 0.76f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    map_render_chunks(game->map, game->cam);
+
+    // render wireframe around active block
+    if (game->cam->active_block_present)
+    {
+        map_render_wireframe(game->map, game->cam);
+    }
+
+    ui_render_crosshair(game->ui);
+
+    glfwSwapBuffers(window);
+    glfwPollEvents();
+}
+
 int main()
 {    
     GLFWwindow* window = window_create();
@@ -36,107 +96,21 @@ int main()
     const GLubyte* version = glGetString(GL_VERSION);
     fprintf(stdout, "Using OpenGL %s\n", version);
 
-    GameObjects* game_obj = malloc(sizeof(GameObjects));
-    game_obj->cam = camera_create((vec3){ 0.0f, 15.0f, 0.0f });
-    game_obj->map = map_create();
+    GameObjects* game = malloc(sizeof(GameObjects));
+    game->cam = camera_create((vec3){ 0.0f, 15.0f, 0.0f });
+    game->map = map_create();
+    game->ui = ui_create((float)WINDOW_WIDTH / WINDOW_HEIGHT);
 
     // GameObj will be available in glfw callback
     // functions (with glfwGetWindowUserPointer)
-    glfwSetWindowUserPointer(window, game_obj);
+    glfwSetWindowUserPointer(window, game);
 
-    /*
-    float vertices[] = {
-        -0.5f, -0.5f, 0.0f,     0.0f, 0.0f,
-         0.5f, -0.5f, 0.0f,     1.0f, 0.0f,
-         0.0f,  0.5f, 0.0f,     0.5f, 1.0f
-    };
-
-    GLuint VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-
-    GLuint VBO;
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(
-        GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW
-    );
-    glVertexAttribPointer(0, 3, GL_FLOAT, 0, 5 * sizeof(float), NULL);
-    glVertexAttribPointer(1, 2, GL_FLOAT, 0, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-
-    glBindVertexArray(0);
-    
-    GLuint shader_test = create_shader_program(
-        "shaders/test_vertex.glsl",
-        "shaders/test_fragment.glsl"
-    );
-    */
-
-    GLuint texture_blocks = array_texture_create("textures/blocks.png");
-    if (!texture_blocks)
-    {
-        fprintf(stderr, "Texture was not loaded!\n");
-        glfwDestroyWindow(window);
-        glfwTerminate();
-        exit(EXIT_FAILURE);
-    }
-
-    GLuint shader_chunk = create_shader_program(
-        "shaders/chunk_vertex.glsl",
-        "shaders/chunk_fragment.glsl"
-    );
-
-    double last_time = glfwGetTime();
-    double last_fps_time = last_time;
-    int frames = 0;
     while (!glfwWindowShouldClose(window))
     {
-        double curr_time = glfwGetTime();
-        double dt = curr_time - last_time;
-        last_time = curr_time;
-        frames++;
-        if (curr_time - last_fps_time >= 1.0)
-        {
-            printf("%d\n", frames);
-            frames = 0;
-            last_fps_time = curr_time;
-        }
-        
-        glClearColor(0.34f, 0.53f, 0.76f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        print_fps();
 
-        camera_update(game_obj->cam, window, dt);
-        map_update(game_obj->map, game_obj->cam);
-
-        glUseProgram(shader_chunk);
-        shader_set_mat4(shader_chunk, "mvp_matrix", game_obj->cam->vp_matrix);
-        shader_set_int1(shader_chunk, "texture_sampler", 0);
-        array_texture_bind(texture_blocks, 0);
-
-        //printf("%.5f\n", 1000 * (glfwGetTime() - curr_time));
-        map_render_chunks(game_obj->map, game_obj->cam->frustum_planes);
-        
-        /*
-        glBindVertexArray(VAO);
-        glUseProgram(shader_test);
-
-        mat4 mvp;
-        mat4 model;
-        glm_mat4_identity(model);
-        glm_translate(model, (vec3){0.0f, 0.0f, 0.0f});
-        glm_mat4_mul(game_obj->cam->vp_matrix, model, mvp);
-        shader_set_mat4(shader_test, "mvp_matrix", mvp);
-
-        array_texture_bind(texture_blocks, 0);
-        shader_set_int1(shader_test, "tex_sampler", 0);
-        
-        glDrawArrays(GL_TRIANGLES, 0, 3);
-        */
- 
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+        update(window, game);
+        render(window, game);
     }
 
     glfwDestroyWindow(window);

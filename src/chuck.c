@@ -95,6 +95,8 @@ static void gen_cube_vertices(
 
 static unsigned int terrain_height_at(int x, int z)
 {
+    //return 60;
+    
     x = x < 0 ? -x : x;
     z = z < 0 ? -z : z;
     

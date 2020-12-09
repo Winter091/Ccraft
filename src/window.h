@@ -5,11 +5,13 @@
 
 #include "camera.h"
 #include "map.h"
+#include "ui.h"
 
 typedef struct
 {
     Camera* cam;
     Map* map;
+    UI* ui;
 }
 GameObjects;
 

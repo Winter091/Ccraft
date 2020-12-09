@@ -3,6 +3,8 @@
 
 #include "stdlib.h"
 #include "limits.h"
+#include "shader.h"
+#include "texture.h"
 
 LINKEDLIST_IMPLEMENTATION(Chunk*, chunks);
 HASHMAP_IMPLEMENTATION(Chunk*, chunks, chunk_hash_func);
@@ -135,21 +137,34 @@ Map* map_create()
     //map->chunks_to_rebuild = list_chunks_create();
     map->chunks_to_render  = list_chunks_create();
 
+    map->shader_chunks = create_shader_program(
+        "shaders/chunk_vertex.glsl",
+        "shaders/chunk_fragment.glsl"
+    );
+
+    map->shader_lines = create_shader_program(
+        "shaders/line_vertex.glsl",
+        "shaders/line_fragment.glsl"
+    );
+
+    map->texture_blocks = array_texture_create("textures/blocks.png");
+    if (!map->texture_blocks)
+    {
+        fprintf(stderr, "Texture was not loaded!\n");
+        glfwTerminate();
+        exit(EXIT_FAILURE);
+    }
+
     return map;
 }
 
-void map_update(Map* map, Camera* cam)
-{
-    //float curr_time = glfwGetTime();
-    
-    map_unload_far_chunks(map, cam);
-    map_load_chunks(map, cam);
-
-    //printf("%.6f\n", glfwGetTime() - curr_time);
-}
-
-void map_render_chunks(Map* map, vec4 cam_frustum_planes[6])
+void map_render_chunks(Map* map, Camera* cam)
 {    
+    glUseProgram(map->shader_chunks);
+    shader_set_mat4(map->shader_chunks, "mvp_matrix", cam->vp_matrix);
+    shader_set_int1(map->shader_chunks, "texture_sampler", 0);
+    array_texture_bind(map->texture_blocks, 0);
+    
     LinkedListNode_chunks* node = map->chunks_to_render->head;
     for ( ; node; node = node->ptr_next)
     {
@@ -158,6 +173,85 @@ void map_render_chunks(Map* map, vec4 cam_frustum_planes[6])
         glDrawArrays(GL_TRIANGLES, 0, c->vertex_count);
     }
     list_chunks_clear(map->chunks_to_render);
+}
+
+void map_render_wireframe(Map* map, Camera* cam)
+{
+    // Each frame new buffer is generated, the better 
+    // solution is to just offset data using camera
+    // vp matrix
+    
+    GLuint VAO;
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+    
+    GLuint VBO;
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+    float x = cam->active_block[0] * BLOCK_SIZE;
+    float y = cam->active_block[1] * BLOCK_SIZE;
+    float z = cam->active_block[2] * BLOCK_SIZE;
+    float bs = BLOCK_SIZE;
+
+    float offset = 0.001f * BLOCK_SIZE;
+    float vertices[] = {
+        x - offset, y - offset, z - offset,
+        x + bs + offset, y - offset, z - offset,
+
+        x + bs + offset, y - offset, z - offset,
+        x + bs + offset, y + bs + offset, z - offset,
+
+        x + bs + offset, y + bs + offset, z - offset,
+        x - offset, y + bs + offset, z - offset,
+
+        x - offset, y + bs + offset, z - offset,
+        x - offset, y - offset, z - offset,
+
+
+
+        x - offset, y - offset, z + bs + offset,
+        x + bs + offset, y - offset, z + bs + offset,
+
+        x + bs + offset, y - offset, z + bs + offset,
+        x + bs + offset, y + bs + offset, z + bs + offset,
+
+        x + bs + offset, y + bs + offset, z + bs + offset,
+        x - offset, y + bs + offset, z + bs + offset,
+
+        x - offset, y + bs + offset, z + bs + offset,
+        x - offset, y - offset, z + bs + offset,
+
+
+
+        x - offset, y - offset, z + bs + offset,
+        x - offset, y - offset, z - offset,
+
+        x + bs + offset, y - offset, z + bs + offset,
+        x + bs + offset, y - offset, z - offset,
+
+        x + bs + offset, y + bs + offset, z + bs + offset,
+        x + bs + offset, y + bs + offset, z - offset,
+
+        x - offset, y + bs + offset, z + bs + offset,
+        x - offset, y + bs + offset, z - offset
+    };
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (const void*)0);
+    glEnableVertexAttribArray(0);
+
+    glUseProgram(map->shader_lines);
+    shader_set_mat4(map->shader_lines, "mvp_matrix", cam->vp_matrix);
+
+    glEnable(GL_COLOR_LOGIC_OP);
+    glLogicOp(GL_INVERT);
+    glLineWidth(2);
+    glDrawArrays(GL_LINES, 0, 24);
+    glDisable(GL_COLOR_LOGIC_OP);
+
+    glDeleteBuffers(1, &VBO);
+    glDeleteVertexArrays(1, &VAO);
 }
 
 // return chunk coordinate block exists in
@@ -235,12 +329,27 @@ static int dist2(int a, int b, int c, int x, int y, int z)
 
 void map_handle_left_mouse_click(Map* map, Camera* cam)
 {
+    // if camera looks at block nearby, remove the block
+    if (cam->active_block_present)
+    {
+        map_delete_block(
+            map, 
+            cam->active_block[0], 
+            cam->active_block[1], 
+            cam->active_block[2]
+        );
+        cam->active_block_present = 0;
+    }
+}
+
+static void map_set_camera_active_block(Map* map, Camera* cam)
+{
     // position of camera in blocks
     int cam_x = cam->pos[0] / BLOCK_SIZE;
     int cam_y = cam->pos[1] / BLOCK_SIZE;
     int cam_z = cam->pos[2] / BLOCK_SIZE;
 
-    // best_* will store the block to destroy,
+    // best_* will store the block,
     // if it's found
     int best_x, best_y, best_z;
     int best_dist = INT_MAX;
@@ -248,7 +357,7 @@ void map_handle_left_mouse_click(Map* map, Camera* cam)
     // iterate over each block around player
     for (int y = cam_y - BLOCK_BREAK_RADIUS; y <= cam_y + BLOCK_BREAK_RADIUS; y++)
     {
-        if (y < 0) continue;
+        if (y < 0 || y >= CHUNK_HEIGHT) continue;
 
         for (int x = cam_x - BLOCK_BREAK_RADIUS; x <= cam_x + BLOCK_BREAK_RADIUS; x++)
             for (int z = cam_z - BLOCK_BREAK_RADIUS; z <= cam_z + BLOCK_BREAK_RADIUS; z++)
@@ -273,8 +382,24 @@ void map_handle_left_mouse_click(Map* map, Camera* cam)
     }
     
     if (best_dist == INT_MAX)
+    {
+        cam->active_block_present = 0;
         return;
-        
-    //printf("%d %d %d\n", best_x, best_y, best_z);
-    map_delete_block(map, best_x, best_y, best_z);
+    }
+
+    cam->active_block_present = 1;
+    cam->active_block[0] = best_x;
+    cam->active_block[1] = best_y;
+    cam->active_block[2] = best_z;
+}
+
+void map_update(Map* map, Camera* cam)
+{
+    //float curr_time = glfwGetTime();
+    
+    map_unload_far_chunks(map, cam);
+    map_load_chunks(map, cam);
+    map_set_camera_active_block(map, cam);
+
+    //printf("%.6f\n", glfwGetTime() - curr_time);
 }

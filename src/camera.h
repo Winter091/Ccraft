@@ -21,11 +21,15 @@ typedef struct
     float mouse_last_x;
     float mouse_last_y;
 
+    // block camera looks at
+    int active_block_present;
+    ivec3 active_block;
+
     float clip_near;
     float clip_far;
+    float aspect_ratio;
 
     vec4 frustum_planes[6];
-
     mat4 view_matrix;
     mat4 proj_matrix;
     mat4 vp_matrix;

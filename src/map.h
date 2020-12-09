@@ -16,12 +16,18 @@ typedef struct
     //LinkedList_chunks* chunks_to_unload;
     //LinkedList_chunks* chunks_to_rebuild;
     LinkedList_chunks* chunks_to_render;
+
+    GLuint shader_chunks;
+    GLuint shader_lines;
+
+    GLuint texture_blocks;
 }
 Map;
 
 Map* map_create();
 void map_update(Map* map, Camera* cam);
-void map_render_chunks(Map* map, vec4 cam_frustum_planes[6]);
+void map_render_chunks(Map* map, Camera* cam);
+void map_render_wireframe(Map* map, Camera* cam);
 void map_handle_left_mouse_click(Map* map, Camera* cam);
 
 #endif

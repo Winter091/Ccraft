@@ -34,10 +34,16 @@ Camera* camera_create(vec3 pos)
     cam->mouse_last_x = 0;
     cam->mouse_last_y = 0;
 
+    cam->active_block_present = 0;
+    cam->active_block[0] = 0;
+    cam->active_block[1] = 0;
+    cam->active_block[2] = 0;
+
+    cam->aspect_ratio = (float)WINDOW_WIDTH / WINDOW_HEIGHT;
     cam->clip_near = BLOCK_SIZE / 10.0f;
 
     // at least 512 blocks
-    cam->clip_far = MAX((CHUNK_RENDER_RADIUS + 8) * CHUNK_SIZE, 512 * BLOCK_SIZE);
+    cam->clip_far = MAX((CHUNK_RENDER_RADIUS * 2) * CHUNK_SIZE, 512 * BLOCK_SIZE);
 
     // generate view, proj and vp matrices
     glm_look(cam->pos, cam->front, cam->up, cam->view_matrix);
@@ -159,7 +165,7 @@ void camera_update(Camera* cam, GLFWwindow* window, double dt)
     glm_frustum_planes(cam->vp_matrix, cam->frustum_planes);
 }
 
-// ray - box hit detection, see
+// ray - axis aligned box hit detection, see
 // http://psgraphics.blogspot.com/2016/02/new-simple-ray-box-test-from-andrew.html
 int camera_looks_at_block(Camera* cam, int x, int y, int z)
 {
@@ -193,6 +199,7 @@ int camera_looks_at_block(Camera* cam, int x, int y, int z)
 
 void camera_set_aspect_ratio(Camera* cam, float new_ratio)
 {
+    cam->aspect_ratio = new_ratio;
     glm_perspective_resize(new_ratio, cam->proj_matrix);
     glm_frustum_planes(cam->vp_matrix, cam->frustum_planes);
 }
