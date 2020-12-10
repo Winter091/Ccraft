@@ -359,63 +359,18 @@ void chunk_update_buffer(
 
 int chunk_is_visible(int chunk_x, int chunk_z, vec4 planes[6])
 {
-    int x = (chunk_x - 2) * CHUNK_SIZE;
-    int z = (chunk_z - 2) * CHUNK_SIZE;
-    int d = 5 * CHUNK_SIZE;
-    int min_y = 0;
-    int max_y = CHUNK_HEIGHT * BLOCK_SIZE;
-    
-    // set chunk borders;
-    // in order not to have culling errors,
-    // borders are much larger than the 
-    // actual chunk
-    float vertices[8][3] = {
-        {x + 0, min_y, z + 0},
-        {x + d, min_y, z + 0},
-        {x + 0, min_y, z + d},
-        {x + d, min_y, z + d},
-        {x + 0, max_y, z + 0},
-        {x + d, max_y, z + 0},
-        {x + 0, max_y, z + d},
-        {x + d, max_y, z + d}
-    };
+    // construct chunk box
+    vec3 aabb[2];
+    aabb[0][0] = chunk_x * CHUNK_SIZE;
+    aabb[0][1] = 0.0f;
+    aabb[0][2] = chunk_z * CHUNK_SIZE;
+    aabb[1][0] = aabb[0][0] + CHUNK_SIZE;
+    aabb[1][1] = CHUNK_HEIGHT * CHUNK_SIZE;
+    aabb[1][2] = aabb[0][2] + CHUNK_SIZE;
 
-    // for each camera frustum's plane
-    for (int i = 0; i < 6; i++)
-    {
-        int in = 0;
-        int out = 0;
-
-        // count the amount of vertices that are
-        // inside the frustum and that are outside
-        for (int j = 0; j < 8; j++)
-        {
-            // the sign of (Ax + By + Cz + D) determines
-            // whether the point is above or below the plane;
-            // below here means 'outside'
-            float value =
-                planes[i][0] * vertices[j][0] +
-                planes[i][1] * vertices[j][1] +
-                planes[i][2] * vertices[j][2] +
-                planes[i][3];
-
-            if (value < 0) 
-                out++;
-            else 
-                in++;
-
-            // chunk intersects the plane
-            if (in && out)
-                break;
-        }
-
-        // every chunk's vertex is outside of one of
-        // the frustum planes, chunk is not visible
-        if (!in)
-            return 0;
-    }
-
-    return 1;
+    // and use this nice function to determine 
+    // whether the box is visible to camera or not
+    return glm_aabb_frustum(aabb, planes);
 }
 
 float chunk_dist_to_player(int chunk_x, int chunk_z, int pl_x, int pl_z)
