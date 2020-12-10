@@ -7,6 +7,7 @@
 
 #include "config.h"
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 Camera* camera_create(vec3 pos)
@@ -166,35 +167,37 @@ void camera_update(Camera* cam, GLFWwindow* window, double dt)
 }
 
 // ray - axis aligned box hit detection, see
-// http://psgraphics.blogspot.com/2016/02/new-simple-ray-box-test-from-andrew.html
+// https://medium.com/@bromanz/another-view-on-the-classic-ray-aabb-intersection-algorithm-for-bvh-traversal-41125138b525
 int camera_looks_at_block(Camera* cam, int x, int y, int z)
 {
-    float min[3] = { x * BLOCK_SIZE, y * BLOCK_SIZE, z * BLOCK_SIZE };
-    float max[3] = { min[0] + BLOCK_SIZE, min[1] + BLOCK_SIZE, min[2] + BLOCK_SIZE };
+    vec3 min = { x * BLOCK_SIZE, y * BLOCK_SIZE, z * BLOCK_SIZE };
+    vec3 max = { min[0] + BLOCK_SIZE, min[1] + BLOCK_SIZE, min[2] + BLOCK_SIZE };
 
-    float tmin = 0.001;
-    float tmax = 10000;
+    float tmin = 0.00001f;
+    float tmax = 10000.0f;
 
-    for (int a = 0; a < 3; a++) 
-    {
-        float invD = 1.0f / cam->front[a];
-		float t0 = (min[a] - cam->pos[a]) * invD;
-		float t1 = (max[a] - cam->pos[a]) * invD;
-		if (invD < 0.0f) 
-        {
-			float temp = t1;
-			t1 = t0;
-			t0 = temp;
-		}
+    vec3 invD;
+    for (int i = 0; i < 3; i++)
+        invD[i] = 1.0f / cam->front[i];
 
-		tmin = t0 > tmin ? t0 : tmin;
-		tmax = t1 < tmax ? t1 : tmax;
+    vec3 t0s;
+    for (int i = 0; i < 3; i++)
+        t0s[i] = (min[i] - cam->pos[i]) * invD[i];
 
-		if (tmax < tmin)
-			return 0;
-	}
+    vec3 t1s;
+    for (int i = 0; i < 3; i++)
+        t1s[i] = (max[i] - cam->pos[i]) * invD[i];
 
-	return 1;
+    vec3 tsmaller = {0};
+    glm_vec3_minadd(t0s, t1s, tsmaller);
+
+    vec3 tbigger = {0};
+    glm_vec3_maxadd(t0s, t1s, tbigger);
+
+    tmin = MAX(tmin, MAX(tsmaller[0], MAX(tsmaller[1], tsmaller[2])));
+    tmax = MIN(tmax, MIN(tbigger[0], MIN(tbigger[1], tbigger[2])));
+
+    return (tmin < tmax);
 }
 
 void camera_set_aspect_ratio(Camera* cam, float new_ratio)
