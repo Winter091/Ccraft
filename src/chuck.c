@@ -57,13 +57,14 @@ static void gen_cube_vertices(
 
     // texture number in texture atlas; order:
     // left right top bottom front back
-    static const int tiles[5][6] = 
+    static const int tiles[6][6] = 
     {
         { 0,  0,  0,  0,  0,  0},  // 0 = air (not used)
         {16, 16, 32,  0, 16, 16},  // 1 = grass
         { 6,  6,  6,  6,  6,  6},  // 2 = dirt
         { 1,  1,  1,  1,  1,  1},  // 3 = sand
-        {24, 24, 40,  8, 24, 24}   // 4 = snow
+        {24, 24, 40,  8, 24, 24},  // 4 = snow
+        { 9,  9,  9,  9,  9,  9}   // 5 = glass
     };
     
     int curr_vertex = 0;
@@ -115,12 +116,16 @@ static void block_set_visible_faces(
             faces[0] = 1;
         else if (!left->blocks[XYZ(CHUNK_WIDTH - 1, y, z)])
             faces[0] = 1;
+        else if (left->blocks[XYZ(CHUNK_WIDTH - 1, y, z)] == BLOCK_GLASS)
+            faces[0] = 1;
         else
             faces[0] = 0;
     }
     else
     {
         if (!c->blocks[XYZ(x - 1, y, z)])
+            faces[0] = 1;
+        else if (c->blocks[XYZ(x - 1, y, z)] == BLOCK_GLASS)
             faces[0] = 1;
         else
             faces[0] = 0;
@@ -133,12 +138,16 @@ static void block_set_visible_faces(
             faces[1] = 1;
         else if (!right->blocks[XYZ(0, y, z)])
             faces[1] = 1;
+        else if (right->blocks[XYZ(0, y, z)] == BLOCK_GLASS)
+            faces[1] = 1;
         else
             faces[1] = 0;
     }
     else
     {
         if (!c->blocks[XYZ(x + 1, y, z)])
+            faces[1] = 1;
+        else if (c->blocks[XYZ(x + 1, y, z)] == BLOCK_GLASS)
             faces[1] = 1;
         else
             faces[1] = 0;
@@ -153,6 +162,8 @@ static void block_set_visible_faces(
     {
         if (!c->blocks[XYZ(x, y + 1, z)])
             faces[2] = 1;
+        else if (c->blocks[XYZ(x, y + 1, z)] == BLOCK_GLASS)
+            faces[2] = 1;
         else
             faces[2] = 0;
     }
@@ -166,6 +177,8 @@ static void block_set_visible_faces(
     {
         if (!c->blocks[XYZ(x, y - 1, z)])
             faces[3] = 1;
+        else if (c->blocks[XYZ(x, y - 1, z)] == BLOCK_GLASS)
+            faces[3] = 1;
         else
             faces[3] = 0;
     }
@@ -177,12 +190,16 @@ static void block_set_visible_faces(
             faces[4] = 1;
         else if (!back->blocks[XYZ(x, y, CHUNK_WIDTH - 1)])
             faces[4] = 1;
+        else if (back->blocks[XYZ(x, y, CHUNK_WIDTH - 1)] == BLOCK_GLASS)
+            faces[4] = 1;
         else
             faces[4] = 0;
     }
     else
     {
         if (!c->blocks[XYZ(x, y, z - 1)])
+            faces[4] = 1;
+        else if (c->blocks[XYZ(x, y, z - 1)] == BLOCK_GLASS)
             faces[4] = 1;
         else
             faces[4] = 0;
@@ -195,12 +212,16 @@ static void block_set_visible_faces(
             faces[5] = 1;
         else if (!front->blocks[XYZ(x, y, 0)])
             faces[5] = 1;
+        else if (front->blocks[XYZ(x, y, 0)] == BLOCK_GLASS)
+            faces[5] = 1;
         else
             faces[5] = 0;
     }
     else
     {
         if (!c->blocks[XYZ(x, y, z + 1)])
+            faces[5] = 1;
+        else if (c->blocks[XYZ(x, y, z + 1)] == BLOCK_GLASS)
             faces[5] = 1;
         else
             faces[5] = 0;

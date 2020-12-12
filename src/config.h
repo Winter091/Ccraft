@@ -11,8 +11,8 @@
 #define MSAA_LEVEL 4
 
 // Initial window settings
-#define WINDOW_WIDTH 1280
-#define WINDOW_HEIGHT 720
+#define WINDOW_WIDTH 1600
+#define WINDOW_HEIGHT 900
 #define WINDOW_TITLE "Ccraft Window"
 #define FULLSCREEN 0
 #define VSYNC 0
@@ -36,3 +36,4 @@
 #define BLOCK_DIRT  2
 #define BLOCK_SAND  3
 #define BLOCK_SNOW  4
+#define BLOCK_GLASS 5
