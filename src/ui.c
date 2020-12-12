@@ -66,6 +66,7 @@ void ui_render_crosshair(UI* ui)
     glm_mat4_identity(ident);
     shader_set_mat4(ui->line_shader, "mvp_matrix", ident);
     
+    glClear(GL_DEPTH_BUFFER_BIT);
     glEnable(GL_COLOR_LOGIC_OP);
     glLogicOp(GL_INVERT);
     glLineWidth(4);
