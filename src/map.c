@@ -279,7 +279,7 @@ static unsigned char map_get_block(Map* map, int x, int y, int z)
     return c->blocks[XYZ(block_x, y, block_z)];
 }
 
-static void map_delete_block(Map* map, int x, int y, int z)
+static void map_set_block(Map* map, int x, int y, int z, unsigned char block)
 {
     int chunk_x = chunked(x);
     int chunk_z = chunked(z);
@@ -293,7 +293,7 @@ static void map_delete_block(Map* map, int x, int y, int z)
     if (block_x < 0) block_x += CHUNK_WIDTH;
     if (block_z < 0) block_z += CHUNK_WIDTH;
 
-    c->blocks[XYZ(block_x, y, block_z)] = BLOCK_AIR;
+    c->blocks[XYZ(block_x, y, block_z)] = block;
 
     // update chunk buffer (and neighbours, if needed)
     map_update_chunk_buffer(map, c, 0);
@@ -329,16 +329,66 @@ static int dist2(int a, int b, int c, int x, int y, int z)
 
 void map_handle_left_mouse_click(Map* map, Camera* cam)
 {
+    if (!cam->active_block_present)
+        return;
+
     // if camera looks at block nearby, remove the block
-    if (cam->active_block_present)
+    map_set_block(
+        map, 
+        cam->active_block[0], 
+        cam->active_block[1], 
+        cam->active_block[2],
+        BLOCK_AIR
+    );
+    cam->active_block_present = 0;
+}
+
+void find_best_spot_to_place_block(
+    Map* map, Camera* cam, int x, int y, int z, 
+    int* best_x, int* best_y, int* best_z, int* best_dist
+)
+{
+    // position of camera in blocks
+    int cam_x = cam->pos[0] / BLOCK_SIZE;
+    int cam_y = cam->pos[1] / BLOCK_SIZE;
+    int cam_z = cam->pos[2] / BLOCK_SIZE;
+    
+    if (camera_looks_at_block(cam, x, y, z) && map_get_block(map, x, y, z) == BLOCK_AIR)
     {
-        map_delete_block(
-            map, 
-            cam->active_block[0], 
-            cam->active_block[1], 
-            cam->active_block[2]
-        );
-        cam->active_block_present = 0;
+        int dist = dist2(cam_x, cam_y, cam_z, x, y, z);
+        if (dist < *best_dist)
+        {
+            *best_dist = dist;
+            *best_x = x;
+            *best_y = y;
+            *best_z = z;
+        }
+    }
+}
+
+void map_handle_right_mouse_click(Map* map, Camera* cam)
+{
+    if (!cam->active_block_present)
+        return;
+    
+    int x = cam->active_block[0];
+    int y = cam->active_block[1];
+    int z = cam->active_block[2];
+
+    int best_x, best_y, best_z;
+    int best_dist = INT_MAX;
+
+    // 6 potential spots around active block
+    find_best_spot_to_place_block(map, cam, x - 1, y, z, &best_x, &best_y, &best_z, &best_dist);
+    find_best_spot_to_place_block(map, cam, x + 1, y, z, &best_x, &best_y, &best_z, &best_dist);
+    find_best_spot_to_place_block(map, cam, x, y - 1, z, &best_x, &best_y, &best_z, &best_dist);
+    find_best_spot_to_place_block(map, cam, x, y + 1, z, &best_x, &best_y, &best_z, &best_dist);
+    find_best_spot_to_place_block(map, cam, x, y, z - 1, &best_x, &best_y, &best_z, &best_dist);
+    find_best_spot_to_place_block(map, cam, x, y, z + 1, &best_x, &best_y, &best_z, &best_dist);
+
+    if (best_dist != INT_MAX)
+    {
+        map_set_block(map, best_x, best_y, best_z, BLOCK_DIRT);
     }
 }
 

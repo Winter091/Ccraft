@@ -29,5 +29,6 @@ void map_update(Map* map, Camera* cam);
 void map_render_chunks(Map* map, Camera* cam);
 void map_render_wireframe(Map* map, Camera* cam);
 void map_handle_left_mouse_click(Map* map, Camera* cam);
+void map_handle_right_mouse_click(Map* map, Camera* cam);
 
 #endif
