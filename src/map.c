@@ -5,6 +5,7 @@
 #include "limits.h"
 #include "shader.h"
 #include "texture.h"
+#include "perlin_noise.h"
 
 LINKEDLIST_IMPLEMENTATION(Chunk*, chunks);
 HASHMAP_IMPLEMENTATION(Chunk*, chunks, chunk_hash_func);
@@ -154,6 +155,9 @@ Map* map_create()
         glfwTerminate();
         exit(EXIT_FAILURE);
     }
+
+    // set world seed
+    *perlin2d_get_world_seed() = rand();
 
     return map;
 }

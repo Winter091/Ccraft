@@ -96,12 +96,7 @@ static void gen_cube_vertices(
 
 static unsigned int terrain_height_at(int x, int z)
 {
-    //return 60;
-    
-    x = x < 0 ? -x : x;
-    z = z < 0 ? -z : z;
-    
-    return perlin2d(x * 0.002, z * 0.002, 4) * CHUNK_HEIGHT / 2.0f;
+    return perlin2d(x * 0.001, z * 0.001, 4) * CHUNK_HEIGHT / 2.0f;
 }
 
 static void block_set_visible_faces(

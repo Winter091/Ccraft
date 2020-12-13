@@ -2,8 +2,6 @@
 
 #include "math.h"
 
-static int SEED = 155;
-
 static int hash[] = {
     208,34,231,213,32,248,233,56,161,78,24,140,71,48,140,254,245,255,247,247,40,
     185,248,251,245,28,124,204,204,76,36,1,107,28,234,163,202,224,245,128,167,204,
@@ -19,9 +17,17 @@ static int hash[] = {
     114,20,218,113,154,27,127,246,250,1,8,198,250,209,92,222,173,21,88,102,219
 };
 
+// returns ptr to the seed, so it can be
+// read and modified
+uint16_t* perlin2d_get_world_seed()
+{
+    static uint16_t seed = 0;
+    return &seed;
+}
+
 static int noise2(int x, int y)
 {
-    int tmp = hash[(y + SEED) % 256];
+    int tmp = hash[(y + *perlin2d_get_world_seed() % 256) % 256];
     return hash[(tmp + x) % 256];
 }
 
@@ -58,6 +64,9 @@ float perlin2d(float x, float y, int octaves)
     float amplitude = gain;
     float lacunarity = 2.0;
     float div = 128 * gain;
+
+    x += *perlin2d_get_world_seed();
+    y += *perlin2d_get_world_seed();
 
     for (int i = 0; i < octaves; i++)
     {
