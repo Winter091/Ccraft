@@ -33,25 +33,19 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
         return;
 
     GameObjects* game = glfwGetWindowUserPointer(window);
-    
+    if (!game->cam->active)
+    {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        return;
+    }
+
     if (button == GLFW_MOUSE_BUTTON_LEFT)
     {
-        if (!game->cam->active)
-        {
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-            return;
-        }
-
         map_handle_left_mouse_click(game->map, game->cam);
     }
 
     else if (button == GLFW_MOUSE_BUTTON_RIGHT)
     {
-        if (!game->cam->active)
-        {
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-            return;
-        }
         map_handle_right_mouse_click(game->map, game->cam);
     }
 }
