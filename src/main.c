@@ -63,11 +63,8 @@ void render(GLFWwindow* window, GameObjects* game)
 
     map_render_chunks(game->map, game->cam);
 
-    // render wireframe around active block
     if (game->cam->active_block_present)
-    {
-        map_render_wireframe(game->map, game->cam);
-    }
+        ui_render_block_wireframe(game->ui, game->cam);
 
     ui_render_crosshair(game->ui);
 

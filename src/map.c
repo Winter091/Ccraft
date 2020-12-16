@@ -144,11 +144,6 @@ Map* map_create()
         "shaders/chunk_fragment.glsl"
     );
 
-    map->shader_lines = create_shader_program(
-        "shaders/line_vertex.glsl",
-        "shaders/line_fragment.glsl"
-    );
-
     map->texture_blocks = array_texture_create("textures/blocks.png");
     if (!map->texture_blocks)
     {
@@ -178,85 +173,6 @@ void map_render_chunks(Map* map, Camera* cam)
         glDrawArrays(GL_TRIANGLES, 0, c->vertex_count);
     }
     list_chunks_clear(map->chunks_to_render);
-}
-
-void map_render_wireframe(Map* map, Camera* cam)
-{
-    // Each frame new buffer is generated, the better 
-    // solution is to just offset data using camera
-    // vp matrix
-    
-    GLuint VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-    
-    GLuint VBO;
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-    float x = cam->active_block[0] * BLOCK_SIZE;
-    float y = cam->active_block[1] * BLOCK_SIZE;
-    float z = cam->active_block[2] * BLOCK_SIZE;
-    float bs = BLOCK_SIZE;
-
-    float offset = 0.001f * BLOCK_SIZE;
-    float vertices[] = {
-        x - offset, y - offset, z - offset,
-        x + bs + offset, y - offset, z - offset,
-
-        x + bs + offset, y - offset, z - offset,
-        x + bs + offset, y + bs + offset, z - offset,
-
-        x + bs + offset, y + bs + offset, z - offset,
-        x - offset, y + bs + offset, z - offset,
-
-        x - offset, y + bs + offset, z - offset,
-        x - offset, y - offset, z - offset,
-
-
-
-        x - offset, y - offset, z + bs + offset,
-        x + bs + offset, y - offset, z + bs + offset,
-
-        x + bs + offset, y - offset, z + bs + offset,
-        x + bs + offset, y + bs + offset, z + bs + offset,
-
-        x + bs + offset, y + bs + offset, z + bs + offset,
-        x - offset, y + bs + offset, z + bs + offset,
-
-        x - offset, y + bs + offset, z + bs + offset,
-        x - offset, y - offset, z + bs + offset,
-
-
-
-        x - offset, y - offset, z + bs + offset,
-        x - offset, y - offset, z - offset,
-
-        x + bs + offset, y - offset, z + bs + offset,
-        x + bs + offset, y - offset, z - offset,
-
-        x + bs + offset, y + bs + offset, z + bs + offset,
-        x + bs + offset, y + bs + offset, z - offset,
-
-        x - offset, y + bs + offset, z + bs + offset,
-        x - offset, y + bs + offset, z - offset
-    };
-
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (const void*)0);
-    glEnableVertexAttribArray(0);
-
-    glUseProgram(map->shader_lines);
-    shader_set_mat4(map->shader_lines, "mvp_matrix", cam->vp_matrix);
-
-    glEnable(GL_COLOR_LOGIC_OP);
-    glLogicOp(GL_INVERT);
-    glLineWidth(2);
-    glDrawArrays(GL_LINES, 0, 24);
-    glDisable(GL_COLOR_LOGIC_OP);
-
-    glDeleteBuffers(1, &VBO);
-    glDeleteVertexArrays(1, &VAO);
 }
 
 // return chunk coordinate block exists in
