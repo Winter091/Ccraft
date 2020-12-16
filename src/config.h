@@ -11,8 +11,8 @@
 #define MSAA_LEVEL 4
 
 // Initial window settings
-#define WINDOW_WIDTH 1600
-#define WINDOW_HEIGHT 900
+#define WINDOW_WIDTH 1280
+#define WINDOW_HEIGHT 720
 #define WINDOW_TITLE "Ccraft Window"
 #define FULLSCREEN 0
 #define VSYNC 0
@@ -25,10 +25,10 @@
 #define CHUNK_SIZE (float)(CHUNK_WIDTH * BLOCK_SIZE)
 
 #define BLOCK_BREAK_RADIUS 6
-#define CHUNK_RENDER_RADIUS 32
+#define CHUNK_RENDER_RADIUS 16
 #define CHUNK_LOAD_RADIUS (CHUNK_RENDER_RADIUS + 2)
 #define CHUNK_UNLOAD_RADIUS (CHUNK_RENDER_RADIUS + 5)
-#define MAP_FOLDER "test_map"
+#define CURRENT_MAP "maps/test_map.db"
 
 // block id's
 #define BLOCK_AIR   0

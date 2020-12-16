@@ -6,6 +6,7 @@
 #include "shader.h"
 #include "texture.h"
 #include "perlin_noise.h"
+#include "db.h"
 
 LINKEDLIST_IMPLEMENTATION(Chunk*, chunks);
 HASHMAP_IMPLEMENTATION(Chunk*, chunks, chunk_hash_func);
@@ -157,7 +158,7 @@ Map* map_create()
     }
 
     // set world seed
-    *perlin2d_get_world_seed() = rand();
+    *perlin2d_get_world_seed() = 143;
 
     return map;
 }
@@ -265,22 +266,21 @@ static int chunked(int a)
     return (a + 1) / CHUNK_WIDTH - 1;
 }
 
+// return block coordinate in a chunk ([0 - CHUNK_WIDTH))
+static int blocked(int a)
+{
+    int block = a % 32;
+    if (block < 0) block += 32;
+    return block;
+}
+
 static unsigned char map_get_block(Map* map, int x, int y, int z)
 {
-    int chunk_x = chunked(x);
-    int chunk_z = chunked(z);
-
-    int block_x = x % CHUNK_WIDTH;
-    int block_z = z % CHUNK_WIDTH;
-    if (block_x < 0) block_x += CHUNK_WIDTH;
-    if (block_z < 0) block_z += CHUNK_WIDTH;
-
-    Chunk* c = map_get_chunk(map, chunk_x, chunk_z);
+    Chunk* c = map_get_chunk(map, chunked(x), chunked(z));
     if (!c || !c->is_loaded) 
         return 0;
 
-    //printf("returning block %d from chunk %d %d\n", c->blocks[XYZ(block_x, y, block_z)], chunk_x, chunk_z);
-    return c->blocks[XYZ(block_x, y, block_z)];
+    return c->blocks[XYZ(blocked(x), y, blocked(z))];
 }
 
 static void map_set_block(Map* map, int x, int y, int z, unsigned char block)
@@ -291,17 +291,14 @@ static void map_set_block(Map* map, int x, int y, int z, unsigned char block)
     Chunk* c = map_get_chunk(map, chunk_x, chunk_z);
     if (!c) return;
 
-    // get block coord in 'chunk coord space' ([0 - CHUNK_WIDTH))
-    int block_x = x % CHUNK_WIDTH;
-    int block_z = z % CHUNK_WIDTH;
-    if (block_x < 0) block_x += CHUNK_WIDTH;
-    if (block_z < 0) block_z += CHUNK_WIDTH;
+    int block_x = blocked(x);
+    int block_z = blocked(z);
 
     c->blocks[XYZ(block_x, y, block_z)] = block;
-
-    // update chunk buffer (and neighbours, if needed)
     map_update_chunk_buffer(map, c, 0);
     
+    // update neighbour if changed block was
+    // on the edge of chunk
     if (block_x == 0)
     {
         Chunk* neigh = map_get_chunk(map, chunk_x - 1, chunk_z);
@@ -336,15 +333,20 @@ void map_handle_left_mouse_click(Map* map, Camera* cam)
     if (!cam->active_block_present)
         return;
 
+    int x = cam->active_block[0];
+    int y = cam->active_block[1];
+    int z = cam->active_block[2];
+
     // if camera looks at block nearby, remove the block
-    map_set_block(
-        map, 
-        cam->active_block[0], 
-        cam->active_block[1], 
-        cam->active_block[2],
+    map_set_block(map, x, y, z, BLOCK_AIR);
+    cam->active_block_present = 0;
+
+    // store block change in database
+    db_set_block(
+        chunked(x), chunked(z),
+        blocked(x), y, blocked(z),
         BLOCK_AIR
     );
-    cam->active_block_present = 0;
 }
 
 void find_best_spot_to_place_block(
@@ -379,7 +381,7 @@ void map_handle_right_mouse_click(Map* map, Camera* cam)
     int y = cam->active_block[1];
     int z = cam->active_block[2];
 
-    int best_x, best_y, best_z;
+    int best_x = 0, best_y = 0, best_z = 0;
     int best_dist = INT_MAX;
 
     // 6 potential spots around active block
@@ -390,10 +392,17 @@ void map_handle_right_mouse_click(Map* map, Camera* cam)
     find_best_spot_to_place_block(map, cam, x, y, z - 1, &best_x, &best_y, &best_z, &best_dist);
     find_best_spot_to_place_block(map, cam, x, y, z + 1, &best_x, &best_y, &best_z, &best_dist);
 
-    if (best_dist != INT_MAX)
-    {
-        map_set_block(map, best_x, best_y, best_z, BLOCK_DIRT);
-    }
+    if (best_dist == INT_MAX)
+        return;
+
+    map_set_block(map, best_x, best_y, best_z, BLOCK_DIRT);
+
+    // store block change in database
+    db_set_block(
+        chunked(best_x), chunked(best_z),
+        blocked(x), y, blocked(z),
+        BLOCK_DIRT
+    );
 }
 
 static void map_set_camera_active_block(Map* map, Camera* cam)

@@ -13,6 +13,7 @@
 #include "window.h"
 #include "map.h"
 #include "texture.h"
+#include "db.h"
 
 static void print_fps()
 {
@@ -97,8 +98,10 @@ int main()
     const GLubyte* version = glGetString(GL_VERSION);
     fprintf(stdout, "Using OpenGL %s\n", version);
 
+    db_init();
+
     GameObjects* game = malloc(sizeof(GameObjects));
-    game->cam = camera_create((vec3){ 0.0f, 15.0f, 0.0f });
+    game->cam = camera_create((vec3){ 0.0f, 75.0f, 0.0f });
     game->map = map_create();
     game->ui = ui_create((float)WINDOW_WIDTH / WINDOW_HEIGHT);
 
@@ -116,6 +119,8 @@ int main()
 
     glfwDestroyWindow(window);
     glfwTerminate();
+
+    db_close();
 
     return 0;
 }
