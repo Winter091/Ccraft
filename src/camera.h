@@ -22,7 +22,7 @@ typedef struct
     float mouse_last_y;
 
     // block camera looks at
-    int active_block_present;
+    int has_active_block;
     ivec3 active_block;
 
     float clip_near;

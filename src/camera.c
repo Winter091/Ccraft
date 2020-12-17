@@ -35,7 +35,7 @@ Camera* camera_create(vec3 pos)
     cam->mouse_last_x = 0;
     cam->mouse_last_y = 0;
 
-    cam->active_block_present = 0;
+    cam->has_active_block = 0;
     cam->active_block[0] = 0;
     cam->active_block[1] = 0;
     cam->active_block[2] = 0;

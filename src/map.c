@@ -246,7 +246,7 @@ static int dist2(int a, int b, int c, int x, int y, int z)
 
 void map_handle_left_mouse_click(Map* map, Camera* cam)
 {
-    if (!cam->active_block_present)
+    if (!cam->has_active_block)
         return;
 
     int x = cam->active_block[0];
@@ -255,7 +255,7 @@ void map_handle_left_mouse_click(Map* map, Camera* cam)
 
     // if camera looks at block nearby, remove the block
     map_set_block(map, x, y, z, BLOCK_AIR);
-    cam->active_block_present = 0;
+    cam->has_active_block = 0;
 
     // store block change in database
     db_insert_block(
@@ -290,7 +290,7 @@ void find_best_spot_to_place_block(
 
 void map_handle_right_mouse_click(Map* map, Camera* cam)
 {
-    if (!cam->active_block_present)
+    if (!cam->has_active_block)
         return;
     
     int x = cam->active_block[0];
@@ -362,11 +362,11 @@ static void map_set_camera_active_block(Map* map, Camera* cam)
     
     if (best_dist == INT_MAX)
     {
-        cam->active_block_present = 0;
+        cam->has_active_block = 0;
         return;
     }
 
-    cam->active_block_present = 1;
+    cam->has_active_block = 1;
     cam->active_block[0] = best_x;
     cam->active_block[1] = best_y;
     cam->active_block[2] = best_z;
