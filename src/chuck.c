@@ -97,7 +97,16 @@ static void gen_cube_vertices(
 
 static unsigned int terrain_height_at(int x, int z)
 {
-    return perlin2d(x * 0.001, z * 0.001, 4) * CHUNK_HEIGHT / 2.0f;
+    float freq = 0.0025f;
+    float height = perlin2d(
+        (float)x * freq, (float)z * freq, 
+        6,            // octaves
+        0.3f,         // persistence
+        1.8f,         // lacunarity
+        2.0f          // amplitude
+    );  
+    height *= CHUNK_HEIGHT * 0.65f;
+    return height;
 }
 
 static void block_set_visible_faces(
@@ -241,8 +250,8 @@ Chunk* chunk_init(int chunk_x, int chunk_z)
 
 void chunk_generate(Chunk* c)
 {
-    const int grass_start = 75; 
-    const int snow_start  = 170;
+    const int grass_start = 60; 
+    const int snow_start  = 115;
     
     c->blocks = malloc(CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH);
     for (int x = 0; x < CHUNK_WIDTH; x++)
