@@ -385,7 +385,7 @@ int chunk_is_visible(int chunk_x, int chunk_z, vec4 planes[6])
     aabb[0][1] = 0.0f;
     aabb[0][2] = chunk_z * CHUNK_SIZE;
     aabb[1][0] = aabb[0][0] + CHUNK_SIZE;
-    aabb[1][1] = CHUNK_HEIGHT * CHUNK_SIZE;
+    aabb[1][1] = CHUNK_HEIGHT * BLOCK_SIZE;
     aabb[1][2] = aabb[0][2] + CHUNK_SIZE;
 
     // and use this nice function to determine 
