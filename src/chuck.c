@@ -7,6 +7,7 @@
 #include "string.h"
 #include "stdio.h"
 #include "GLFW/glfw3.h"
+#include "db.h"
 
 typedef struct
 {
@@ -278,6 +279,9 @@ void chunk_generate(Chunk* c)
             }         
         }
     }
+
+    // load block differences from database
+    db_update_chunk(c);
 }
 
 void chunk_update_buffer(

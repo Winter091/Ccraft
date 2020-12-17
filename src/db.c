@@ -53,9 +53,10 @@ void db_init()
  
 }
 
-void db_set_block(int chunk_x, int chunk_z, int x, int y, int z, int block)
+void db_insert_block(int chunk_x, int chunk_z, int x, int y, int z, int block)
 {
-    static const char* query = "INSERT OR REPLACE INTO "
+    static const char* query = 
+        "INSERT OR REPLACE INTO "
         "blocks (chunk_x, chunk_z, x, y, z, block) "
         "VALUES (?, ?, ?, ?, ?, ?)";
 
@@ -77,6 +78,35 @@ void db_set_block(int chunk_x, int chunk_z, int x, int y, int z, int block)
 
     // execute command
     sqlite3_step(stmt);
+}
+
+void db_update_chunk(Chunk* c)
+{
+    static const char* query = 
+        "SELECT x, y, z, block "
+        "FROM blocks "
+        "WHERE chunk_x = ? AND chunk_z = ?";
+    
+    static sqlite3_stmt* stmt = NULL;
+    if (stmt == NULL)
+    {
+        stmt = db_compile_statement(query);
+    }
+
+    sqlite3_reset(stmt);
+
+    sqlite3_bind_int(stmt, 1, c->x);
+    sqlite3_bind_int(stmt, 2, c->z);
+
+    while (sqlite3_step(stmt) == SQLITE_ROW)
+    {
+        int x = sqlite3_column_int(stmt, 0);
+        int y = sqlite3_column_int(stmt, 1);
+        int z = sqlite3_column_int(stmt, 2);
+        int block = sqlite3_column_int(stmt, 3);
+
+        c->blocks[XYZ(x, y, z)] = block;
+    }
 }
 
 void db_close()
