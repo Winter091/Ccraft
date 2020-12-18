@@ -7,6 +7,7 @@
 #include "texture.h"
 #include "perlin_noise.h"
 #include "db.h"
+#include "block.h"
 
 LINKEDLIST_IMPLEMENTATION(Chunk*, chunks);
 HASHMAP_IMPLEMENTATION(Chunk*, chunks, chunk_hash_func);
@@ -144,7 +145,7 @@ Map* map_create()
         "shaders/chunk_fragment.glsl"
     );
 
-    map->texture_blocks = array_texture_create("textures/blocks.png");
+    map->texture_blocks = array_texture_create("textures/minecraft_blocks.png");
     if (!map->texture_blocks)
     {
         fprintf(stderr, "Texture was not loaded!\n");

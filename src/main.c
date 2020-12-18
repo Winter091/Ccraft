@@ -58,7 +58,7 @@ void update(GLFWwindow* window, GameObjects* game)
 
 void render(GLFWwindow* window, GameObjects* game)
 {
-    glClearColor(0.34f, 0.53f, 0.76f, 1.0f);
+    glClearColor(0.33f, 0.55f, 0.76f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     map_render_chunks(game->map, game->cam);

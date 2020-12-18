@@ -8,6 +8,7 @@
 #include "stdio.h"
 #include "GLFW/glfw3.h"
 #include "db.h"
+#include "block.h"
 
 typedef struct
 {
@@ -17,7 +18,6 @@ typedef struct
 }
 Vertex;
 
-// ofsset = offset into vertices array
 // x, y, z = cube's world coordinates
 // faces = determine whether to draw face or not
 static void gen_cube_vertices(
@@ -55,18 +55,6 @@ static void gen_cube_vertices(
         {{0, 0}, {0, 1}, {1, 0}, {1, 1}},
         {{1, 0}, {1, 1}, {0, 0}, {0, 1}}
     };
-
-    // texture number in texture atlas; order:
-    // left right top bottom front back
-    static const int tiles[6][6] = 
-    {
-        { 0,  0,  0,  0,  0,  0},  // 0 = air (not used)
-        {16, 16, 32,  0, 16, 16},  // 1 = grass
-        { 6,  6,  6,  6,  6,  6},  // 2 = dirt
-        { 1,  1,  1,  1,  1,  1},  // 3 = sand
-        {24, 24, 40,  8, 24, 24},  // 4 = snow
-        { 9,  9,  9,  9,  9,  9}   // 5 = glass
-    };
     
     int curr_vertex = 0;
 
@@ -79,7 +67,7 @@ static void gen_cube_vertices(
         for (int v = 0; v < 6; v++)
         {
             int index = indices[f][v];
-            int vert_index = curr_vertex_count + curr_vertex;
+            int vert_index = curr_vertex_count + curr_vertex++;
 
             vertices[vert_index].pos[0] = (positions[f][index][0] + x) * BLOCK_SIZE;
             vertices[vert_index].pos[1] = (positions[f][index][1] + y) * BLOCK_SIZE;
@@ -88,25 +76,9 @@ static void gen_cube_vertices(
             vertices[vert_index].tex_coord[0] = uvs[f][index][0];
             vertices[vert_index].tex_coord[1] = uvs[f][index][1];
 
-            vertices[vert_index].tile = tiles[block_type][f];
-
-            curr_vertex++;
+            vertices[vert_index].tile = block_textures[block_type][f];
         }
     }
-}
-
-static unsigned int terrain_height_at(int x, int z)
-{
-    float freq = 0.0025f;
-    float height = perlin2d(
-        (float)x * freq, (float)z * freq, 
-        6,            // octaves
-        0.3f,         // persistence
-        1.8f,         // lacunarity
-        2.0f          // amplitude
-    );  
-    height *= CHUNK_HEIGHT * 0.65f;
-    return height;
 }
 
 static void block_set_visible_faces(
@@ -248,10 +220,26 @@ Chunk* chunk_init(int chunk_x, int chunk_z)
     return c;
 }
 
+static unsigned int terrain_height_at(int x, int z)
+{
+    float freq = 0.0075f;
+
+    float height = perlin2d(
+        (float)x * freq, (float)z * freq, 
+        8,             // octaves
+        0.5f,          // persistence
+        1.5f,          // lacunarity
+        0.5f          // amplitude
+    );
+
+    height *= CHUNK_HEIGHT * 0.5098f;
+    return height;
+}
+
 void chunk_generate(Chunk* c)
 {
-    const int grass_start = 60; 
-    const int snow_start  = 115;
+    const int grass_start = 50; 
+    const int snow_start  = 80;
     
     c->blocks = malloc(CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH);
     for (int x = 0; x < CHUNK_WIDTH; x++)
@@ -278,7 +266,7 @@ void chunk_generate(Chunk* c)
                     if (block == BLOCK_DIRT && y == air_start)
                     {
                         if (y >= snow_start)
-                            block = BLOCK_SNOW;
+                            block = BLOCK_SNOW_GRASS;
                         else
                             block = BLOCK_GRASS;
                     }

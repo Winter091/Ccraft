@@ -29,11 +29,3 @@
 #define CHUNK_LOAD_RADIUS (CHUNK_RENDER_RADIUS + 2)
 #define CHUNK_UNLOAD_RADIUS (CHUNK_RENDER_RADIUS + 5)
 #define CURRENT_MAP "maps/test_map.db"
-
-// block id's
-#define BLOCK_AIR   0
-#define BLOCK_GRASS 1
-#define BLOCK_DIRT  2
-#define BLOCK_SAND  3
-#define BLOCK_SNOW  4
-#define BLOCK_GLASS 5
