@@ -41,12 +41,12 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
 
     if (button == GLFW_MOUSE_BUTTON_LEFT)
     {
-        map_handle_left_mouse_click(game->map, game->cam);
+        map_handle_left_mouse_click(game->cam);
     }
 
     else if (button == GLFW_MOUSE_BUTTON_RIGHT)
     {
-        map_handle_right_mouse_click(game->map, game->cam);
+        map_handle_right_mouse_click(game->cam);
     }
 }
 

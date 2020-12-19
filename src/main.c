@@ -53,7 +53,7 @@ static float get_dt()
 void update(GLFWwindow* window, GameObjects* game)
 {
     camera_update(game->cam, window, get_dt());
-    map_update(game->map, game->cam);
+    map_update(game->cam);
 }
 
 void render(GLFWwindow* window, GameObjects* game)
@@ -61,7 +61,7 @@ void render(GLFWwindow* window, GameObjects* game)
     glClearColor(0.33f, 0.55f, 0.76f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    map_render_chunks(game->map, game->cam);
+    map_render_chunks(game->cam);
 
     if (game->cam->has_active_block)
         ui_render_block_wireframe(game->ui, game->cam);
@@ -98,8 +98,8 @@ int main()
     db_init();
 
     GameObjects* game = malloc(sizeof(GameObjects));
-    game->cam = camera_create((vec3){ 0.0f, 75.0f, 0.0f });
-    game->map = map_create();
+    game->cam = camera_create((vec3){ 0.0f, 45.0f, 0.0f });
+    map_init();
     game->ui = ui_create((float)WINDOW_WIDTH / WINDOW_HEIGHT);
 
     // GameObj will be available in glfw callback

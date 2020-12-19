@@ -23,10 +23,10 @@ typedef struct
 }
 Map;
 
-Map* map_create();
-void map_update(Map* map, Camera* cam);
-void map_render_chunks(Map* map, Camera* cam);
-void map_handle_left_mouse_click(Map* map, Camera* cam);
-void map_handle_right_mouse_click(Map* map, Camera* cam);
+void map_init();
+void map_update(Camera* cam);
+void map_render_chunks(Camera* cam);
+void map_handle_left_mouse_click(Camera* cam);
+void map_handle_right_mouse_click(Camera* cam);
 
 #endif
