@@ -111,9 +111,9 @@ float noise2(float x, float y) {
 
     I = (int) i & 255;
     J = (int) j & 255;
-    g[0] = PERM[I + PERM[J]] % 12;
-    g[1] = PERM[I + i1 + PERM[J + j1]] % 12;
-    g[2] = PERM[I + 1 + PERM[J + 1]] % 12;
+    g[0] = PERM[I + PERM[(J + *perlin2d_get_world_seed()) % 512]] % 12;
+    g[1] = PERM[I + i1 + PERM[(J + j1 + *perlin2d_get_world_seed()) % 512]] % 12;
+    g[2] = PERM[I + 1 + PERM[(J + 1 + *perlin2d_get_world_seed()) % 512]] % 12;
 
     for (c = 0; c <= 2; c++) {
         f[c] = 0.5f - xx[c]*xx[c] - yy[c]*yy[c];
