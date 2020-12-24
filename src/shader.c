@@ -89,7 +89,7 @@ void shader_set_int1(GLuint shader, char* name, int value)
 {
     GLint location = glGetUniformLocation(shader, name);
     if (location == -1)
-        fprintf(stderr, "Shader attrib location is -1!\n");
+        fprintf(stderr, "Shader attrib location is -1: %s\n", name);
     else
         glUniform1i(location, value);
 }
@@ -98,7 +98,7 @@ void shader_set_mat4(GLuint shader, char* name, mat4 matrix)
 {
     GLint location = glGetUniformLocation(shader, name);
     if (location == -1)
-        fprintf(stderr, "Shader attrib location is -1!\n");
+        fprintf(stderr, "Shader attrib location is -1: %s\n", name);
     else
         glUniformMatrix4fv(location, 1, GL_FALSE, matrix[0]);
 }

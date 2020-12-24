@@ -3,6 +3,7 @@
 
 #include "chunk.h"
 
+// Block id's
 #define BLOCK_AIR               0
 #define BLOCK_STONE             1
 #define BLOCK_DIRT              2
@@ -31,17 +32,22 @@ extern unsigned char block_textures[][6];
 
 int block_is_transparent(unsigned char block);
 
+void block_get_neighs(Chunk* c, Chunk* neighs[8], int x, int y, int z, unsigned char b_neighs[27]);
+
 // x, y, z = cube's world coordinates
 // faces = determine whether to draw face or not
 void block_gen_vertices(
     Vertex* vertices, int curr_vertex_count, 
-    int x, int y, int z, int block_type, int faces[6]
+    int x, int y, int z, int block_type, int faces[6], float ao[6][4]
 );
 
-void block_set_visible_faces(
+int block_set_visible_faces(
     Chunk* c, int x, int y, int z, 
-    Chunk* left, Chunk* right, Chunk* front, Chunk* back, int faces[6]
+    Chunk* neighs[8], int faces[6]
 );
 
+void block_set_ao(
+    unsigned char neighs[27], float ao[6][4]
+);
 
 #endif

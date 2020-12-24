@@ -26,7 +26,7 @@ Chunk* chunk_init(int chunk_x, int chunk_z)
 }
 
 static unsigned int terrain_height_at(int x, int z)
-{
+{  
     float freq = 0.0075f;
 
     float height = perlin2d(
@@ -34,7 +34,7 @@ static unsigned int terrain_height_at(int x, int z)
         8,             // octaves
         0.5f,          // persistence
         1.5f,          // lacunarity
-        0.5f          // amplitude
+        0.5f           // amplitude
     );
 
     height *= CHUNK_HEIGHT * 0.5098f;
@@ -87,7 +87,7 @@ void chunk_generate(Chunk* c)
 }
 
 void chunk_update_buffer(
-    Chunk* c, Chunk* left, Chunk* right, Chunk* front, Chunk* back
+    Chunk* c, Chunk* neighs[8]
 )
 {
     if (c->is_loaded)
@@ -100,7 +100,6 @@ void chunk_update_buffer(
         CHUNK_WIDTH * CHUNK_WIDTH * CHUNK_HEIGHT * 36 * sizeof(Vertex)
     );
 
-    size_t curr_vert_size = 0;
     int curr_vertex_count = 0;
     
     for (int x = 0; x < CHUNK_WIDTH; x++)
@@ -110,43 +109,31 @@ void chunk_update_buffer(
                 if (c->blocks[XYZ(x, y, z)] == BLOCK_AIR)
                     continue;
 
+                int faces[6];
+                int faces_visible = block_set_visible_faces(
+                    c, x, y, z, neighs, faces
+                );
+
+                // block is not visible? Then don't draw it
+                if (faces_visible == 0)
+                    continue;
+
+                unsigned char b_neighs[27];
+                block_get_neighs(c, neighs, x, y, z, b_neighs);
+
+                float ao[6][4];
+                block_set_ao(b_neighs, ao);
+
                 int block_x = x + c->x * CHUNK_WIDTH;
                 int block_y = y;
                 int block_z = z + c->z * CHUNK_WIDTH;
 
-                // a lot of faces are not visible from any
-                // angle, so don't draw these faces
-                int faces[6];
-                block_set_visible_faces(
-                    c, x, y, z, left, right, front, back, faces
-                );
-
-                int visible = 0;
-                for (int i = 0; i < 6; i++)
-                {
-                    if (faces[i])
-                    {
-                        visible = 1;
-                        break;
-                    }
-                }
-
-                if (!visible)
-                    continue;
-                    
                 block_gen_vertices(
                     vertices, curr_vertex_count, block_x, block_y, 
-                    block_z, c->blocks[XYZ(x, y, z)], faces
+                    block_z, c->blocks[XYZ(x, y, z)], faces, ao
                 );
 
-                for (int i = 0; i < 6; i++)
-                {
-                    if (faces[i])
-                    {
-                        curr_vertex_count += 6;
-                        curr_vert_size += 6 * sizeof(Vertex);
-                    }
-                }
+                curr_vertex_count += faces_visible * 6;
             }
 
     // Generate VAO and VBO, send vertices to videocard
@@ -157,19 +144,27 @@ void chunk_update_buffer(
     GLuint VBO;
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, curr_vert_size, vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, curr_vertex_count * sizeof(Vertex), vertices, GL_STATIC_DRAW);
+
     glVertexAttribPointer(
         0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0
     );
     glVertexAttribPointer(
         1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(3 * sizeof(float))
     );
+
+    // weird behaviour: if you change ao index to 2 and block_type index
+    // to 3, it won't work anymore
+    glVertexAttribPointer(
+        3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(5 * sizeof(float))
+    );
     glVertexAttribIPointer(
-        2, 1, GL_UNSIGNED_BYTE,  sizeof(Vertex), (void*)(5 * sizeof(float))
+        2, 1, GL_UNSIGNED_BYTE,  sizeof(Vertex), (void*)(6 * sizeof(float))
     );
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(3);
 
     free(vertices);
 

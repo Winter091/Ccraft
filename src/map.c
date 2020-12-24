@@ -29,19 +29,28 @@ static Chunk* map_get_chunk(int chunk_x, int chunk_z)
 
 static void map_update_chunk_buffer(Chunk* c, int update_neighbours)
 {
-    Chunk* left  = map_get_chunk(c->x - 1, c->z);
-    Chunk* right = map_get_chunk(c->x + 1, c->z);
-    Chunk* front = map_get_chunk(c->x, c->z + 1);
-    Chunk* back  = map_get_chunk(c->x, c->z - 1);
+    if (!c)
+        return;
+    
+    Chunk* neighs[8] = 
+    {
+        map_get_chunk(c->x - 1, c->z    ),
+        map_get_chunk(c->x    , c->z - 1),
+        map_get_chunk(c->x + 1, c->z    ),
+        map_get_chunk(c->x    , c->z + 1),
+        map_get_chunk(c->x - 1, c->z - 1),
+        map_get_chunk(c->x + 1, c->z - 1),
+        map_get_chunk(c->x + 1, c->z + 1),
+        map_get_chunk(c->x - 1, c->z + 1)
+    };
 
-    chunk_update_buffer(c, left, right, front, back);
-
+    chunk_update_buffer(c, neighs);
+    
     if (update_neighbours)
     {
-        if (left)  map_update_chunk_buffer(left,  0);
-        if (right) map_update_chunk_buffer(right, 0);
-        if (front) map_update_chunk_buffer(front, 0);
-        if (back)  map_update_chunk_buffer(back,  0);
+        for (int i = 0; i < 4; i++)
+            if (neighs[i])
+                map_update_chunk_buffer(neighs[i], 0);
     }
 }
 
@@ -157,8 +166,6 @@ void map_init()
 
     // set world seed
     *perlin2d_get_world_seed() = rand() % 100000;
-
-    return map;
 }
 
 void map_render_chunks(Camera* cam)
@@ -188,8 +195,8 @@ static int chunked(int a)
 // return block coordinate in a chunk ([0 - CHUNK_WIDTH))
 static int blocked(int a)
 {
-    int block = a % 32;
-    if (block < 0) block += 32;
+    int block = a % CHUNK_WIDTH;
+    if (block < 0) block += CHUNK_WIDTH;
     return block;
 }
 
@@ -220,23 +227,50 @@ static void map_set_block(int x, int y, int z, unsigned char block)
     // on the edge of chunk
     if (block_x == 0)
     {
-        Chunk* neigh = map_get_chunk(chunk_x - 1, chunk_z);
-        if (neigh) map_update_chunk_buffer(neigh, 0);
+        Chunk* left = map_get_chunk(chunk_x - 1, chunk_z);
+        map_update_chunk_buffer(left, 0);
+
+        if (block_z == 0)
+        {
+            Chunk* backleft = map_get_chunk(chunk_x - 1, chunk_z - 1);
+            map_update_chunk_buffer(backleft, 0);
+        }
+
+        else if (block_z == CHUNK_WIDTH - 1)
+        {
+            Chunk* frontleft = map_get_chunk(chunk_x - 1, chunk_z + 1);
+            map_update_chunk_buffer(frontleft, 0);
+        }
     }
+
     else if (block_x == CHUNK_WIDTH - 1)
     {
-        Chunk* neigh = map_get_chunk(chunk_x + 1, chunk_z);
-        if (neigh) map_update_chunk_buffer(neigh, 0);
+        Chunk* right = map_get_chunk(chunk_x + 1, chunk_z);
+        map_update_chunk_buffer(right, 0);
+
+        if (block_z == 0)
+        {
+            Chunk* backright = map_get_chunk(chunk_x + 1, chunk_z - 1);
+            map_update_chunk_buffer(backright, 0);
+        }
+
+        else if (block_z == CHUNK_WIDTH - 1)
+        {
+            Chunk* frontright = map_get_chunk(chunk_x + 1, chunk_z + 1);
+            map_update_chunk_buffer(frontright, 0);
+        }
     }
+
     if (block_z == 0)
     {
-        Chunk* neigh = map_get_chunk(chunk_x, chunk_z - 1);
-        if (neigh) map_update_chunk_buffer(neigh, 0);
+        Chunk* back = map_get_chunk(chunk_x, chunk_z - 1);
+        map_update_chunk_buffer(back, 0);
     }
+    
     else if (block_z == CHUNK_WIDTH - 1)
     {
-        Chunk* neigh = map_get_chunk(chunk_x, chunk_z + 1);
-        if (neigh) map_update_chunk_buffer(neigh, 0);
+        Chunk* front = map_get_chunk(chunk_x, chunk_z + 1);
+        map_update_chunk_buffer(front, 0);
     }
 }
 
