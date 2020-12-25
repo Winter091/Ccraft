@@ -60,7 +60,6 @@ static void map_load_chunk(int chunk_x, int chunk_z)
     chunk_generate(c);
     hashmap_chunks_insert(map->chunks_active, c);
     map_update_chunk_buffer(c, 1);
-    //printf("Loaded %d %d\n", chunk_x, chunk_z);
 }
 
 static void map_delete_chunk(int chunk_x, int chunk_z)
@@ -70,7 +69,6 @@ static void map_delete_chunk(int chunk_x, int chunk_z)
     {
         hashmap_chunks_remove(map->chunks_active, c);
         chunk_delete(c);
-        //printf("Deleted %d %d\n", chunk_x, chunk_z);
     }
 }
 
@@ -79,19 +77,29 @@ static void map_unload_far_chunks(Camera* cam)
     int cam_chunk_x = cam->pos[0] / CHUNK_SIZE;
     int cam_chunk_z = cam->pos[2] / CHUNK_SIZE;
     
+    LinkedList_chunks* chunks_to_delete = list_chunks_create();
+
     for (int i = 0; i < map->chunks_active->array_size; i++)
     {  
         LinkedListNodeMap_chunks* node = map->chunks_active->array[i]->head;
         for ( ; node; node = node->ptr_next)
         {
             Chunk* c = node->data;
-            //if (chunk_dist_to_player(c->x, c->z, cam_chunk_x, cam_chunk_z) > CHUNK_UNLOAD_RADIUS)
             if (abs(c->x - cam_chunk_x) > CHUNK_UNLOAD_RADIUS || abs(c->z - cam_chunk_z) > CHUNK_UNLOAD_RADIUS)
             {
-                map_delete_chunk(c->x, c->z);
+                list_chunks_push_front(chunks_to_delete, c);
             }
         }
     }
+
+    LinkedListNode_chunks* node = chunks_to_delete->head;
+    for ( ; node; node = node->ptr_next)
+    {
+        Chunk* c = node->data;
+        map_delete_chunk(c->x, c->z);
+    }
+
+    list_chunks_delete(chunks_to_delete);
 }
 
 static void map_load_chunks(Camera* cam)
@@ -174,7 +182,7 @@ void map_render_chunks(Camera* cam)
     shader_set_mat4(map->shader_chunks, "mvp_matrix", cam->vp_matrix);
     shader_set_int1(map->shader_chunks, "texture_sampler", 0);
     array_texture_bind(map->texture_blocks, 0);
-    
+
     LinkedListNode_chunks* node = map->chunks_to_render->head;
     for ( ; node; node = node->ptr_next)
     {
