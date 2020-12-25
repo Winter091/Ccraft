@@ -294,12 +294,14 @@ void map_handle_left_mouse_click(Camera* cam)
     map_set_block(x, y, z, BLOCK_AIR);
     cam->has_active_block = 0;
 
+#if USE_DATABASE
     // store block change in database
     db_insert_block(
         chunked(x), chunked(z),
         blocked(x), y, blocked(z),
         BLOCK_AIR
     );
+#endif
 }
 
 void find_best_spot_to_place_block(
@@ -350,12 +352,14 @@ void map_handle_right_mouse_click(Camera* cam)
 
     map_set_block(best_x, best_y, best_z, BLOCK_DIRT);
 
+#if USE_DATABASE
     // store block change in database
     db_insert_block(
         chunked(best_x), chunked(best_z),
         blocked(best_x), best_y, blocked(best_z),
         BLOCK_DIRT
     );
+#endif
 }
 
 static void map_set_camera_active_block(Camera* cam)

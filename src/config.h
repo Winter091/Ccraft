@@ -4,7 +4,7 @@
 
 // Graphics
 
-// anisotropic filtering. Accepted values: 1 2 4 8 16
+// Anisotropic filtering. Accepted values: 1 2 4 8 16
 #define ANISOTROPIC_FILTERING_LEVEL 16
 
 // MSAA antialiasing. Accepted values: 0, 2, 4, 8, 16
@@ -18,7 +18,9 @@
 #define VSYNC 0
 
 // game settings
+#define USE_DATABASE 0
 #define FOV 65
+#define FOV_BINOCULARS 20
 #define CHUNK_WIDTH 32
 #define CHUNK_HEIGHT 256
 #define BLOCK_SIZE 0.5f

@@ -95,11 +95,14 @@ int main()
     const GLubyte* version = glGetString(GL_VERSION);
     fprintf(stdout, "Using OpenGL %s\n", version);
 
+#if USE_DATABASE
     db_init();
+#endif
+
+    map_init();
 
     GameObjects* game = malloc(sizeof(GameObjects));
     game->cam = camera_create((vec3){ 0.0f, 45.0f, 0.0f });
-    map_init();
     game->ui = ui_create((float)WINDOW_WIDTH / WINDOW_HEIGHT);
 
     // GameObj will be available in glfw callback
@@ -117,7 +120,9 @@ int main()
     glfwDestroyWindow(window);
     glfwTerminate();
 
+#if USE_DATABASE
     db_close();
+#endif
 
     return 0;
 }
