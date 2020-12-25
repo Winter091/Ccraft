@@ -53,7 +53,10 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
 static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     GameObjects* game = glfwGetWindowUserPointer(window);
-    game->cam->move_speed += yoffset;
+    if (yoffset > 0)
+        game->cam->move_speed *= 1.1f;
+    else
+        game->cam->move_speed /= 1.1f;
 }
 
 GLFWwindow* window_create()

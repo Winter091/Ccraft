@@ -100,7 +100,7 @@ static void update_mouse_movement(Camera* cam, GLFWwindow* window)
 
 static void update_keyboard(Camera* cam, GLFWwindow* window, double dt)
 {
-    static int key_w, key_s, key_a, key_d, key_shift, key_ctrl;
+    static int key_w, key_s, key_a, key_d, key_shift, key_ctrl, key_c;
 
     key_w     = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
     key_s     = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
@@ -108,6 +108,12 @@ static void update_keyboard(Camera* cam, GLFWwindow* window, double dt)
     key_d     = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
     key_shift = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
     key_ctrl  = glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
+    key_c     = glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS;
+
+    if (key_c && cam->fov == FOV)
+        camera_set_fov(cam, FOV_BINOCULARS);
+    else if (!key_c && cam->fov == FOV_BINOCULARS)
+        camera_set_fov(cam, FOV);
 
     static vec3 move;
     
@@ -205,4 +211,13 @@ void camera_set_aspect_ratio(Camera* cam, float new_ratio)
     cam->aspect_ratio = new_ratio;
     glm_perspective_resize(new_ratio, cam->proj_matrix);
     glm_frustum_planes(cam->vp_matrix, cam->frustum_planes);
+}
+
+void camera_set_fov(Camera* cam, int new_fov)
+{
+    cam->fov = new_fov;
+    glm_perspective(
+        glm_rad(new_fov), (float)WINDOW_WIDTH / WINDOW_HEIGHT, 
+        cam->clip_near, cam->clip_far, cam->proj_matrix
+    );
 }
