@@ -9,6 +9,7 @@
 #include "GLFW/glfw3.h"
 #include "db.h"
 #include "block.h"
+#include "utils.h"
 
 Chunk* chunk_init(int chunk_x, int chunk_z)
 {
@@ -88,9 +89,7 @@ void chunk_generate(Chunk* c)
 #endif
 }
 
-void chunk_update_buffer(
-    Chunk* c, Chunk* neighs[8]
-)
+void chunk_update_buffer(Chunk* c, Chunk* neighs[8])
 {
     if (c->is_loaded)
     {
@@ -98,9 +97,16 @@ void chunk_update_buffer(
         glDeleteBuffers(1, &c->VBO);
     }
     
-    Vertex* vertices = malloc(
-        CHUNK_WIDTH * CHUNK_WIDTH * CHUNK_HEIGHT * 36 * sizeof(Vertex)
-    );
+    // Keep static buffer in order not to
+    // make a lot of big allocations
+    static Vertex* vertices = NULL;
+    if (!vertices)
+    {
+        // space for all vertices in a chunk
+        vertices = malloc(
+            CHUNK_WIDTH * CHUNK_WIDTH * CHUNK_HEIGHT * 36 * sizeof(Vertex)
+        );
+    }
 
     int curr_vertex_count = 0;
     
@@ -139,14 +145,8 @@ void chunk_update_buffer(
             }
 
     // Generate VAO and VBO, send vertices to videocard
-    GLuint VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-
-    GLuint VBO;
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, curr_vertex_count * sizeof(Vertex), vertices, GL_STATIC_DRAW);
+    GLuint VAO = opengl_create_vao();
+    GLuint VBO = opengl_create_vbo(vertices, curr_vertex_count * sizeof(Vertex));
 
     glVertexAttribPointer(
         0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0
@@ -167,8 +167,6 @@ void chunk_update_buffer(
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
     glEnableVertexAttribArray(3);
-
-    free(vertices);
 
     c->VAO = VAO;
     c->VBO = VBO;

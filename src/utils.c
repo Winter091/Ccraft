@@ -8,7 +8,7 @@ GLuint opengl_create_vao()
     return VAO;
 }
 
-GLuint opengl_create_vbo(float* vertices, size_t buf_size, size_t vert_count)
+GLuint opengl_create_vbo(float* vertices, size_t buf_size)
 {
     GLuint VBO;
     glGenBuffers(1, &VBO);

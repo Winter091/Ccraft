@@ -24,7 +24,7 @@ UI* ui_create(float aspect_ratio)
     };
     
     ui->VAO_crosshair = opengl_create_vao();
-    ui->VBO_crosshair = opengl_create_vbo(vertices_crosshair, sizeof(vertices_crosshair), 4);
+    ui->VBO_crosshair = opengl_create_vbo(vertices_crosshair, sizeof(vertices_crosshair));
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (const void*)0);
     glEnableVertexAttribArray(0);
@@ -79,7 +79,7 @@ UI* ui_create(float aspect_ratio)
     };
 
     ui->VAO_block_wireframe = opengl_create_vao();
-    ui->VBO_block_wireframe = opengl_create_vbo(vertices_wireframe, sizeof(vertices_wireframe), 24);
+    ui->VBO_block_wireframe = opengl_create_vbo(vertices_wireframe, sizeof(vertices_wireframe));
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (const void*)0);
     glEnableVertexAttribArray(0);
@@ -110,7 +110,7 @@ void ui_update_aspect_ratio(UI* ui, float new_ratio)
     };
 
     ui->VAO_crosshair = opengl_create_vao();
-    ui->VBO_crosshair = opengl_create_vbo(vertices, sizeof(vertices), 4);
+    ui->VBO_crosshair = opengl_create_vbo(vertices, sizeof(vertices));
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (const void*)0);
     glEnableVertexAttribArray(0);
