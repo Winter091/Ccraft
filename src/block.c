@@ -253,9 +253,9 @@ void block_set_ao(
     {
         for (int v = 0; v < 4; v++)
         {
-            int corner = neighs[lookup[f][v][0]] ? 1 : 0;
-            int side1  = neighs[lookup[f][v][1]] ? 1 : 0;
-            int side2  = neighs[lookup[f][v][2]] ? 1 : 0;
+            int corner = block_is_transparent(neighs[lookup[f][v][0]]) ? 0 : 1;
+            int side1  = block_is_transparent(neighs[lookup[f][v][1]]) ? 0 : 1;
+            int side2  = block_is_transparent(neighs[lookup[f][v][2]]) ? 0 : 1;
 
             ao[f][v] = side1 && side2 ? curve[3] : curve[corner + side1 + side2];
         }
