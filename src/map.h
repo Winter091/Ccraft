@@ -17,14 +17,20 @@ typedef struct
     //LinkedList_chunks* chunks_to_rebuild;
     LinkedList_chunks* chunks_to_render;
 
+    GLuint VAO_skybox;
+    GLuint VBO_skybox;
+
     GLuint shader_chunks;
+    GLuint shader_skybox;
 
     GLuint texture_blocks;
+    GLuint texture_skybox;
 }
 Map;
 
 void map_init();
 void map_update(Camera* cam);
+void map_render_sky(Camera* cam);
 void map_render_chunks(Camera* cam);
 void map_handle_left_mouse_click(Camera* cam);
 void map_handle_right_mouse_click(Camera* cam);

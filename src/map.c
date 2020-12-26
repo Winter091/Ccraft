@@ -8,6 +8,7 @@
 #include "perlin_noise.h"
 #include "db.h"
 #include "block.h"
+#include "utils.h"
 
 LINKEDLIST_IMPLEMENTATION(Chunk*, chunks);
 HASHMAP_IMPLEMENTATION(Chunk*, chunks, chunk_hash_func);
@@ -159,9 +160,18 @@ void map_init()
     //map->chunks_to_rebuild = list_chunks_create();
     map->chunks_to_render  = list_chunks_create();
 
+    map->VAO_skybox = opengl_create_vao();
+    map->VBO_skybox = opengl_create_vbo_skybox();
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (const void*)0);
+    glEnableVertexAttribArray(0);
+
     map->shader_chunks = create_shader_program(
         "shaders/chunk_vertex.glsl",
         "shaders/chunk_fragment.glsl"
+    );
+    map->shader_skybox = create_shader_program(
+        "shaders/skybox_vertex.glsl",
+        "shaders/skybox_fragment.glsl"
     );
 
     map->texture_blocks = array_texture_create("textures/minecraft_blocks.png");
@@ -172,8 +182,45 @@ void map_init()
         exit(EXIT_FAILURE);
     }
 
+    map->texture_skybox = skybox_texture_create(
+        (const char*[6]){
+            "textures/skybox/right.png",
+            "textures/skybox/left.png",
+            "textures/skybox/top.png",
+            "textures/skybox/bottom.png",
+            "textures/skybox/front.png",
+            "textures/skybox/back.png"
+        }
+    );
+    if (!map->texture_skybox)
+    {
+        fprintf(stderr, "Texture was not loaded!\n");
+        glfwTerminate();
+        exit(EXIT_FAILURE);
+    }
+
     // set world seed
     *perlin2d_get_world_seed() = rand() % 100000;
+}
+
+void map_render_sky(Camera* cam)
+{    
+    mat4 model;
+    glm_mat4_identity(model);
+    glm_translate(model, cam->pos);
+
+    mat4 mvp_matrix;
+    glm_mat4_mul(cam->vp_matrix, model, mvp_matrix);
+    
+    glUseProgram(map->shader_skybox);
+    shader_set_mat4(map->shader_skybox, "mvp_matrix", mvp_matrix);
+    shader_set_int1(map->shader_skybox, "texture_sampler", 0);
+    skybox_texture_bind(map->texture_skybox, 0);
+
+    glDepthFunc(GL_LEQUAL);
+    glBindVertexArray(map->VAO_skybox);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glDepthFunc(GL_LESS);
 }
 
 void map_render_chunks(Camera* cam)

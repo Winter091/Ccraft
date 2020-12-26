@@ -117,6 +117,48 @@ GLuint array_texture_create(const char* path)
     return texture;
 }
 
+GLuint skybox_texture_create(const char* paths[6])
+{
+    GLuint texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
+
+    stbi_set_flip_vertically_on_load(0);
+    int w, h, channels;
+
+    for (int i = 0; i < 6; i++)
+    {
+        unsigned char* data = stbi_load(paths[i], &w, &h, &channels, 0);
+        if (!data)
+        {
+            fprintf(stderr, "Failed to load image: %s\n", paths[i]);
+            return 0;
+        }
+
+        if (channels != 3)
+        {
+            fprintf(stderr, "Expected 3 channels in image: %s\n", paths[i]);
+            return 0;
+        }
+
+        glTexImage2D(
+            GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 
+            0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+        );
+
+        stbi_image_free(data);
+    }
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    return texture;
+}
+
 void texture_bind(GLuint texture, int slot)
 {
     glActiveTexture(GL_TEXTURE0 + slot);
@@ -127,4 +169,10 @@ void array_texture_bind(GLuint texture, int slot)
 {
     glActiveTexture(GL_TEXTURE0 + slot);
     glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
+}
+
+void skybox_texture_bind(GLuint texture, int slot)
+{
+    glActiveTexture(GL_TEXTURE0 + slot);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
 }

@@ -62,11 +62,13 @@ void render(GLFWwindow* window, GameObjects* game)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     map_render_chunks(game->cam);
-
+    map_render_sky(game->cam);
+    
     if (game->cam->has_active_block)
         ui_render_block_wireframe(game->ui, game->cam);
-
+    
     ui_render_crosshair(game->ui);
+
 
     glfwSwapBuffers(window);
     glfwPollEvents();
@@ -102,7 +104,7 @@ int main()
     map_init();
 
     GameObjects* game = malloc(sizeof(GameObjects));
-    game->cam = camera_create((vec3){ 0.0f, 45.0f, 0.0f });
+    game->cam = camera_create((vec3){ 0.0f, 96.0f * BLOCK_SIZE, 0.0f });
     game->ui = ui_create((float)WINDOW_WIDTH / WINDOW_HEIGHT);
 
     // GameObj will be available in glfw callback
