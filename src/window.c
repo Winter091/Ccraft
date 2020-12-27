@@ -7,24 +7,35 @@
 
 #include "config.h"
 #include "camera.h"
+#include "player.h"
 
 static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     GameObjects* game = glfwGetWindowUserPointer(window);
-    camera_set_aspect_ratio(game->cam, (float)width / height);
+    camera_set_aspect_ratio(game->player->cam, (float)width / height);
     ui_update_aspect_ratio(game->ui, (float)width / height);
     glViewport(0, 0, width, height);
 }
 
 static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-    if (action != GLFW_PRESS)
+    if (action == GLFW_RELEASE)
         return;
     
-    if (key == GLFW_KEY_ESCAPE)
+    GameObjects* game = glfwGetWindowUserPointer(window);
+
+    switch (key)
     {
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    }
+        case GLFW_KEY_ESCAPE:
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+            break;
+        case GLFW_KEY_PAGE_UP:
+            game->player->cam->move_speed *= 1.1f;
+            break;
+        case GLFW_KEY_PAGE_DOWN:
+            game->player->cam->move_speed /= 1.1f;
+            break;
+    };
 }
 
 static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
@@ -33,30 +44,30 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
         return;
 
     GameObjects* game = glfwGetWindowUserPointer(window);
-    if (!game->cam->active)
+    if (!game->player->cam->active)
     {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         return;
     }
 
-    if (button == GLFW_MOUSE_BUTTON_LEFT)
+    switch (button)
     {
-        map_handle_left_mouse_click(game->cam);
-    }
-
-    else if (button == GLFW_MOUSE_BUTTON_RIGHT)
-    {
-        map_handle_right_mouse_click(game->cam);
-    }
+        case GLFW_MOUSE_BUTTON_LEFT:
+            player_handle_left_mouse_click(game->player);
+            break;
+        case GLFW_MOUSE_BUTTON_RIGHT:
+            player_handle_right_mouse_click(game->player);
+            break;
+    };
 }
 
 static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     GameObjects* game = glfwGetWindowUserPointer(window);
     if (yoffset > 0)
-        game->cam->move_speed *= 1.1f;
+        player_set_build_block(game->player, game->player->build_block + 1);
     else
-        game->cam->move_speed /= 1.1f;
+        player_set_build_block(game->player, game->player->build_block - 1);
 }
 
 GLFWwindow* window_create()

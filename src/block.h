@@ -3,6 +3,8 @@
 
 #include "chunk.h"
 
+#define BLOCKS_AMOUNT 23
+
 // Block id's
 #define BLOCK_AIR               0
 #define BLOCK_STONE             1

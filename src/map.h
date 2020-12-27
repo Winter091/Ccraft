@@ -5,9 +5,29 @@
 #include "linked_list.h"
 #include "hashmap.h"
 #include "camera.h"
+#include "player.h"
+#include "glad/glad.h"
 
 LINKEDLIST_DEFINITION(Chunk*, chunks);
 HASHMAP_DEFINITION(Chunk*, chunks);
+
+#define MAP_FOREACH_ACTIVE_CHUNK_BEGIN(CHUNK_NAME)\
+for (int i = 0; i < map->chunks_active->array_size; i++)\
+{\
+    LinkedListNodeMap_chunks* node = map->chunks_active->array[i]->head;\
+    for ( ; node; node = node->ptr_next)\
+    {\
+        Chunk* CHUNK_NAME = node->data;\
+
+#define MAP_FOREACH_ACTIVE_CHUNK_END() }}
+
+#define LIST_FOREACH_CHUNK_BEGIN(LIST, CHUNK_NAME)\
+LinkedListNode_chunks* node = LIST->head;\
+for ( ; node; node = node->ptr_next)\
+{\
+    Chunk* c = node->data;\
+
+#define LIST_FOREACH_CHUNK_END() }
 
 typedef struct
 {
@@ -32,7 +52,7 @@ void map_init();
 void map_update(Camera* cam);
 void map_render_sky(Camera* cam);
 void map_render_chunks(Camera* cam);
-void map_handle_left_mouse_click(Camera* cam);
-void map_handle_right_mouse_click(Camera* cam);
+unsigned char map_get_block(int x, int y, int z);
+void map_set_block(int x, int y, int z, unsigned char block);
 
 #endif

@@ -80,25 +80,18 @@ static void map_unload_far_chunks(Camera* cam)
     
     LinkedList_chunks* chunks_to_delete = list_chunks_create();
 
-    for (int i = 0; i < map->chunks_active->array_size; i++)
-    {  
-        LinkedListNodeMap_chunks* node = map->chunks_active->array[i]->head;
-        for ( ; node; node = node->ptr_next)
-        {
-            Chunk* c = node->data;
-            if (abs(c->x - cam_chunk_x) > CHUNK_UNLOAD_RADIUS || abs(c->z - cam_chunk_z) > CHUNK_UNLOAD_RADIUS)
-            {
-                list_chunks_push_front(chunks_to_delete, c);
-            }
-        }
-    }
-
-    LinkedListNode_chunks* node = chunks_to_delete->head;
-    for ( ; node; node = node->ptr_next)
+    MAP_FOREACH_ACTIVE_CHUNK_BEGIN(c)
     {
-        Chunk* c = node->data;
+        if (chunk_player_dist2(c->x, c->z, cam_chunk_x, cam_chunk_z) > CHUNK_UNLOAD_RADIUS * CHUNK_UNLOAD_RADIUS)
+            list_chunks_push_front(chunks_to_delete, c);
+    }
+    MAP_FOREACH_ACTIVE_CHUNK_END()
+
+    LIST_FOREACH_CHUNK_BEGIN(chunks_to_delete, c)
+    {
         map_delete_chunk(c->x, c->z);
     }
+    LIST_FOREACH_CHUNK_END()
 
     list_chunks_delete(chunks_to_delete);
 }
@@ -117,6 +110,9 @@ static void map_load_chunks(Camera* cam)
     {
         for (int z = cam_chunk_z - CHUNK_LOAD_RADIUS; z <= cam_chunk_z + CHUNK_LOAD_RADIUS; z++)
         {
+            if (chunk_player_dist2(x, z, cam_chunk_x, cam_chunk_z) > CHUNK_LOAD_RADIUS * CHUNK_LOAD_RADIUS)
+                continue;
+            
             Chunk* c = map_get_chunk(x, z);
 
             // add all visible loaded chunks to render list,
@@ -131,7 +127,7 @@ static void map_load_chunks(Camera* cam)
             else
             {
                 int visible = chunk_is_visible(x, z, cam->frustum_planes);
-                int dist = chunk_dist_to_player(x, z, cam_chunk_x, cam_chunk_z);
+                int dist = chunk_player_dist2(x, z, cam_chunk_x, cam_chunk_z);
 
                 int curr_score = visible ? (1 << 30) : 0;
                 curr_score -= dist;
@@ -200,7 +196,7 @@ void map_init()
     }
 
     // set world seed
-    *perlin2d_get_world_seed() = rand() % 100000;
+    *perlin2d_get_world_seed() = 123;
 }
 
 void map_render_sky(Camera* cam)
@@ -230,32 +226,17 @@ void map_render_chunks(Camera* cam)
     shader_set_int1(map->shader_chunks, "texture_sampler", 0);
     array_texture_bind(map->texture_blocks, 0);
 
-    LinkedListNode_chunks* node = map->chunks_to_render->head;
-    for ( ; node; node = node->ptr_next)
+    LIST_FOREACH_CHUNK_BEGIN(map->chunks_to_render, c)
     {
-        Chunk* c = node->data;
         glBindVertexArray(c->VAO);
         glDrawArrays(GL_TRIANGLES, 0, c->vertex_count);
     }
+    LIST_FOREACH_CHUNK_END()
+
     list_chunks_clear(map->chunks_to_render);
 }
 
-// return chunk coordinate block exists in
-static int chunked(int a)
-{
-    if (a >= 0) return a / CHUNK_WIDTH;
-    return (a + 1) / CHUNK_WIDTH - 1;
-}
-
-// return block coordinate in a chunk ([0 - CHUNK_WIDTH))
-static int blocked(int a)
-{
-    int block = a % CHUNK_WIDTH;
-    if (block < 0) block += CHUNK_WIDTH;
-    return block;
-}
-
-static unsigned char map_get_block(int x, int y, int z)
+unsigned char map_get_block(int x, int y, int z)
 {
     Chunk* c = map_get_chunk(chunked(x), chunked(z));
     if (!c || !c->is_loaded) 
@@ -264,7 +245,7 @@ static unsigned char map_get_block(int x, int y, int z)
     return c->blocks[XYZ(blocked(x), y, blocked(z))];
 }
 
-static void map_set_block(int x, int y, int z, unsigned char block)
+void map_set_block(int x, int y, int z, unsigned char block)
 {
     int chunk_x = chunked(x);
     int chunk_z = chunked(z);
@@ -329,152 +310,12 @@ static void map_set_block(int x, int y, int z, unsigned char block)
     }
 }
 
-// squared distance between 2 points in space;
-// sqrt() function is quite expensive
-static int dist2(int a, int b, int c, int x, int y, int z)
-{
-    return (a - x) * (a - x) + (b - y) * (b - y) + (c - z) * (c - z);
-}
-
-void map_handle_left_mouse_click(Camera* cam)
-{
-    if (!cam->has_active_block)
-        return;
-
-    int x = cam->active_block[0];
-    int y = cam->active_block[1];
-    int z = cam->active_block[2];
-
-    // if camera looks at block nearby, remove the block
-    map_set_block(x, y, z, BLOCK_AIR);
-    cam->has_active_block = 0;
-
-#if USE_DATABASE
-    // store block change in database
-    db_insert_block(
-        chunked(x), chunked(z),
-        blocked(x), y, blocked(z),
-        BLOCK_AIR
-    );
-#endif
-}
-
-void find_best_spot_to_place_block(
-    Camera* cam, int x, int y, int z, 
-    int* best_x, int* best_y, int* best_z, int* best_dist
-)
-{
-    // position of camera in blocks
-    int cam_x = cam->pos[0] / BLOCK_SIZE;
-    int cam_y = cam->pos[1] / BLOCK_SIZE;
-    int cam_z = cam->pos[2] / BLOCK_SIZE;
-    
-    if (camera_looks_at_block(cam, x, y, z) && map_get_block(x, y, z) == BLOCK_AIR)
-    {
-        int dist = dist2(cam_x, cam_y, cam_z, x, y, z);
-        if (dist < *best_dist)
-        {
-            *best_dist = dist;
-            *best_x = x;
-            *best_y = y;
-            *best_z = z;
-        }
-    }
-}
-
-void map_handle_right_mouse_click(Camera* cam)
-{
-    if (!cam->has_active_block)
-        return;
-    
-    int x = cam->active_block[0];
-    int y = cam->active_block[1];
-    int z = cam->active_block[2];
-
-    int best_x = 0, best_y = 0, best_z = 0;
-    int best_dist = INT_MAX;
-
-    // 6 potential spots around active block
-    find_best_spot_to_place_block(cam, x - 1, y, z, &best_x, &best_y, &best_z, &best_dist);
-    find_best_spot_to_place_block(cam, x + 1, y, z, &best_x, &best_y, &best_z, &best_dist);
-    find_best_spot_to_place_block(cam, x, y - 1, z, &best_x, &best_y, &best_z, &best_dist);
-    find_best_spot_to_place_block(cam, x, y + 1, z, &best_x, &best_y, &best_z, &best_dist);
-    find_best_spot_to_place_block(cam, x, y, z - 1, &best_x, &best_y, &best_z, &best_dist);
-    find_best_spot_to_place_block(cam, x, y, z + 1, &best_x, &best_y, &best_z, &best_dist);
-
-    if (best_dist == INT_MAX)
-        return;
-
-    map_set_block(best_x, best_y, best_z, BLOCK_DIRT);
-
-#if USE_DATABASE
-    // store block change in database
-    db_insert_block(
-        chunked(best_x), chunked(best_z),
-        blocked(best_x), best_y, blocked(best_z),
-        BLOCK_DIRT
-    );
-#endif
-}
-
-static void map_set_camera_active_block(Camera* cam)
-{
-    // position of camera in blocks
-    int cam_x = cam->pos[0] / BLOCK_SIZE;
-    int cam_y = cam->pos[1] / BLOCK_SIZE;
-    int cam_z = cam->pos[2] / BLOCK_SIZE;
-
-    // best_* will store the block,
-    // if it's found
-    int best_x, best_y, best_z;
-    int best_dist = INT_MAX;
-
-    // iterate over each block around player
-    for (int y = cam_y - BLOCK_BREAK_RADIUS; y <= cam_y + BLOCK_BREAK_RADIUS; y++)
-    {
-        if (y < 0 || y >= CHUNK_HEIGHT) continue;
-
-        for (int x = cam_x - BLOCK_BREAK_RADIUS; x <= cam_x + BLOCK_BREAK_RADIUS; x++)
-            for (int z = cam_z - BLOCK_BREAK_RADIUS; z <= cam_z + BLOCK_BREAK_RADIUS; z++)
-            {
-                if (camera_looks_at_block(cam, x, y, z))
-                {
-                    unsigned char block = map_get_block(x, y, z);
-                    if (block == BLOCK_AIR)
-                        continue;
-                    
-                    // we need closest block that camera is pointing to
-                    int distance = dist2(cam_x, cam_y, cam_z, x, y, z);
-                    if (distance < best_dist)
-                    {
-                        best_dist = distance;
-                        best_x = x;
-                        best_y = y;
-                        best_z = z;
-                    }
-                }
-            }
-    }
-    
-    if (best_dist == INT_MAX)
-    {
-        cam->has_active_block = 0;
-        return;
-    }
-
-    cam->has_active_block = 1;
-    cam->active_block[0] = best_x;
-    cam->active_block[1] = best_y;
-    cam->active_block[2] = best_z;
-}
-
 void map_update(Camera* cam)
 {
     //float curr_time = glfwGetTime();
     
     map_unload_far_chunks(cam);
     map_load_chunks(cam);
-    map_set_camera_active_block(cam);
 
     //printf("%.6f\n", glfwGetTime() - curr_time);
 }

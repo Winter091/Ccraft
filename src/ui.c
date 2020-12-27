@@ -133,20 +133,20 @@ void ui_render_crosshair(UI* ui)
     glDisable(GL_COLOR_LOGIC_OP);
 }
 
-void ui_render_block_wireframe(UI* ui, Camera* cam)
+void ui_render_block_wireframe(UI* ui, Player* p)
 {
     glBindVertexArray(ui->VAO_block_wireframe);
 
-    float x = cam->active_block[0] * BLOCK_SIZE;
-    float y = cam->active_block[1] * BLOCK_SIZE;
-    float z = cam->active_block[2] * BLOCK_SIZE;
+    float x = p->block_pointed_at[0] * BLOCK_SIZE;
+    float y = p->block_pointed_at[1] * BLOCK_SIZE;
+    float z = p->block_pointed_at[2] * BLOCK_SIZE;
 
     mat4 model;
     glm_mat4_identity(model);
     glm_translate(model, (vec3){ x, y, z });
 
     mat4 mvp;
-    glm_mat4_mul(cam->vp_matrix, model, mvp);
+    glm_mat4_mul(p->cam->vp_matrix, model, mvp);
 
     glUseProgram(ui->line_shader);
     shader_set_mat4(ui->line_shader, "mvp_matrix", mvp);

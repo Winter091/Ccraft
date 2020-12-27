@@ -6,11 +6,11 @@
 #include "camera.h"
 #include "map.h"
 #include "ui.h"
+#include "player.h"
 
 typedef struct
 {
-    Camera* cam;
-    Map* map;
+    Player* player;
     UI* ui;
 }
 GameObjects;

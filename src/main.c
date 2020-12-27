@@ -14,6 +14,7 @@
 #include "map.h"
 #include "texture.h"
 #include "db.h"
+#include "player.h"
 
 static void print_fps()
 {
@@ -52,8 +53,8 @@ static float get_dt()
 
 void update(GLFWwindow* window, GameObjects* game)
 {
-    camera_update(game->cam, window, get_dt());
-    map_update(game->cam);
+    player_update(game->player, window, get_dt());
+    map_update(game->player->cam);
 }
 
 void render(GLFWwindow* window, GameObjects* game)
@@ -61,11 +62,11 @@ void render(GLFWwindow* window, GameObjects* game)
     glClearColor(0.33f, 0.55f, 0.76f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    map_render_chunks(game->cam);
-    map_render_sky(game->cam);
+    map_render_chunks(game->player->cam);
+    map_render_sky(game->player->cam);
     
-    if (game->cam->has_active_block)
-        ui_render_block_wireframe(game->ui, game->cam);
+    if (game->player->pointing_at_block)
+        ui_render_block_wireframe(game->ui, game->player);
     
     ui_render_crosshair(game->ui);
 
@@ -104,7 +105,10 @@ int main()
     map_init();
 
     GameObjects* game = malloc(sizeof(GameObjects));
-    game->cam = camera_create((vec3){ 0.0f, 96.0f * BLOCK_SIZE, 0.0f });
+    game->player = player_create(
+        (vec3){ 0.0f, 96.0f * BLOCK_SIZE, 0.0f },
+        (vec3){ 0.0f, 0.0f, 1.0f }
+    );
     game->ui = ui_create((float)WINDOW_WIDTH / WINDOW_HEIGHT);
 
     // GameObj will be available in glfw callback

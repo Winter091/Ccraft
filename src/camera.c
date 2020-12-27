@@ -10,15 +10,12 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
-Camera* camera_create(vec3 pos)
+Camera* camera_create(vec3 pos, vec3 dir)
 {
     Camera* cam = malloc(sizeof(Camera));
 
-    memcpy(cam->pos, pos, sizeof(vec3));
-
-    cam->front[0] = 0.0f;
-    cam->front[1] = 0.0f;
-    cam->front[2] = -1.0f;
+    glm_vec3_copy(pos, cam->pos);
+    glm_vec3_copy(dir, cam->front);
 
     cam->up[0] = 0.0f;
     cam->up[1] = 1.0f;
@@ -34,11 +31,6 @@ Camera* camera_create(vec3 pos)
     cam->active = 0;
     cam->mouse_last_x = 0;
     cam->mouse_last_y = 0;
-
-    cam->has_active_block = 0;
-    cam->active_block[0] = 0;
-    cam->active_block[1] = 0;
-    cam->active_block[2] = 0;
 
     cam->aspect_ratio = (float)WINDOW_WIDTH / WINDOW_HEIGHT;
     cam->clip_near = BLOCK_SIZE / 10.0f;
@@ -110,9 +102,10 @@ static void update_keyboard(Camera* cam, GLFWwindow* window, double dt)
     key_ctrl  = glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
     key_c     = glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS;
 
+    // handle zoom mode
     if (key_c && cam->fov == FOV)
-        camera_set_fov(cam, FOV_BINOCULARS);
-    else if (!key_c && cam->fov == FOV_BINOCULARS)
+        camera_set_fov(cam, FOV_ZOOM);
+    else if (!key_c && cam->fov == FOV_ZOOM)
         camera_set_fov(cam, FOV);
 
     static vec3 move;

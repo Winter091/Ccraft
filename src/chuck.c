@@ -190,11 +190,6 @@ int chunk_is_visible(int chunk_x, int chunk_z, vec4 planes[6])
     return glm_aabb_frustum(aabb, planes);
 }
 
-float chunk_dist_to_player(int chunk_x, int chunk_z, int pl_x, int pl_z)
-{
-    return abs(chunk_x - pl_x) + abs(chunk_z - pl_z);
-}
-
 uint32_t chunk_hash_func(Chunk* c)
 {
     return (c->x + c->z) * (c->x + c->z + 1) / 2 + c->z;

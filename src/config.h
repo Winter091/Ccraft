@@ -20,7 +20,7 @@
 // game settings
 #define USE_DATABASE 0
 #define FOV 65
-#define FOV_BINOCULARS 20
+#define FOV_ZOOM 20
 #define CHUNK_WIDTH 32
 #define CHUNK_HEIGHT 256
 #define BLOCK_SIZE 0.5f

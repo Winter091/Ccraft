@@ -2,6 +2,7 @@
 #define CAMERA_H_
 
 #include "cglm/cglm.h"
+#define GLFW_INCLUDE_NONE
 #include "GLFW/glfw3.h"
 
 typedef struct
@@ -21,10 +22,6 @@ typedef struct
     float mouse_last_x;
     float mouse_last_y;
 
-    // block camera looks at
-    int has_active_block;
-    ivec3 active_block;
-
     float clip_near;
     float clip_far;
     float aspect_ratio;
@@ -36,7 +33,7 @@ typedef struct
 }
 Camera;
 
-Camera* camera_create(vec3 pos);
+Camera* camera_create(vec3 pos, vec3 dir);
 void camera_update(Camera* cam, GLFWwindow* window, double dt);
 int camera_looks_at_block(Camera* cam, int x, int y, int z);
 
