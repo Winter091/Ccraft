@@ -3,6 +3,7 @@
 
 #include "glad/glad.h"
 #include "config.h"
+#include "stdlib.h"
 
 GLuint opengl_create_vao();
 GLuint opengl_create_vbo(void* vertices, size_t buf_size);

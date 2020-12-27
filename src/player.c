@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "map.h"
 #include "db.h"
+#include "limits.h"
 
 Player* player_create(vec3 pos, vec3 dir)
 {
