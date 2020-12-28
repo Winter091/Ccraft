@@ -69,7 +69,7 @@ void render(GLFWwindow* window, GameObjects* game)
         ui_render_block_wireframe(game->ui, game->player);
     
     ui_render_crosshair(game->ui);
-
+    ui_render_item(game->ui, game->player);
 
     glfwSwapBuffers(window);
     glfwPollEvents();

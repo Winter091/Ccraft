@@ -157,7 +157,7 @@ void map_init()
     map->chunks_to_render  = list_chunks_create();
 
     map->VAO_skybox = opengl_create_vao();
-    map->VBO_skybox = opengl_create_vbo_skybox();
+    map->VBO_skybox = opengl_create_vbo_cube();
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (const void*)0);
     glEnableVertexAttribArray(0);
 

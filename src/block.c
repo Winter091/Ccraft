@@ -26,7 +26,8 @@ unsigned char block_textures[][6] =
     {198, 198, 198, 198, 198, 198},      // 19  BLOCK_STONE_BRICKS     
     {178, 178, 178, 178, 178, 178},      // 20  BLOCK_SNOW             
     {180, 180, 178, 242, 180, 180},      // 21  BLOCK_SNOW_GRASS       
-    {193, 193, 193, 193, 193, 193}       // 22  BLOCK_GLASS            
+    {193, 193, 193, 193, 193, 193},      // 22  BLOCK_GLASS            
+    {239, 239, 239, 239, 239, 239}       // 23  BLOCK_PLAYER_HAND     
 };
 
 int block_is_transparent(unsigned char block)

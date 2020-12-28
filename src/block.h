@@ -29,6 +29,7 @@
 #define BLOCK_SNOW              20
 #define BLOCK_SNOW_GRASS        21
 #define BLOCK_GLASS             22
+#define BLOCK_PLAYER_HAND       23
 
 extern unsigned char block_textures[][6];
 

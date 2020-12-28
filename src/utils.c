@@ -19,7 +19,7 @@ GLuint opengl_create_vbo(void* vertices, size_t buf_size)
     return VBO;
 }
 
-GLuint opengl_create_vbo_skybox()
+GLuint opengl_create_vbo_cube()
 {
     static float vertices[] = {
         -1.0f,  1.0f, -1.0f,
