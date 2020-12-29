@@ -3,6 +3,7 @@
 #include "stb_image.h"
 #include "string.h"
 #include "config.h"
+#include "glfw/glfw3.h"
 
 GLuint texture_blocks;
 GLuint texture_skybox;
