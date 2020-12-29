@@ -4,6 +4,9 @@
 #include "string.h"
 #include "config.h"
 
+GLuint texture_blocks;
+GLuint texture_skybox;
+
 GLuint texture_create(const char* path)
 {
     GLuint texture;
@@ -157,6 +160,36 @@ GLuint skybox_texture_create(const char* paths[6])
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     return texture;
+}
+
+void texture_load()
+{
+    texture_blocks = array_texture_create(
+        "textures/minecraft_blocks.png"
+    );
+    if (!texture_blocks)
+    {
+        fprintf(stderr, "Texture was not loaded!\n");
+        glfwTerminate();
+        exit(EXIT_FAILURE);
+    }
+
+    texture_skybox = skybox_texture_create(
+        (const char*[6]){
+            "textures/skybox/right.png",
+            "textures/skybox/left.png",
+            "textures/skybox/top.png",
+            "textures/skybox/bottom.png",
+            "textures/skybox/front.png",
+            "textures/skybox/back.png"
+        }
+    );
+    if (!texture_skybox)
+    {
+        fprintf(stderr, "Texture was not loaded!\n");
+        glfwTerminate();
+        exit(EXIT_FAILURE);
+    }
 }
 
 void texture_bind(GLuint texture, int slot)

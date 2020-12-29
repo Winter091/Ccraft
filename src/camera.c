@@ -92,21 +92,30 @@ static void update_mouse_movement(Camera* cam, GLFWwindow* window)
 
 static void update_keyboard(Camera* cam, GLFWwindow* window, double dt)
 {
-    static int key_w, key_s, key_a, key_d, key_shift, key_ctrl, key_c;
+    static int key_w, key_s, key_a, key_d, key_shift, 
+        key_ctrl, key_c, key_pageup, key_pagedown;
 
-    key_w     = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
-    key_s     = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
-    key_a     = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
-    key_d     = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
-    key_shift = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
-    key_ctrl  = glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
-    key_c     = glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS;
+    key_w        = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
+    key_s        = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
+    key_a        = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
+    key_d        = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
+    key_shift    = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
+    key_ctrl     = glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
+    key_c        = glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS;
+    key_pageup   = glfwGetKey(window, GLFW_KEY_PAGE_UP) == GLFW_PRESS;
+    key_pagedown = glfwGetKey(window, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS;
 
     // handle zoom mode
     if (key_c && cam->fov == FOV)
         camera_set_fov(cam, FOV_ZOOM);
     else if (!key_c && cam->fov == FOV_ZOOM)
         camera_set_fov(cam, FOV);
+
+    // handle move speed
+    if (key_pageup)
+        cam->move_speed *= 1.003f;
+    if (key_pagedown)
+        cam->move_speed /= 1.003f;
 
     static vec3 move;
     

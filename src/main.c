@@ -69,7 +69,7 @@ void render(GLFWwindow* window, GameObjects* game)
         ui_render_block_wireframe(game->ui, game->player);
     
     ui_render_crosshair(game->ui);
-    ui_render_item(game->ui, game->player);
+    ui_render_hand_or_item(game->ui, game->player);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
@@ -102,6 +102,8 @@ int main()
     db_init();
 #endif
 
+    shader_load();
+    texture_load();
     map_init();
 
     GameObjects* game = malloc(sizeof(GameObjects));

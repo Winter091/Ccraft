@@ -21,19 +21,11 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 {
     if (action == GLFW_RELEASE)
         return;
-    
-    GameObjects* game = glfwGetWindowUserPointer(window);
 
     switch (key)
     {
         case GLFW_KEY_ESCAPE:
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-            break;
-        case GLFW_KEY_PAGE_UP:
-            game->player->cam->move_speed *= 1.1f;
-            break;
-        case GLFW_KEY_PAGE_DOWN:
-            game->player->cam->move_speed /= 1.1f;
             break;
     };
 }

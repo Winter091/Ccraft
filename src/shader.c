@@ -3,6 +3,10 @@
 
 #include "shader.h"
 
+GLuint shader_block = 0;
+GLuint shader_line = 0;
+GLuint shader_skybox = 0;
+
 static char* get_file_data(const char* path)
 {
     FILE* f = fopen(path, "rb");
@@ -83,6 +87,24 @@ GLuint create_shader_program(const char* vs_path, const char* fs_path)
     glDeleteShader(fs_id);
 
     return shader_prog;
+}
+
+void shader_load()
+{
+    shader_block = create_shader_program(
+        "shaders/block_vertex.glsl",
+        "shaders/block_fragment.glsl"
+    );
+
+    shader_line = create_shader_program(
+        "shaders/line_vertex.glsl",
+        "shaders/line_fragment.glsl"
+    );
+
+    shader_skybox = create_shader_program(
+        "shaders/skybox_vertex.glsl",
+        "shaders/skybox_fragment.glsl"
+    );
 }
 
 void shader_set_int1(GLuint shader, char* name, int value)

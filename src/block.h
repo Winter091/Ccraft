@@ -44,6 +44,10 @@ void block_gen_vertices(
     int x, int y, int z, int block_type, int faces[6], float ao[6][4]
 );
 
+void block_gen_vertices_unit_cube(
+    Vertex* vertices, int block_type
+);
+
 int block_set_visible_faces(
     Chunk* c, int x, int y, int z, 
     Chunk* neighs[8], int faces[6]

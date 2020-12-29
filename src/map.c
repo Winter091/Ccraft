@@ -161,40 +161,6 @@ void map_init()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (const void*)0);
     glEnableVertexAttribArray(0);
 
-    map->shader_chunks = create_shader_program(
-        "shaders/chunk_vertex.glsl",
-        "shaders/chunk_fragment.glsl"
-    );
-    map->shader_skybox = create_shader_program(
-        "shaders/skybox_vertex.glsl",
-        "shaders/skybox_fragment.glsl"
-    );
-
-    map->texture_blocks = array_texture_create("textures/minecraft_blocks.png");
-    if (!map->texture_blocks)
-    {
-        fprintf(stderr, "Texture was not loaded!\n");
-        glfwTerminate();
-        exit(EXIT_FAILURE);
-    }
-
-    map->texture_skybox = skybox_texture_create(
-        (const char*[6]){
-            "textures/skybox/right.png",
-            "textures/skybox/left.png",
-            "textures/skybox/top.png",
-            "textures/skybox/bottom.png",
-            "textures/skybox/front.png",
-            "textures/skybox/back.png"
-        }
-    );
-    if (!map->texture_skybox)
-    {
-        fprintf(stderr, "Texture was not loaded!\n");
-        glfwTerminate();
-        exit(EXIT_FAILURE);
-    }
-
     // set world seed
     *perlin2d_get_world_seed() = 123;
 }
@@ -208,10 +174,10 @@ void map_render_sky(Camera* cam)
     mat4 mvp_matrix;
     glm_mat4_mul(cam->vp_matrix, model, mvp_matrix);
     
-    glUseProgram(map->shader_skybox);
-    shader_set_mat4(map->shader_skybox, "mvp_matrix", mvp_matrix);
-    shader_set_int1(map->shader_skybox, "texture_sampler", 0);
-    skybox_texture_bind(map->texture_skybox, 0);
+    glUseProgram(shader_skybox);
+    shader_set_mat4(shader_skybox, "mvp_matrix", mvp_matrix);
+    shader_set_int1(shader_skybox, "texture_sampler", 0);
+    skybox_texture_bind(texture_skybox, 0);
 
     glDepthFunc(GL_LEQUAL);
     glBindVertexArray(map->VAO_skybox);
@@ -221,10 +187,10 @@ void map_render_sky(Camera* cam)
 
 void map_render_chunks(Camera* cam)
 {    
-    glUseProgram(map->shader_chunks);
-    shader_set_mat4(map->shader_chunks, "mvp_matrix", cam->vp_matrix);
-    shader_set_int1(map->shader_chunks, "texture_sampler", 0);
-    array_texture_bind(map->texture_blocks, 0);
+    glUseProgram(shader_block);
+    shader_set_mat4(shader_block, "mvp_matrix", cam->vp_matrix);
+    shader_set_int1(shader_block, "texture_sampler", 0);
+    array_texture_bind(texture_blocks, 0);
 
     LIST_FOREACH_CHUNK_BEGIN(map->chunks_to_render, c)
     {

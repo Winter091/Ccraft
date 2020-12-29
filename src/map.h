@@ -39,12 +39,6 @@ typedef struct
 
     GLuint VAO_skybox;
     GLuint VBO_skybox;
-
-    GLuint shader_chunks;
-    GLuint shader_skybox;
-
-    GLuint texture_blocks;
-    GLuint texture_skybox;
 }
 Map;
 

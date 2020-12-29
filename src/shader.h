@@ -4,7 +4,11 @@
 #include "glad/glad.h"
 #include "cglm/cglm.h"
 
-GLuint create_shader_program(const char* vs_path, const char* fs_path);
+extern GLuint shader_block;
+extern GLuint shader_line;
+extern GLuint shader_skybox;
+
+void shader_load();
 
 void shader_set_int1(GLuint shader, char* name, int value);
 void shader_set_mat4(GLuint shader, char* name, mat4 matrix);

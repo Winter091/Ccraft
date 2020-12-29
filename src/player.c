@@ -82,7 +82,6 @@ void player_set_build_block(Player* p, int new_block)
         new_block += BLOCKS_AMOUNT;
     
     p->build_block = new_block;
-    printf("Selected block: %d\n", p->build_block);
 }
 
 void player_update(Player* p, GLFWwindow* window, double dt)
