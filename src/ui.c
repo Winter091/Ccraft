@@ -160,7 +160,7 @@ void ui_render_block_wireframe(UI* ui, Player* p)
 
 void ui_render_hand_or_item(UI* ui, Player* p)
 {
-    // It's easier to regenerate buffer every time
+    // It's easier to regenerate cube buffer every time
     // than to try to send 6 uniform block textures
     Vertex* vertices = malloc(36 * sizeof(Vertex));
     block_gen_vertices_unit_cube(vertices, p->build_block ? p->build_block : BLOCK_PLAYER_HAND);
@@ -208,8 +208,7 @@ void ui_render_hand_or_item(UI* ui, Player* p)
     }
 
     // Item renders using additional camera created here;
-    // The camera is at (0, 0, -1) and looks at (0, 0, 0),
-    // where item is located
+    // The camera is at (0, 0, -1) and looks at (0, 0, 0)
     mat4 view, projection;
     glm_look((vec3){0.0f, 0.0f, 1.0f}, (vec3){0.0f, 0.0f, -1.0f}, (vec3){0.0f, 1.0f, 0.0f}, view);
     glm_perspective(glm_rad(50.0f), p->cam->aspect_ratio, 0.001f, 10.0f, projection);
@@ -222,6 +221,7 @@ void ui_render_hand_or_item(UI* ui, Player* p)
     shader_set_int1(shader_block, "texture_sampler", 0);
     array_texture_bind(texture_blocks, 0);
 
+    // disable face culling for better glass look
     glDisable(GL_CULL_FACE);
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glEnable(GL_CULL_FACE);

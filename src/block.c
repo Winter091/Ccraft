@@ -3,7 +3,7 @@
 
 unsigned char block_textures[][6] = 
 {
-    // l    r  top  bot    b    f
+    //lft  rgt  top  bot  bck  frt
     {  0,   0,   0,   0,   0,   0},      // 0   BLOCK_AIR              
     {241, 241, 241, 241, 241, 241},      // 1   BLOCK_STONE            
     {242, 242, 242, 242, 242, 242},      // 2   BLOCK_DIRT             
@@ -50,6 +50,30 @@ static int get_block_from_chunk(Chunk* c, int bx, int by, int bz)
     return c->blocks[XYZ(bx, by, bz)];
 }
 
+/*
+
+Neighs array layout (-Y view direction): 
+
+----> +X
+|
+v +Z
+
+Top layer (blocks above):
+18 21 24
+19 22 25
+20 23 26
+
+Middle layer (13 is the block we are getting neighs of):
+9  12 15
+10 13 16
+11 14 17
+
+Bottom layer (blocks below):
+0 3 6
+1 4 7
+2 5 8
+
+*/
 void block_get_neighs(Chunk* c, Chunk* neighs[8], int x, int y, int z, unsigned char b_neighs[27])
 {
     int index = 0;
@@ -297,6 +321,7 @@ void block_set_ao(
     unsigned char neighs[27], float ao[6][4]
 )
 {       
+    // neighbours indices for each vertex for each face
     static const unsigned char lookup[6][4][3] = 
     {
         { { 0,  1,  9}, { 2,  1, 11}, {18,  9, 19}, {20, 19, 11} }, // left
