@@ -236,11 +236,17 @@ void map_render_sky(Camera* cam)
 void map_render_chunks(Camera* cam)
 {    
     glUseProgram(shader_block);
+
     shader_set_mat4(shader_block, "mvp_matrix", cam->vp_matrix);
     shader_set_float1(shader_block, "block_light", map_get_blocks_light());
+
     shader_set_int1(shader_block, "texture_sampler", 0);
     array_texture_bind(texture_blocks, 0);
 
+    shader_set_float3(shader_block, "cam_pos", cam->pos);
+    shader_set_float1(shader_block, "fog_dist", CHUNK_RENDER_RADIUS * CHUNK_SIZE * 0.9f);
+    shader_set_float3(shader_block, "fog_color", (vec3){0.53f, 0.58f, 0.61f});
+    
     LIST_FOREACH_CHUNK_BEGIN(map->chunks_to_render, c)
     {
         glBindVertexArray(c->VAO);

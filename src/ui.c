@@ -221,6 +221,10 @@ void ui_render_hand_or_item(UI* ui, Player* p)
     shader_set_int1(shader_block, "texture_sampler", 0);
     array_texture_bind(texture_blocks, 0);
 
+    // remove fog effect
+    shader_set_float3(shader_block, "cam_pos", (vec3){0.0f, 0.0f, 0.0f});
+    shader_set_float1(shader_block, "fog_dist", 100000.0f);
+
     // disable face culling for better glass look
     glDisable(GL_CULL_FACE);
     glDrawArrays(GL_TRIANGLES, 0, 36);

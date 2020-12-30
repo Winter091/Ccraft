@@ -8,8 +8,12 @@ layout (location = 2) in uint a_tile;
 out vec2 v_texcoord;
 out float v_ao;
 flat out uint v_tile;
+out float v_fog_amount;
+out vec3 sky_color;
 
 uniform mat4 mvp_matrix;
+uniform vec3 cam_pos;
+uniform float fog_dist;
 
 void main()
 {
@@ -17,4 +21,7 @@ void main()
     v_ao = a_ao;
     v_tile = a_tile;
     v_texcoord = a_texcoord;
+
+    float dist_to_cam = distance(cam_pos.xz, a_pos.xz);
+    v_fog_amount = pow(clamp(dist_to_cam / fog_dist, 0.0, 1.0), 2.0);
 }

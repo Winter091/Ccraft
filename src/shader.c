@@ -107,29 +107,30 @@ void shader_load()
     );
 }
 
-void shader_set_int1(GLuint shader, char* name, int value)
+static GLint get_attrib_location(GLuint shader, char* name)
 {
     GLint location = glGetUniformLocation(shader, name);
     if (location == -1)
         fprintf(stderr, "Shader attrib location is -1: %s\n", name);
-    else
-        glUniform1i(location, value);
+    return location;
+}
+
+void shader_set_int1(GLuint shader, char* name, int value)
+{
+    glUniform1i(get_attrib_location(shader, name), value);
 }
 
 void shader_set_float1(GLuint shader, char* name, float value)
 {
-    GLint location = glGetUniformLocation(shader, name);
-    if (location == -1)
-        fprintf(stderr, "Shader attrib location is -1: %s\n", name);
-    else
-        glUniform1f(location, value);
+    glUniform1f(get_attrib_location(shader, name), value);
+}
+
+void shader_set_float3(GLuint shader, char* name, vec3 vec)
+{
+    glUniform3f(get_attrib_location(shader, name), vec[0], vec[1], vec[2]);
 }
 
 void shader_set_mat4(GLuint shader, char* name, mat4 matrix)
 {
-    GLint location = glGetUniformLocation(shader, name);
-    if (location == -1)
-        fprintf(stderr, "Shader attrib location is -1: %s\n", name);
-    else
-        glUniformMatrix4fv(location, 1, GL_FALSE, matrix[0]);
+    glUniformMatrix4fv(get_attrib_location(shader, name), 1, GL_FALSE, matrix[0]);
 }
