@@ -227,9 +227,6 @@ void map_render_sky(Camera* cam)
     skybox_texture_bind(texture_skybox_evening, 1);
     skybox_texture_bind(texture_skybox_night, 2);
 
-    double time = map_get_time();
-    printf("%lf\n", time);
-
     glDepthFunc(GL_LEQUAL);
     glBindVertexArray(map->VAO_skybox);
     glDrawArrays(GL_TRIANGLES, 0, 36);
