@@ -6,7 +6,29 @@
 #include "glfw/glfw3.h"
 
 GLuint texture_blocks;
-GLuint texture_skybox;
+GLuint texture_skybox_day;
+GLuint texture_skybox_evening;
+GLuint texture_skybox_night;
+
+void exit_if_not_loaded_or_wrong_channels(const char* path, unsigned char* data, int channels, int channels_required)
+{
+    if (!data)
+    {
+        fprintf(stderr, "%s: failed to open texture\n", path);
+        glfwTerminate();
+        exit(EXIT_FAILURE);
+    }
+    else if (channels != channels_required)
+    {
+        fprintf(
+            stderr, "%s: expected %d channels in image, but got %d\n", 
+            path, channels_required, channels
+        );
+        glfwTerminate();
+        exit(EXIT_FAILURE);
+    }
+}
+
 
 GLuint texture_create(const char* path)
 {
@@ -18,17 +40,7 @@ GLuint texture_create(const char* path)
     int w, h, channels;
     unsigned char* data = stbi_load(path, &w, &h, &channels, 0);
 
-    if (!data)
-    {
-        fprintf(stderr, "Failed to load image: %s\n", path);
-        return 0;
-    }
-
-    if (channels != 4)
-    {
-        fprintf(stderr, "Expected 4 channels in image: %s\n", path);
-        return 0;
-    }
+    exit_if_not_loaded_or_wrong_channels(path, data, channels, 4);
     
     glTexImage2D(
         GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data
@@ -55,17 +67,7 @@ GLuint array_texture_create(const char* path)
     int w, h, channels;
     unsigned char* data = stbi_load(path, &w, &h, &channels, 0);
 
-    if (!data)
-    {
-        fprintf(stderr, "Failed to load image: %s\n", path);
-        return 0;
-    }
-
-    if (channels != 4)
-    {
-        fprintf(stderr, "Expected 4 channels in image: %s\n", path);
-        return 0;
-    }
+    exit_if_not_loaded_or_wrong_channels(path, data, channels, 4);
 
     int atlas_row_size = w * channels;
 
@@ -133,17 +135,7 @@ GLuint skybox_texture_create(const char* paths[6])
     for (int i = 0; i < 6; i++)
     {
         unsigned char* data = stbi_load(paths[i], &w, &h, &channels, 0);
-        if (!data)
-        {
-            fprintf(stderr, "Failed to load image: %s\n", paths[i]);
-            return 0;
-        }
-
-        if (channels != 3)
-        {
-            fprintf(stderr, "Expected 3 channels in image: %s\n", paths[i]);
-            return 0;
-        }
+        exit_if_not_loaded_or_wrong_channels(paths[i], data, channels, 3);
 
         glTexImage2D(
             GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 
@@ -168,29 +160,39 @@ void texture_load()
     texture_blocks = array_texture_create(
         "textures/minecraft_blocks.png"
     );
-    if (!texture_blocks)
-    {
-        fprintf(stderr, "Texture was not loaded!\n");
-        glfwTerminate();
-        exit(EXIT_FAILURE);
-    }
 
-    texture_skybox = skybox_texture_create(
+    texture_skybox_day = skybox_texture_create(
         (const char*[6]){
-            "textures/skybox/right.png",
-            "textures/skybox/left.png",
-            "textures/skybox/top.png",
-            "textures/skybox/bottom.png",
-            "textures/skybox/front.png",
-            "textures/skybox/back.png"
+            "textures/skybox/day/right.png",
+            "textures/skybox/day/left.png",
+            "textures/skybox/day/top.png",
+            "textures/skybox/day/bottom.png",
+            "textures/skybox/day/front.png",
+            "textures/skybox/day/back.png"
         }
     );
-    if (!texture_skybox)
-    {
-        fprintf(stderr, "Texture was not loaded!\n");
-        glfwTerminate();
-        exit(EXIT_FAILURE);
-    }
+
+    texture_skybox_evening = skybox_texture_create(
+        (const char*[6]){
+            "textures/skybox/evening/right.png",
+            "textures/skybox/evening/left.png",
+            "textures/skybox/evening/top.png",
+            "textures/skybox/evening/bottom.png",
+            "textures/skybox/evening/front.png",
+            "textures/skybox/evening/back.png"
+        }
+    );
+
+    texture_skybox_night = skybox_texture_create(
+        (const char*[6]){
+            "textures/skybox/night/right.png",
+            "textures/skybox/night/left.png",
+            "textures/skybox/night/top.png",
+            "textures/skybox/night/bottom.png",
+            "textures/skybox/night/front.png",
+            "textures/skybox/night/back.png"
+        }
+    );
 }
 
 void texture_bind(GLuint texture, int slot)

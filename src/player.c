@@ -158,6 +158,8 @@ void player_handle_right_mouse_click(Player* p)
 
     if (best_dist == INT_MAX)
         return;
+    else if (best_y < 0 || best_y >= CHUNK_HEIGHT)
+        return;
 
     map_set_block(best_x, best_y, best_z, p->build_block);
 

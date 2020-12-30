@@ -7,6 +7,7 @@ flat in uint v_tile;
 out vec4 out_color;
 
 uniform sampler2DArray texture_sampler;
+uniform float block_light;
 
 void main()
 {    
@@ -14,6 +15,6 @@ void main()
     if (out_color.a < 0.5)
         discard;
         
-    out_color -= 0.6 * v_ao;
-    out_color.xyz *= 0.85;
+    out_color -= 0.35 * v_ao;
+    out_color.xyz *= block_light;
 }

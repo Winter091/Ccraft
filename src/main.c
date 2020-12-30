@@ -102,6 +102,9 @@ int main()
     db_init();
 #endif
 
+    // Start at the begginning of day
+    glfwSetTime(DAY_LENGTH / 2.0);
+
     shader_load();
     texture_load();
     map_init();

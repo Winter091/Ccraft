@@ -17,7 +17,16 @@
 #define FULLSCREEN 0
 #define VSYNC 0
 
-// game settings
+// Game settings
+#define DISABLE_TIME_FLOW 0
+#define DAY_LENGTH 10
+
+// full day range is [0.0 - 1.0)
+#define DAY_TO_EVN_START 0.3
+#define EVN_TO_NIGHT_START 0.4
+#define NIGHT_START 0.5
+#define NIGHT_TO_DAY_START 0.8
+
 #define USE_DATABASE 0
 #define FOV 65
 #define FOV_ZOOM 20

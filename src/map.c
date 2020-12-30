@@ -9,6 +9,7 @@
 #include "db.h"
 #include "block.h"
 #include "utils.h"
+#include "math.h"
 
 LINKEDLIST_IMPLEMENTATION(Chunk*, chunks);
 HASHMAP_IMPLEMENTATION(Chunk*, chunks, chunk_hash_func);
@@ -165,6 +166,41 @@ void map_init()
     *perlin2d_get_world_seed() = 123;
 }
 
+// [0.0 - 1.0)
+static double map_get_time()
+{
+#if DISABLE_TIME_FLOW
+    return 0.0;
+#else
+    return 0.5 + remainder(glfwGetTime(), DAY_LENGTH) / (double)DAY_LENGTH;
+#endif
+}
+
+static double map_get_blocks_light()
+{    
+    double time = map_get_time();
+
+    // 0.85 day
+    if (time < DAY_TO_EVN_START)
+        return 0.85;
+    
+    // 0.85 day - evening 0.7
+    else if (time < EVN_TO_NIGHT_START)
+        return 0.7 + 0.15 * (1 - glm_smoothstep(DAY_TO_EVN_START, EVN_TO_NIGHT_START, time));
+    
+    // 0.7 evening - night 0.3
+    else if (time < NIGHT_START)
+        return 0.3 + 0.4 * (1 - glm_smoothstep(EVN_TO_NIGHT_START, NIGHT_START, time));
+
+    // night 0.3
+    else if (time < NIGHT_TO_DAY_START)
+        return 0.3;
+    
+    // 0.3 night - day 0.85
+    else
+        return 0.3 + 0.55 * glm_smoothstep(NIGHT_TO_DAY_START, 1.0f, time);
+}
+
 void map_render_sky(Camera* cam)
 {    
     mat4 model;
@@ -176,8 +212,23 @@ void map_render_sky(Camera* cam)
     
     glUseProgram(shader_skybox);
     shader_set_mat4(shader_skybox, "mvp_matrix", mvp_matrix);
-    shader_set_int1(shader_skybox, "texture_sampler", 0);
-    skybox_texture_bind(texture_skybox, 0);
+
+    shader_set_int1(shader_skybox, "texture_day_sampler", 0);
+    shader_set_int1(shader_skybox, "texture_evening_sampler", 1);
+    shader_set_int1(shader_skybox, "texture_night_sampler", 2);
+    
+    shader_set_float1(shader_skybox, "time", map_get_time());
+    shader_set_float1(shader_skybox, "day_to_evn_start", DAY_TO_EVN_START);
+    shader_set_float1(shader_skybox, "evn_to_night_start", EVN_TO_NIGHT_START);
+    shader_set_float1(shader_skybox, "night_start", NIGHT_START);
+    shader_set_float1(shader_skybox, "night_to_day_start", NIGHT_TO_DAY_START);
+
+    skybox_texture_bind(texture_skybox_day, 0);
+    skybox_texture_bind(texture_skybox_evening, 1);
+    skybox_texture_bind(texture_skybox_night, 2);
+
+    double time = map_get_time();
+    printf("%lf\n", time);
 
     glDepthFunc(GL_LEQUAL);
     glBindVertexArray(map->VAO_skybox);
@@ -189,6 +240,7 @@ void map_render_chunks(Camera* cam)
 {    
     glUseProgram(shader_block);
     shader_set_mat4(shader_block, "mvp_matrix", cam->vp_matrix);
+    shader_set_float1(shader_block, "block_light", map_get_blocks_light());
     shader_set_int1(shader_block, "texture_sampler", 0);
     array_texture_bind(texture_blocks, 0);
 

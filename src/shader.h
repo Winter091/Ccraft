@@ -11,6 +11,7 @@ extern GLuint shader_skybox;
 void shader_load();
 
 void shader_set_int1(GLuint shader, char* name, int value);
+void shader_set_float1(GLuint shader, char* name, float value);
 void shader_set_mat4(GLuint shader, char* name, mat4 matrix);
 
 #endif
