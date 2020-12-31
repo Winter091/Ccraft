@@ -9,7 +9,6 @@ out vec2 v_texcoord;
 out float v_ao;
 flat out uint v_tile;
 out float v_fog_amount;
-out vec3 sky_color;
 
 uniform mat4 mvp_matrix;
 uniform vec3 cam_pos;
@@ -23,5 +22,5 @@ void main()
     v_texcoord = a_texcoord;
 
     float dist_to_cam = distance(cam_pos.xz, a_pos.xz);
-    v_fog_amount = pow(clamp(dist_to_cam / fog_dist, 0.0, 1.0), 2.0);
+    v_fog_amount = pow(clamp(dist_to_cam / fog_dist, 0.0, 1.0), 16.0);
 }

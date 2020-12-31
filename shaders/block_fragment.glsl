@@ -13,15 +13,14 @@ uniform vec3 fog_color;
 
 void main()
 {    
-    if (v_fog_amount > 0.9999)
-        discard;
-    
     out_color = texture(texture_sampler, vec3(v_texcoord, v_tile));
     if (out_color.a < 0.3)
         discard;
         
-    out_color -= 0.35 * v_ao;
+    out_color.xyz -= 0.35 * v_ao;
 
-    out_color = mix(out_color, vec4(fog_color * block_light, 1.0), v_fog_amount);
+    out_color = mix(out_color, vec4(fog_color, 1.0), v_fog_amount);
+    out_color.a -= v_fog_amount;
+
     out_color.xyz *= block_light;
 }

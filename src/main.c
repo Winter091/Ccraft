@@ -59,11 +59,11 @@ void update(GLFWwindow* window, GameObjects* game)
 
 void render(GLFWwindow* window, GameObjects* game)
 {
-    glClearColor(0.33f, 0.55f, 0.76f, 1.0f);
+    glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    map_render_chunks(game->player->cam);
     map_render_sky(game->player->cam);
+    map_render_chunks(game->player->cam);
     
     if (game->player->pointing_at_block)
         ui_render_block_wireframe(game->ui, game->player);
