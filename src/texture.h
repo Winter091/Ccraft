@@ -7,6 +7,8 @@ extern GLuint texture_blocks;
 extern GLuint texture_skybox_day;
 extern GLuint texture_skybox_evening;
 extern GLuint texture_skybox_night;
+extern GLuint texture_sun;
+extern GLuint texture_moon;
 
 
 void texture_load();

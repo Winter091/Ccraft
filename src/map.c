@@ -9,6 +9,8 @@
 #include "db.h"
 #include "block.h"
 #include "utils.h"
+
+#define _USE_MATH_DEFINES
 #include "math.h"
 
 LINKEDLIST_IMPLEMENTATION(Chunk*, chunks);
@@ -162,6 +164,13 @@ void map_init()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (const void*)0);
     glEnableVertexAttribArray(0);
 
+    map->VAO_sun_moon = opengl_create_vao();
+    map->VBO_sun_moon = opengl_create_vbo_quad();
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (const void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (const void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
     // set world seed
     *perlin2d_get_world_seed() = 123;
 }
@@ -201,11 +210,71 @@ static double map_get_blocks_light()
         return 0.3 + 0.55 * glm_smoothstep(NIGHT_TO_DAY_START, 1.0f, time);
 }
 
+void map_render_sun_moon(Camera* cam)
+{
+    mat4 model_sun, model_moon;
+
+    glm_mat4_identity(model_sun);
+    glm_translate(model_sun, cam->pos);
+    glm_mat4_copy(model_sun, model_moon);
+
+    float time = map_get_time();
+
+    // apply offset to current time to synchronize
+    // light level with sun presence in the sky
+    float offset = 0.1f;
+    time += offset;
+    if (time > 1.0f)
+        time -= 1.0f;
+    
+    // sun and moon are always on the opposite
+    // parts of the sky
+    float angle_sun = time * M_PI * 2;
+    float angle_moon = angle_sun + M_PI;
+
+    // distance to the quads sun and moon are rendered on
+    float dist = 5.0f;
+
+    // move quads around player
+    glm_translate(model_sun,  (vec3){0.0f, 0.0f, -dist * cosf(angle_sun)});
+    glm_translate(model_sun,  (vec3){0.0f, dist * sinf(angle_sun), 0.0f});
+    glm_translate(model_moon, (vec3){0.0f, 0.0f, -dist * cosf(angle_moon)});
+    glm_translate(model_moon, (vec3){0.0f, dist * sinf(angle_moon), 0.0f});
+
+    // rotate quads so sun and moon are always looking at player
+    glm_rotate(model_sun,  angle_sun,  (vec3){1.0f, 0.0f, 0.0f});
+    glm_rotate(model_moon, angle_moon, (vec3){1.0f, 0.0f, 0.0f});
+
+    glUseProgram(shader_sun);
+    texture_bind(texture_sun, 0);
+    texture_bind(texture_moon, 1);
+
+    mat4 mvp_matrix;
+
+    glBindVertexArray(map->VAO_sun_moon);
+
+    glDisable(GL_DEPTH_TEST);
+    glEnable(GL_BLEND);
+
+    glm_mat4_mul(cam->vp_matrix, model_sun, mvp_matrix);
+    shader_set_mat4(shader_sun, "mvp_matrix", mvp_matrix);
+    shader_set_int1(shader_sun, "texture_sampler", 0);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    glm_mat4_mul(cam->vp_matrix, model_moon, mvp_matrix);
+    shader_set_mat4(shader_sun, "mvp_matrix", mvp_matrix);
+    shader_set_int1(shader_sun, "texture_sampler", 1);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    glEnable(GL_DEPTH_TEST);
+}
+
 void map_render_sky(Camera* cam)
 {    
     mat4 model;
     glm_mat4_identity(model);
     glm_translate(model, cam->pos);
+    glm_rotate(model, M_PI / 4.0f, (vec3){0.0f, 1.0f, 0.0f});
 
     mat4 mvp_matrix;
     glm_mat4_mul(cam->vp_matrix, model, mvp_matrix);
@@ -248,7 +317,6 @@ void map_render_chunks(Camera* cam)
     shader_set_float3(shader_block, "fog_color", (vec3){0.49f, 0.6f, 0.63f});
     
     glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     LIST_FOREACH_CHUNK_BEGIN(map->chunks_to_render, c)
     {
         glBindVertexArray(c->VAO);

@@ -68,3 +68,18 @@ GLuint opengl_create_vbo_cube()
     
     return opengl_create_vbo(vertices, sizeof(vertices));
 }
+
+GLuint opengl_create_vbo_quad()
+{
+    static float vertices[] = {
+        -0.5f, -0.5f, 0.0f,  0.0f, 0.0f,
+         0.5f, -0.5f, 0.0f,  1.0f, 0.0f,
+        -0.5f,  0.5f, 0.0f,  0.0f, 1.0f,
+        
+        -0.5f,  0.5f, 0.0f,  0.0f, 1.0f,
+         0.5f, -0.5f, 0.0f,  1.0f, 0.0f,
+         0.5f,  0.5f, 0.0f,  1.0f, 1.0f
+    };
+
+    return opengl_create_vbo(vertices, sizeof(vertices));
+}

@@ -9,6 +9,8 @@ GLuint texture_blocks;
 GLuint texture_skybox_day;
 GLuint texture_skybox_evening;
 GLuint texture_skybox_night;
+GLuint texture_sun;
+GLuint texture_moon;
 
 void exit_if_not_loaded_or_wrong_channels(const char* path, unsigned char* data, int channels, int channels_required)
 {
@@ -36,7 +38,7 @@ GLuint texture_create(const char* path)
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
 
-    stbi_set_flip_vertically_on_load(1);
+    stbi_set_flip_vertically_on_load(0);
     int w, h, channels;
     unsigned char* data = stbi_load(path, &w, &h, &channels, 0);
 
@@ -158,7 +160,7 @@ GLuint skybox_texture_create(const char* paths[6])
 void texture_load()
 {
     texture_blocks = array_texture_create(
-        "textures/minecraft_blocks.png"
+        "textures/blocks.png"
     );
 
     texture_skybox_day = skybox_texture_create(
@@ -192,6 +194,14 @@ void texture_load()
             "textures/skybox/night/front.png",
             "textures/skybox/night/back.png"
         }
+    );
+
+    texture_sun = texture_create(
+        "textures/sun.png"
+    );
+
+    texture_moon = texture_create(
+        "textures/moon.png"
     );
 }
 

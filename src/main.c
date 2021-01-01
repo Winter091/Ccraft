@@ -63,11 +63,11 @@ void render(GLFWwindow* window, GameObjects* game)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     map_render_sky(game->player->cam);
+    map_render_sun_moon(game->player->cam);
     map_render_chunks(game->player->cam);
     
     if (game->player->pointing_at_block)
         ui_render_block_wireframe(game->ui, game->player);
-    
     ui_render_crosshair(game->ui);
     ui_render_hand_or_item(game->ui, game->player);
 

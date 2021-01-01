@@ -39,11 +39,15 @@ typedef struct
 
     GLuint VAO_skybox;
     GLuint VBO_skybox;
+
+    GLuint VAO_sun_moon;
+    GLuint VBO_sun_moon;
 }
 Map;
 
 void map_init();
 void map_update(Camera* cam);
+void map_render_sun_moon(Camera* cam);
 void map_render_sky(Camera* cam);
 void map_render_chunks(Camera* cam);
 unsigned char map_get_block(int x, int y, int z);

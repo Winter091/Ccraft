@@ -6,6 +6,7 @@
 GLuint shader_block = 0;
 GLuint shader_line = 0;
 GLuint shader_skybox = 0;
+GLuint shader_sun = 0;
 
 static char* get_file_data(const char* path)
 {
@@ -104,6 +105,11 @@ void shader_load()
     shader_skybox = create_shader_program(
         "shaders/skybox_vertex.glsl",
         "shaders/skybox_fragment.glsl"
+    );
+
+    shader_sun = create_shader_program(
+        "shaders/sun_vertex.glsl",
+        "shaders/sun_fragment.glsl"
     );
 }
 
