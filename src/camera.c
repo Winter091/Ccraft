@@ -1,14 +1,8 @@
 #include "camera.h"
-#include "map.h"
-
-#include "string.h"
 #include "stdlib.h"
 #include "math.h"
-
 #include "config.h"
-
-#define MIN(a, b) ((a) < (b) ? (a) : (b))
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
+#include "utils.h"
 
 Camera* camera_create(vec3 pos, vec3 dir)
 {
@@ -40,18 +34,16 @@ Camera* camera_create(vec3 pos, vec3 dir)
 
     // generate view, proj and vp matrices
     glm_look(cam->pos, cam->front, cam->up, cam->view_matrix);
-
     glm_perspective(
         glm_rad(FOV), (float)WINDOW_WIDTH / WINDOW_HEIGHT, 
         cam->clip_near, cam->clip_far, cam->proj_matrix
     );
-
     glm_mat4_mul(cam->proj_matrix, cam->view_matrix, cam->vp_matrix);
 
     return cam;
 }
 
-static void update_mouse_movement(Camera* cam, GLFWwindow* window)
+static void update_mouse(Camera* cam, GLFWwindow* window)
 { 
     double mouse_x, mouse_y;
     glfwGetCursorPos(window, &mouse_x, &mouse_y);
@@ -80,14 +72,11 @@ static void update_mouse_movement(Camera* cam, GLFWwindow* window)
 
     if (cam->yaw >= 360.0f) cam->yaw -= 360.0f;
     if (cam->yaw <= 0.0f) cam->yaw += 360.0f;
-    
-    vec3 front;
-    front[0] = cosf(glm_rad(cam->yaw)) * cosf(glm_rad(cam->pitch));
-    front[1] = sinf(glm_rad(cam->pitch));
-    front[2] = sinf(glm_rad(cam->yaw)) * cosf(glm_rad(cam->pitch));
-    glm_vec3_normalize(front);
 
-    glm_vec3_copy(front, cam->front);
+    cam->front[0] = cosf(glm_rad(cam->yaw)) * cosf(glm_rad(cam->pitch));
+    cam->front[1] = sinf(glm_rad(cam->pitch));
+    cam->front[2] = sinf(glm_rad(cam->yaw)) * cosf(glm_rad(cam->pitch));
+    glm_vec3_normalize(cam->front);
 }
 
 static void update_keyboard(Camera* cam, GLFWwindow* window, double dt)
@@ -117,13 +106,14 @@ static void update_keyboard(Camera* cam, GLFWwindow* window, double dt)
     if (key_pagedown)
         cam->move_speed /= 1.003f;
 
-    static vec3 move;
-    
+    vec3 move;
+
     if (key_w || key_s)
     {
         glm_vec3_copy(cam->front, move);
+
         glm_vec3_scale(move, cam->move_speed * dt, move);
-        if (key_s) glm_vec3_scale(move, -1, move);
+        if (key_s) glm_vec3_negate(move);
         glm_vec3_add(cam->pos, move, cam->pos);
     }
 
@@ -131,20 +121,18 @@ static void update_keyboard(Camera* cam, GLFWwindow* window, double dt)
     {
         glm_vec3_copy(cam->front, move);
 
-        // can't store move in itself, it will
-        // overwrite its own data during computation 
-        // and the result won't be correct
-        vec3 move2;
-        glm_vec3_crossn(move, cam->up, move2);
+        vec3 move_side;
+        glm_vec3_crossn(move, cam->up, move_side);
         
-        glm_vec3_scale(move2, cam->move_speed * dt, move2);
-        if (key_d) glm_vec3_negate(move2);
-        glm_vec3_sub(cam->pos, move2, cam->pos);
+        glm_vec3_scale(move_side, cam->move_speed * dt, move_side);
+        if (key_d) glm_vec3_negate(move_side);
+        glm_vec3_sub(cam->pos, move_side, cam->pos);
     }
 
     if (key_shift || key_ctrl)
     {
         glm_vec3_copy(cam->up, move);
+
         glm_vec3_scale(move, cam->move_speed * dt, move);
         if (key_ctrl) glm_vec3_negate(move);
         glm_vec3_add(cam->pos, move, cam->pos);
@@ -153,21 +141,18 @@ static void update_keyboard(Camera* cam, GLFWwindow* window, double dt)
 
 void camera_update(Camera* cam, GLFWwindow* window, double dt)
 {
-    int focused = 
-        glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED;
+    int focused = glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED;
     
     if (!focused)
         cam->active = 0;
     else
     {
-        update_mouse_movement(cam, window);
+        update_mouse(cam, window);
         update_keyboard(cam, window, dt);
     }
 
-    // update view matrix
+    // update vp matrices
     glm_look(cam->pos, cam->front, cam->up, cam->view_matrix);
-
-    // then update view-projection matrix
     glm_mat4_mul(cam->proj_matrix, cam->view_matrix, cam->vp_matrix);
 
     // update frustum planes
@@ -219,7 +204,7 @@ void camera_set_fov(Camera* cam, int new_fov)
 {
     cam->fov = new_fov;
     glm_perspective(
-        glm_rad(new_fov), (float)WINDOW_WIDTH / WINDOW_HEIGHT, 
+        glm_rad(new_fov), cam->aspect_ratio,
         cam->clip_near, cam->clip_far, cam->proj_matrix
     );
 }

@@ -11,7 +11,7 @@ GLuint opengl_create_vao()
     return VAO;
 }
 
-GLuint opengl_create_vbo(void* vertices, size_t buf_size)
+GLuint opengl_create_vbo(const void* vertices, size_t buf_size)
 {
     GLuint VBO;
     glGenBuffers(1, &VBO);
@@ -22,7 +22,7 @@ GLuint opengl_create_vbo(void* vertices, size_t buf_size)
 
 GLuint opengl_create_vbo_cube()
 {
-    static float vertices[] = {
+    static const float vertices[] = {
         -1.0f,  1.0f, -1.0f,
         -1.0f, -1.0f, -1.0f,
          1.0f, -1.0f, -1.0f,
@@ -71,7 +71,7 @@ GLuint opengl_create_vbo_cube()
 
 GLuint opengl_create_vbo_quad()
 {
-    static float vertices[] = {
+    static const float vertices[] = {
         -0.5f, -0.5f, 0.0f,  0.0f, 0.0f,
          0.5f, -0.5f, 0.0f,  1.0f, 0.0f,
         -0.5f,  0.5f, 0.0f,  0.0f, 1.0f,

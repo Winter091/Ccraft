@@ -3,8 +3,41 @@
 #include "block.h"
 #include "utils.h"
 #include "map.h"
-#include "db.h"
 #include "limits.h"
+#include "shader.h"
+#include "texture.h"
+
+static void regenerate_item_buffer(Player* p)
+{
+    // If already has buffer
+    if (p->VAO_item)
+    {
+        glDeleteBuffers(1, &p->VBO_item);
+        glDeleteVertexArrays(1, &p->VAO_item);
+    }
+
+    Vertex* vertices = malloc(36 * sizeof(Vertex));
+    int faces[6] = {1, 1, 1, 1, 1, 1};
+    float ao[6][4] = {0};
+
+    block_gen_vertices(
+            vertices, 0, 0, 0, 0,
+            p->build_block ? p->build_block : BLOCK_PLAYER_HAND,
+            1, 2.0f, faces, ao
+    );
+
+    p->VAO_item = opengl_create_vao();
+    p->VBO_item = opengl_create_vbo(vertices, 36 * sizeof(Vertex));
+    opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+    opengl_vbo_layout(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 3 * sizeof(float));
+    opengl_vbo_layout(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), 5 * sizeof(float));
+    opengl_vbo_layout(2, 1, GL_UNSIGNED_BYTE, GL_FALSE,  sizeof(Vertex), 6 * sizeof(float));
+
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    free(vertices);
+}
 
 Player* player_create(vec3 pos, vec3 dir)
 {
@@ -17,6 +50,10 @@ Player* player_create(vec3 pos, vec3 dir)
     p->block_pointed_at[0] = 0;
     p->block_pointed_at[1] = 0;
     p->block_pointed_at[2] = 0;
+
+    p->VAO_item = 0;
+    p->VBO_item = 0;
+    regenerate_item_buffer(p);
 
     return p;
 }
@@ -82,6 +119,7 @@ void player_set_build_block(Player* p, int new_block)
         new_block += BLOCKS_AMOUNT;
     
     p->build_block = new_block;
+    regenerate_item_buffer(p);
 }
 
 void player_update(Player* p, GLFWwindow* window, double dt)
@@ -171,4 +209,54 @@ void player_handle_right_mouse_click(Player* p)
         p->build_block
     );
 #endif
+}
+
+void player_render_item(Player* p)
+{
+    mat4 model;
+    glm_mat4_identity(model);
+
+    // No block is selected; create hand matrix
+    if (p->build_block == BLOCK_AIR)
+    {
+        glm_translate(model, (vec3){0.528f, -0.506f, -0.159f});
+        glm_rotate(model, -1.129f, (vec3){1.0f, 0.0f, 0.0f});
+        glm_rotate(model, 0.422f, (vec3){0.0f, 1.0f, 0.0f});
+        glm_rotate(model, -0.31f, (vec3){0.0f, 0.0f, 1.0f});
+        glm_scale(model, (vec3){0.1f, 0.3f, 0.1f});
+    }
+    // block matrix
+    else
+    {
+        glm_translate(model, (vec3){0.562f, -0.536f, -0.092f});
+        glm_rotate(model, 0.132f, (vec3){1.0f, 0.0f, 0.0f});
+        glm_rotate(model, 0.416f, (vec3){0.0f, 1.0f, 0.0f});
+        glm_rotate(model, 0.0f, (vec3){0.0f, 0.0f, 1.0f});
+        glm_scale(model, (vec3){0.2f, 0.2f, 0.2f});
+    }
+
+    // Item renders using additional camera created here;
+    // The camera is at (0, 0, -1) and looks at (0, 0, 0)
+    mat4 view, projection;
+    glm_look((vec3){0.0f, 0.0f, 1.0f}, (vec3){0.0f, 0.0f, -1.0f}, (vec3){0.0f, 1.0f, 0.0f}, view);
+    glm_perspective(glm_rad(50.0f), p->cam->aspect_ratio, 0.001f, 10.0f, projection);
+
+    mat4 mvp;
+    glm_mat4_mulN((mat4* []){&projection, &view, &model}, 3, mvp);
+
+    glUseProgram(shader_block);
+    shader_set_mat4(shader_block, "mvp_matrix", mvp);
+    shader_set_int1(shader_block, "texture_sampler", 0);
+    array_texture_bind(texture_blocks, 0);
+
+    // remove fog effect
+    shader_set_float3(shader_block, "cam_pos", (vec3){0.0f, 0.0f, 0.0f});
+    shader_set_float1(shader_block, "fog_dist", 100000.0f);
+
+    glBindVertexArray(p->VAO_item);
+
+    // disable face culling for better glass look
+    glDisable(GL_CULL_FACE);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glEnable(GL_CULL_FACE);
 }

@@ -1,7 +1,6 @@
 #include "db.h"
 
 #include "sqlite3.h"
-#include "stdlib.h"
 #include "config.h"
 #include "stdio.h"
 

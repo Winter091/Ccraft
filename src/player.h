@@ -3,6 +3,7 @@
 
 #include "camera.h"
 #include "cglm/cglm.h"
+#include "glad/glad.h"
 
 typedef struct
 {
@@ -10,6 +11,9 @@ typedef struct
     unsigned char build_block;
     int pointing_at_block;
     ivec3 block_pointed_at;
+
+    GLuint VAO_item;
+    GLuint VBO_item;
 }
 Player;
 
@@ -19,5 +23,7 @@ void player_update(Player* p, GLFWwindow* window, double dt);
 
 void player_handle_left_mouse_click(Player* p);
 void player_handle_right_mouse_click(Player* p);
+
+void player_render_item(Player* p);
 
 #endif

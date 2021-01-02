@@ -6,8 +6,6 @@
 #include "stdlib.h"
 
 #include "config.h"
-#include "camera.h"
-#include "player.h"
 
 static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {

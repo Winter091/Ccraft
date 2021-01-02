@@ -1,13 +1,8 @@
 #include "chunk.h"
 
 #include "glad/glad.h"
-#include "map.h"
 #include "perlin_noise.h"
 #include "stdlib.h"
-#include "string.h"
-#include "stdio.h"
-#include "GLFW/glfw3.h"
-#include "db.h"
 #include "block.h"
 #include "utils.h"
 
@@ -55,7 +50,7 @@ void chunk_generate(Chunk* c)
             int block_x = x + c->x * CHUNK_WIDTH;
             int block_z = z + c->z * CHUNK_WIDTH;
 
-            int air_start = terrain_height_at(block_x, block_z);
+            unsigned int air_start = terrain_height_at(block_x, block_z);
             for (int y = 0; y < CHUNK_HEIGHT; y++)
             {
                 unsigned char block;
@@ -68,7 +63,7 @@ void chunk_generate(Chunk* c)
                         block = BLOCK_SAND;
                     else
                         block = BLOCK_DIRT;
-                    
+
                     if (block == BLOCK_DIRT && y == air_start)
                     {
                         if (y >= snow_start)
@@ -79,7 +74,7 @@ void chunk_generate(Chunk* c)
                 }
 
                 c->blocks[XYZ(x, y, z)] = block;
-            }         
+            }
         }
     }
 
@@ -137,8 +132,8 @@ void chunk_update_buffer(Chunk* c, Chunk* neighs[8])
                 int block_z = z + c->z * CHUNK_WIDTH;
 
                 block_gen_vertices(
-                    vertices, curr_vertex_count, block_x, block_y, 
-                    block_z, c->blocks[XYZ(x, y, z)], faces, ao
+                    vertices, curr_vertex_count, block_x, block_y, block_z,
+                    c->blocks[XYZ(x, y, z)], 0, BLOCK_SIZE, faces, ao
                 );
 
                 curr_vertex_count += faces_visible * 6;
@@ -147,26 +142,10 @@ void chunk_update_buffer(Chunk* c, Chunk* neighs[8])
     // Generate VAO and VBO, send vertices to videocard
     GLuint VAO = opengl_create_vao();
     GLuint VBO = opengl_create_vbo(vertices, curr_vertex_count * sizeof(Vertex));
-
-    glVertexAttribPointer(
-        0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0
-    );
-    glVertexAttribPointer(
-        1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(3 * sizeof(float))
-    );
-
-    // weird behaviour: if you change ao index to 2 and block_type index
-    // to 3, it won't work anymore
-    glVertexAttribPointer(
-        3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(5 * sizeof(float))
-    );
-    glVertexAttribIPointer(
-        2, 1, GL_UNSIGNED_BYTE,  sizeof(Vertex), (void*)(6 * sizeof(float))
-    );
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    glEnableVertexAttribArray(2);
-    glEnableVertexAttribArray(3);
+    opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+    opengl_vbo_layout(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 3 * sizeof(float));
+    opengl_vbo_layout(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), 5 * sizeof(float));
+    opengl_vbo_layout(2, 1, GL_UNSIGNED_BYTE, GL_FALSE,  sizeof(Vertex), 6 * sizeof(float));
 
     c->VAO = VAO;
     c->VBO = VBO;

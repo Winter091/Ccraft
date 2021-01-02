@@ -19,15 +19,6 @@
 
 typedef struct
 {
-    float pos[3];
-    float tex_coord[2];
-    float ao;
-    unsigned char tile;
-}
-Vertex;
-
-typedef struct
-{
     unsigned char* blocks;
     unsigned int VAO;
     unsigned int VBO;

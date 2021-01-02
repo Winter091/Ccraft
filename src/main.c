@@ -1,9 +1,8 @@
 #include "stdio.h"
 #include "stdlib.h"
-#include "time.h"
-#include "string.h"
 
 #include "glad/glad.h"
+#define GLFW_INCLUDE_NONE
 #include "GLFW/glfw3.h"
 #include "cglm/cglm.h"
 
@@ -11,10 +10,7 @@
 #include "shader.h"
 #include "camera.h"
 #include "window.h"
-#include "map.h"
 #include "texture.h"
-#include "db.h"
-#include "player.h"
 
 static void print_fps()
 {
@@ -36,7 +32,7 @@ static void print_fps()
     }
 }
 
-static float get_dt()
+static double get_dt()
 {
     static double last_time = -1.0;
     if (last_time < 0)
@@ -69,7 +65,7 @@ void render(GLFWwindow* window, GameObjects* game)
     if (game->player->pointing_at_block)
         ui_render_block_wireframe(game->ui, game->player);
     ui_render_crosshair(game->ui);
-    ui_render_hand_or_item(game->ui, game->player);
+    player_render_item(game->player);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
@@ -102,7 +98,7 @@ int main()
     db_init();
 #endif
 
-    // Start at the begginning of day
+    // Start at the beginning of day
     glfwSetTime(DAY_LENGTH / 2.0);
 
     shader_load();

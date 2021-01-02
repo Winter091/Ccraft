@@ -6,8 +6,6 @@
 #include "shader.h"
 #include "texture.h"
 #include "perlin_noise.h"
-#include "db.h"
-#include "block.h"
 #include "utils.h"
 
 #define _USE_MATH_DEFINES
@@ -119,14 +117,14 @@ static void map_load_chunks(Camera* cam)
             Chunk* c = map_get_chunk(x, z);
 
             // add all visible loaded chunks to render list,
-            // that list is being cleared vevry frame
+            // that list is being cleared every frame
             if (c)
             {
                 if (chunk_is_visible(x, z, cam->frustum_planes))
                     list_chunks_push_front(map->chunks_to_render, c);
             }
 
-            // find the best chunk that is not loaded yet
+            // find the closest visible chunk that is not loaded yet
             else
             {
                 int visible = chunk_is_visible(x, z, cam->frustum_planes);
@@ -161,15 +159,12 @@ void map_init()
 
     map->VAO_skybox = opengl_create_vao();
     map->VBO_skybox = opengl_create_vbo_cube();
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (const void*)0);
-    glEnableVertexAttribArray(0);
+    opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
     map->VAO_sun_moon = opengl_create_vao();
     map->VBO_sun_moon = opengl_create_vbo_quad();
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (const void*)0);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (const void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
+    opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
+    opengl_vbo_layout(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 3 * sizeof(float));
 
     // set world seed
     *perlin2d_get_world_seed() = 123;
@@ -185,29 +180,29 @@ static double map_get_time()
 #endif
 }
 
-static double map_get_blocks_light()
+static float map_get_blocks_light()
 {    
     double time = map_get_time();
 
     // 0.85 day
     if (time < DAY_TO_EVN_START)
-        return 0.85;
+        return 0.85f;
     
     // 0.85 day - evening 0.7
     else if (time < EVN_TO_NIGHT_START)
-        return 0.7 + 0.15 * (1 - glm_smoothstep(DAY_TO_EVN_START, EVN_TO_NIGHT_START, time));
+        return 0.7f + 0.15f * (1 - glm_smoothstep(DAY_TO_EVN_START, EVN_TO_NIGHT_START, time));
     
     // 0.7 evening - night 0.3
     else if (time < NIGHT_START)
-        return 0.3 + 0.4 * (1 - glm_smoothstep(EVN_TO_NIGHT_START, NIGHT_START, time));
+        return 0.3f + 0.4f * (1 - glm_smoothstep(EVN_TO_NIGHT_START, NIGHT_START, time));
 
     // night 0.3
     else if (time < NIGHT_TO_DAY_START)
-        return 0.3;
+        return 0.3f;
     
     // 0.3 night - day 0.85
     else
-        return 0.3 + 0.55 * glm_smoothstep(NIGHT_TO_DAY_START, 1.0f, time);
+        return 0.3f + 0.55f * glm_smoothstep(NIGHT_TO_DAY_START, 1.0f, time);
 }
 
 void map_render_sun_moon(Camera* cam)
@@ -218,14 +213,14 @@ void map_render_sun_moon(Camera* cam)
     glm_translate(model_sun, cam->pos);
     glm_mat4_copy(model_sun, model_moon);
 
-    float time = map_get_time();
+    double time = map_get_time();
 
     // apply offset to current time to synchronize
     // light level with sun presence in the sky
-    float offset = 0.1f;
+    double offset = 0.1;
     time += offset;
-    if (time > 1.0f)
-        time -= 1.0f;
+    if (time > 1.0)
+        time -= 1.0;
     
     // sun and moon are always on the opposite
     // parts of the sky

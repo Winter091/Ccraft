@@ -1,6 +1,7 @@
 #ifndef WINDOW_H_
 #define WINDOW_H_
 
+#define GLFW_INCLUDE_NONE
 #include "GLFW/glfw3.h"
 
 #include "camera.h"

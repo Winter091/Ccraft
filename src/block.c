@@ -1,5 +1,4 @@
 #include "block.h"
-#include "map.h"
 
 unsigned char block_textures[][6] = 
 {
@@ -44,9 +43,7 @@ int block_is_transparent(unsigned char block)
 
 static int get_block_from_chunk(Chunk* c, int bx, int by, int bz)
 {
-    if (!c)
-        return BLOCK_AIR;
-
+    if (!c) return BLOCK_AIR;
     return c->blocks[XYZ(bx, by, bz)];
 }
 
@@ -77,6 +74,7 @@ Bottom layer (blocks below):
 void block_get_neighs(Chunk* c, Chunk* neighs[8], int x, int y, int z, unsigned char b_neighs[27])
 {
     int index = 0;
+    const int last = CHUNK_WIDTH - 1;
     
     for (int dy = -1; dy <= 1; dy++)
     for (int dx = -1; dx <= 1; dx++)
@@ -97,17 +95,17 @@ void block_get_neighs(Chunk* c, Chunk* neighs[8], int x, int y, int z, unsigned 
         else if (bx < 0)
         {
             if (bz < 0)
-                b_neighs[index++] = get_block_from_chunk(neighs[CHUNK_NEIGH_BL], CHUNK_WIDTH - 1, by, CHUNK_WIDTH - 1);
+                b_neighs[index++] = get_block_from_chunk(neighs[CHUNK_NEIGH_BL], last, by, last);
             else if (bz >= CHUNK_WIDTH)
-                b_neighs[index++] = get_block_from_chunk(neighs[CHUNK_NEIGH_FL], CHUNK_WIDTH - 1, by, 0);
+                b_neighs[index++] = get_block_from_chunk(neighs[CHUNK_NEIGH_FL], last, by, 0);
             else
-                b_neighs[index++] = get_block_from_chunk(neighs[CHUNK_NEIGH_L], CHUNK_WIDTH - 1, by, bz);
+                b_neighs[index++] = get_block_from_chunk(neighs[CHUNK_NEIGH_L], last, by, bz);
         }
 
         else if (bx >= CHUNK_WIDTH)
         {
             if (bz < 0)
-                b_neighs[index++] = get_block_from_chunk(neighs[CHUNK_NEIGH_BR], 0, by, CHUNK_WIDTH - 1);
+                b_neighs[index++] = get_block_from_chunk(neighs[CHUNK_NEIGH_BR], 0, by, last);
             else if (bz >= CHUNK_WIDTH)
                 b_neighs[index++] = get_block_from_chunk(neighs[CHUNK_NEIGH_FR], 0, by, 0);
             else
@@ -115,20 +113,25 @@ void block_get_neighs(Chunk* c, Chunk* neighs[8], int x, int y, int z, unsigned 
         }
 
         else if (bz < 0)
-            b_neighs[index++] = get_block_from_chunk(neighs[CHUNK_NEIGH_B], bx, by, CHUNK_WIDTH - 1);
+            b_neighs[index++] = get_block_from_chunk(neighs[CHUNK_NEIGH_B], bx, by, last);
         
         else if (bz >= CHUNK_WIDTH)
             b_neighs[index++] = get_block_from_chunk(neighs[CHUNK_NEIGH_F], bx, by, 0);
     }
 }
 
-// x, y, z = cube's world coordinates
-// faces = determine whether to draw face or not
+/*
+
+x, y, z: cube's world coordinates
+faces:   determine whether to draw face or not
+ao:      ao level for each vertex of each face
+
+*/
 void block_gen_vertices(
-    Vertex* vertices, int curr_vertex_count, 
-    int x, int y, int z, int block_type, int faces[6], float ao[6][4]
+    Vertex* vertices, int curr_vertex_count, int x, int y, int z,
+    int block_type, int center_align, float block_size, int faces[6], float ao[6][4]
 )
-{    
+{
     // row = face (6 faces), each face has 4 points forming a square
     static const float positions[6][4][3] = 
     {
@@ -185,9 +188,16 @@ void block_gen_vertices(
 
             int vert_index = curr_vertex_count + curr_vertex++;
 
-            vertices[vert_index].pos[0] = (positions[f][index][0] + x) * BLOCK_SIZE;
-            vertices[vert_index].pos[1] = (positions[f][index][1] + y) * BLOCK_SIZE;
-            vertices[vert_index].pos[2] = (positions[f][index][2] + z) * BLOCK_SIZE;
+            vertices[vert_index].pos[0] = (positions[f][index][0] + x) * block_size;
+            vertices[vert_index].pos[1] = (positions[f][index][1] + y) * block_size;
+            vertices[vert_index].pos[2] = (positions[f][index][2] + z) * block_size;
+
+            if (center_align)
+            {
+                vertices[vert_index].pos[0] -= 0.5f * block_size;
+                vertices[vert_index].pos[1] -= 0.5f * block_size;
+                vertices[vert_index].pos[2] -= 0.5f * block_size;
+            }
 
             vertices[vert_index].tex_coord[0] = uvs[f][index][0];
             vertices[vert_index].tex_coord[1] = uvs[f][index][1];
@@ -199,80 +209,13 @@ void block_gen_vertices(
     }
 }
 
-// Create textured cube with the (0, 0, 0) as symmetry center
-void block_gen_vertices_unit_cube(
-    Vertex* vertices, int block_type
-)
-{
-    // row = face (6 faces), each face has 4 points forming a square
-    static const float positions[6][4][3] = 
-    {
-        { {-1, -1, -1}, {-1, -1,  1}, {-1,  1, -1}, {-1,  1,  1} }, // left
-        { { 1, -1, -1}, { 1, -1,  1}, { 1,  1, -1}, { 1,  1,  1} }, // right
-        { {-1,  1, -1}, {-1,  1,  1}, { 1,  1, -1}, { 1,  1,  1} }, // top
-        { {-1, -1, -1}, {-1, -1,  1}, { 1, -1, -1}, { 1, -1,  1} }, // bottom
-        { {-1, -1, -1}, {-1,  1, -1}, { 1, -1, -1}, { 1,  1, -1} }, // back
-        { {-1, -1,  1}, {-1,  1,  1}, { 1, -1,  1}, { 1,  1,  1} }  // front
-    };
-
-    static const int indices[6][6] = 
-    {
-        {0, 3, 2, 0, 1, 3},
-        {0, 3, 1, 0, 2, 3},
-        {0, 3, 2, 0, 1, 3},
-        {0, 3, 1, 0, 2, 3},
-        {0, 3, 2, 0, 1, 3},
-        {0, 3, 1, 0, 2, 3}
-    };
-
-    static const float uvs[6][4][2] = 
-    {
-        {{0, 0}, {1, 0}, {0, 1}, {1, 1}},
-        {{1, 0}, {0, 0}, {1, 1}, {0, 1}},
-        {{0, 1}, {0, 0}, {1, 1}, {1, 0}},
-        {{0, 0}, {0, 1}, {1, 0}, {1, 1}},
-        {{0, 0}, {0, 1}, {1, 0}, {1, 1}},
-        {{1, 0}, {1, 1}, {0, 0}, {0, 1}}
-    };
-
-    int curr_vertex = 0;
-
-    // for each face
-    for (int f = 0; f < 6; f++)
-    {
-        // for each vertex
-        for (int v = 0; v < 6; v++)
-        {
-            int index = indices[f][v];
-
-            int vert_index = curr_vertex++;
-
-            vertices[vert_index].pos[0] = positions[f][index][0];
-            vertices[vert_index].pos[1] = positions[f][index][1];
-            vertices[vert_index].pos[2] = positions[f][index][2];
-
-            vertices[vert_index].tex_coord[0] = uvs[f][index][0];
-            vertices[vert_index].tex_coord[1] = uvs[f][index][1];
-
-            vertices[vert_index].ao = 0;
-
-            vertices[vert_index].tile = block_textures[block_type][f];
-        }
-    }
-}
-
 static int get_block_transparency(Chunk* c, int bx, int by, int bz)
 {
-    if (!c)
-        return 1;
-    
+    if (!c) return 1;
     return block_is_transparent(c->blocks[XYZ(bx, by, bz)]);
 }
 
-int block_set_visible_faces(
-    Chunk* c, int x, int y, int z, 
-    Chunk* neighs[8], int faces[6]
-)
+int block_set_visible_faces(Chunk* c, int x, int y, int z, Chunk* neighs[8], int faces[6])
 {
     // left
     if (x == 0)
@@ -317,9 +260,7 @@ int block_set_visible_faces(
     return sum;
 }
 
-void block_set_ao(
-    unsigned char neighs[27], float ao[6][4]
-)
+void block_set_ao(unsigned char neighs[27], float ao[6][4])
 {       
     // neighbours indices for each vertex for each face
     static const unsigned char lookup[6][4][3] = 
