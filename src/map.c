@@ -248,7 +248,7 @@ void map_render_sun_moon(Camera* cam)
 
     glBindVertexArray(map->VAO_sun_moon);
 
-    glDisable(GL_DEPTH_TEST);
+    glDepthFunc(GL_ALWAYS);
     glEnable(GL_BLEND);
 
     glm_mat4_mul(cam->vp_matrix, model_sun, mvp_matrix);
@@ -261,7 +261,7 @@ void map_render_sun_moon(Camera* cam)
     shader_set_int1(shader_sun, "texture_sampler", 1);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
-    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
 }
 
 void map_render_sky(Camera* cam)
@@ -291,7 +291,7 @@ void map_render_sky(Camera* cam)
     skybox_texture_bind(texture_skybox_evening, 1);
     skybox_texture_bind(texture_skybox_night, 2);
 
-    glDepthFunc(GL_LEQUAL);
+    glDepthFunc(GL_ALWAYS);
     glBindVertexArray(map->VAO_skybox);
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glDepthFunc(GL_LESS);

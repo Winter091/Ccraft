@@ -255,8 +255,12 @@ void player_render_item(Player* p)
 
     glBindVertexArray(p->VAO_item);
 
-    // disable face culling for better glass look
-    glDisable(GL_CULL_FACE);
+    //glDisable(GL_CULL_FACE);
+    glDepthFunc(GL_ALWAYS);
+
+    glEnable(GL_DEPTH_TEST);
     glDrawArrays(GL_TRIANGLES, 0, 36);
+
+    glDepthFunc(GL_LESS);
     glEnable(GL_CULL_FACE);
 }

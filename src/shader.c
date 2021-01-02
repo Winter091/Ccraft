@@ -7,6 +7,7 @@ GLuint shader_block = 0;
 GLuint shader_line = 0;
 GLuint shader_skybox = 0;
 GLuint shader_sun = 0;
+GLuint shader_screen = 0;
 
 static char* get_file_data(const char* path)
 {
@@ -110,6 +111,11 @@ void shader_load()
     shader_sun = create_shader_program(
         "shaders/sun_vertex.glsl",
         "shaders/sun_fragment.glsl"
+    );
+
+    shader_screen = create_shader_program(
+        "shaders/screen_vertex.glsl",
+        "shaders/screen_fragment.glsl"
     );
 }
 
