@@ -183,6 +183,27 @@ int main()
         shader_set_int1(shader_screen, "texture_sampler_color", 0);
         texture_bind(texture_depth, 1);
         shader_set_int1(shader_screen, "texture_sampler_depth", 1);
+
+        int key_j = glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS;
+        int key_u = glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS;
+        int key_k = glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS;
+        int key_i = glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS;
+
+        static float max_blur = 0.0101f;
+        static float aperture = 0.1005f;
+        float diff = 0.0003f;
+
+        if (key_j) max_blur -= diff;
+        if (key_u) max_blur += diff;
+
+        if (key_k) aperture -= diff;
+        if (key_i) aperture += diff;
+
+        //printf("%.6f %.6f\n", max_blur, aperture);
+
+        shader_set_float1(shader_screen, "maxBlur", max_blur);
+        shader_set_float1(shader_screen, "aperture", aperture);
+
         glDepthFunc(GL_ALWAYS);
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glDepthFunc(GL_LESS);

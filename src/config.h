@@ -18,7 +18,7 @@
 #define VSYNC 0
 
 // Game settings
-#define DISABLE_TIME_FLOW 0
+#define DISABLE_TIME_FLOW 1
 #define DAY_LENGTH 100
 
 // full day range is [0.0 - 1.0)
