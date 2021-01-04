@@ -110,6 +110,7 @@ void ui_render_crosshair(UI* ui)
     mat4 ident;
     glm_mat4_identity(ident);
     shader_set_mat4(shader_line, "mvp_matrix", ident);
+    shader_set_int1(shader_line, "write_to_ui_texture", 1);
     
     glDisable(GL_DEPTH_TEST);
     glLineWidth(4);
@@ -134,9 +135,10 @@ void ui_render_block_wireframe(UI* ui, Player* p)
 
     glUseProgram(shader_line);
     shader_set_mat4(shader_line, "mvp_matrix", mvp);
+    shader_set_int1(shader_line, "write_to_ui_texture", 0);
     
-    glDepthMask(GL_FALSE);
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
     glLineWidth(2);
     glDrawArrays(GL_LINES, 0, 24);
-    glDepthMask(GL_TRUE);
 }

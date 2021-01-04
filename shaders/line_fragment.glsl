@@ -1,9 +1,14 @@
 #version 330 core
 
-// write to ui color texture
-layout(location = 1) out vec4 out_color;
+layout(location = 0) out vec4 out_color;
+layout(location = 1) out vec4 out_color_ui;
+
+uniform int write_to_ui_texture;
 
 void main()
 {
-    out_color = vec4(1.0);
+    if (write_to_ui_texture == 0)
+        out_color = vec4(1.0);
+    else
+        out_color_ui = vec4(1.0);
 }

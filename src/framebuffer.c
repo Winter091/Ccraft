@@ -42,7 +42,7 @@ void framebuffer_create(int window_w, int window_h)
     FBO_game = opengl_create_fbo();
 
     // two color textures, one for main game image and one for
-    // ui elements, which are crosshair and block wireframe
+    // ui elements
     FBO_game_texture_color = framebuffer_color_texture_create(window_w, window_h);
     FBO_game_texture_color_ui = framebuffer_color_texture_create(window_w, window_h);
     FBO_game_texture_depth = framebuffer_depth_texture_create(window_w, window_h);
