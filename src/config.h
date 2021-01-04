@@ -12,6 +12,7 @@
 // Depth of field effect
 #define DOF_MAX_BLUR 0.0101f
 #define DOF_APERTURE 0.1005f
+#define DOF_SPEED 5.0f
 
 // gamma should be 2.2, but it looks very washed out
 #define GAMMA_CORRECTION 1.5f
@@ -27,7 +28,7 @@
 // ============= Gameplay settings ==============
 #define CURRENT_MAP "maps/test_map.db"
 
-#define DISABLE_TIME_FLOW 1
+#define DISABLE_TIME_FLOW 0
 
 // full day length in seconds
 #define DAY_LENGTH 20

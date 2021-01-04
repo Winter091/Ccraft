@@ -13,12 +13,13 @@ uniform float u_aperture;
 uniform float u_aspect_ratio;
 uniform float u_gamma;
 uniform float u_saturation;
+uniform float u_depth;
 
 vec3 depth_of_field(vec3 rgb)
 {
     float depth = texture(texture_sampler_depth, v_texcoord).r;
-    float center_depth = texture(texture_sampler_depth, vec2(0.5, 0.5)).r;
-    float factor = depth - center_depth;
+    //float center_depth = texture(texture_sampler_depth, vec2(0.5, 0.5)).r;
+    float factor = u_depth - depth;
     
     vec2 dofblur = vec2(clamp(factor * u_aperture, -u_max_blur, u_max_blur));
     vec2 dofblur9 = dofblur * 0.9;

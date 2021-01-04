@@ -50,9 +50,22 @@ static double get_dt()
     return dt;
 }
 
-void update(GLFWwindow* window, GameObjects* game)
+static float get_current_dof_focus(float dt)
 {
-    player_update(game->player, window, get_dt());
+    static float curr_depth = 1.0f;
+
+    // Read depth in the center of the screen 
+    // and gradually move towards it
+    float desired_depth;
+    glReadPixels(window_w / 2, window_h / 2, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &desired_depth);
+    curr_depth = glm_lerp(curr_depth, desired_depth, dt * DOF_SPEED);
+    
+    return curr_depth;
+}
+
+void update(GLFWwindow* window, GameObjects* game, float dt)
+{
+    player_update(game->player, window, dt);
     map_update(game->player->cam);
 }
 
@@ -68,7 +81,7 @@ void render_game(GameObjects* game)
     player_render_item(game->player);
 }
 
-void render_game_quad(GameObjects* game)
+void render_game_quad(GameObjects* game, float curr_depth)
 {
     glUseProgram(shader_screen);
 
@@ -81,6 +94,7 @@ void render_game_quad(GameObjects* game)
     shader_set_float1(shader_screen, "u_aspect_ratio", (float)window_w / window_h);
     shader_set_float1(shader_screen, "u_gamma", GAMMA_CORRECTION);
     shader_set_float1(shader_screen, "u_saturation", SATURATION);
+    shader_set_float1(shader_screen, "u_depth", curr_depth);
 
     glDepthFunc(GL_ALWAYS);
 
@@ -90,15 +104,17 @@ void render_game_quad(GameObjects* game)
     glDepthFunc(GL_LESS);
 }
 
-void render(GLFWwindow* window, GameObjects* game)
+void render(GLFWwindow* window, GameObjects* game, float dt)
 {
     framebuffer_bind(FBO_game);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     render_game(game);
 
+    float curr_depth = get_current_dof_focus(dt);
+
     framebuffer_bind(FBO_screen);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    render_game_quad(game);
+    render_game_quad(game, curr_depth);
 }
 
 int main()
@@ -152,8 +168,10 @@ int main()
     {
         print_fps();
 
-        update(window, game);
-        render(window, game);
+        float dt = get_dt();
+
+        update(window, game, dt);
+        render(window, game, dt);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
