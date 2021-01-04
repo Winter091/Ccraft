@@ -10,11 +10,15 @@ extern GLuint shader_skybox;
 extern GLuint shader_sun;
 extern GLuint shader_screen;
 
-void shader_load();
+void shaders_load();
 
 void shader_set_int1(GLuint shader, char* name, int value);
 void shader_set_float1(GLuint shader, char* name, float value);
 void shader_set_float3(GLuint shader, char* name, vec3 vec);
 void shader_set_mat4(GLuint shader, char* name, mat4 matrix);
+
+void shader_set_texture_2d(GLuint shader, char* name, GLuint texture, int slot);
+void shader_set_texture_array(GLuint shader, char* name, GLuint texture, int slot);
+void shader_set_texture_skybox(GLuint shader, char* name, GLuint texture, int slot);
 
 #endif

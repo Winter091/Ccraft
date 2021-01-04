@@ -2,6 +2,7 @@
 #include "stdlib.h"
 
 #include "shader.h"
+#include "texture.h"
 
 GLuint shader_block = 0;
 GLuint shader_line = 0;
@@ -91,7 +92,7 @@ GLuint create_shader_program(const char* vs_path, const char* fs_path)
     return shader_prog;
 }
 
-void shader_load()
+void shaders_load()
 {
     shader_block = create_shader_program(
         "shaders/block_vertex.glsl",
@@ -145,4 +146,22 @@ void shader_set_float3(GLuint shader, char* name, vec3 vec)
 void shader_set_mat4(GLuint shader, char* name, mat4 matrix)
 {
     glUniformMatrix4fv(get_attrib_location(shader, name), 1, GL_FALSE, matrix[0]);
+}
+
+void shader_set_texture_2d(GLuint shader, char* name, GLuint texture, int slot)
+{
+    shader_set_int1(shader, name, slot);
+    texture_2d_bind(texture, slot);
+}
+
+void shader_set_texture_array(GLuint shader, char* name, GLuint texture, int slot)
+{
+    shader_set_int1(shader, name, slot);
+    texture_array_bind(texture, slot);
+}
+
+void shader_set_texture_skybox(GLuint shader, char* name, GLuint texture, int slot)
+{
+    shader_set_int1(shader, name, slot);
+    texture_skybox_bind(texture, slot);
 }

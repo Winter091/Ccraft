@@ -174,7 +174,7 @@ void map_init()
 static double map_get_time()
 {
 #if DISABLE_TIME_FLOW
-    return 0.0;
+    return 0.4;
 #else
     return 0.5 + remainder(glfwGetTime(), DAY_LENGTH) / (double)DAY_LENGTH;
 #endif
@@ -184,25 +184,24 @@ static float map_get_blocks_light()
 {    
     double time = map_get_time();
 
-    // 0.85 day
     if (time < DAY_TO_EVN_START)
-        return 0.85f;
+        return DAY_LIGHT;
     
     // 0.85 day - evening 0.7
     else if (time < EVN_TO_NIGHT_START)
-        return 0.7f + 0.15f * (1 - glm_smoothstep(DAY_TO_EVN_START, EVN_TO_NIGHT_START, time));
+        return EVENING_LIGHT + (DAY_LIGHT - EVENING_LIGHT) * (1 - glm_smoothstep(DAY_TO_EVN_START, EVN_TO_NIGHT_START, time));
     
     // 0.7 evening - night 0.3
     else if (time < NIGHT_START)
-        return 0.3f + 0.4f * (1 - glm_smoothstep(EVN_TO_NIGHT_START, NIGHT_START, time));
+        return NIGHT_LIGHT + (EVENING_LIGHT - NIGHT_LIGHT) * (1 - glm_smoothstep(EVN_TO_NIGHT_START, NIGHT_START, time));
 
     // night 0.3
     else if (time < NIGHT_TO_DAY_START)
-        return 0.3f;
+        return NIGHT_LIGHT;
     
     // 0.3 night - day 0.85
     else
-        return 0.3f + 0.55f * glm_smoothstep(NIGHT_TO_DAY_START, 1.0f, time);
+        return NIGHT_LIGHT + (DAY_LIGHT - NIGHT_LIGHT) * glm_smoothstep(NIGHT_TO_DAY_START, 1.0f, time);
 }
 
 void map_render_sun_moon(Camera* cam)
@@ -241,24 +240,20 @@ void map_render_sun_moon(Camera* cam)
     glm_rotate(model_moon, angle_moon, (vec3){1.0f, 0.0f, 0.0f});
 
     glUseProgram(shader_sun);
-    texture_bind(texture_sun, 0);
-    texture_bind(texture_moon, 1);
-
-    mat4 mvp_matrix;
-
     glBindVertexArray(map->VAO_sun_moon);
 
     glDepthFunc(GL_ALWAYS);
     glEnable(GL_BLEND);
 
+    mat4 mvp_matrix;
     glm_mat4_mul(cam->vp_matrix, model_sun, mvp_matrix);
     shader_set_mat4(shader_sun, "mvp_matrix", mvp_matrix);
-    shader_set_int1(shader_sun, "texture_sampler", 0);
+    shader_set_texture_2d(shader_sun, "texture_sampler", texture_sun, 0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
     glm_mat4_mul(cam->vp_matrix, model_moon, mvp_matrix);
     shader_set_mat4(shader_sun, "mvp_matrix", mvp_matrix);
-    shader_set_int1(shader_sun, "texture_sampler", 1);
+    shader_set_texture_2d(shader_sun, "texture_sampler", texture_moon, 0);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
     glDepthFunc(GL_LESS);
@@ -269,6 +264,8 @@ void map_render_sky(Camera* cam)
     mat4 model;
     glm_mat4_identity(model);
     glm_translate(model, cam->pos);
+
+    // rotate cubemap slightly, why not?
     glm_rotate(model, M_PI / 4.0f, (vec3){0.0f, 1.0f, 0.0f});
 
     mat4 mvp_matrix;
@@ -277,9 +274,9 @@ void map_render_sky(Camera* cam)
     glUseProgram(shader_skybox);
     shader_set_mat4(shader_skybox, "mvp_matrix", mvp_matrix);
 
-    shader_set_int1(shader_skybox, "texture_day_sampler", 0);
-    shader_set_int1(shader_skybox, "texture_evening_sampler", 1);
-    shader_set_int1(shader_skybox, "texture_night_sampler", 2);
+    shader_set_texture_skybox(shader_skybox, "texture_day_sampler", texture_skybox_day, 0);
+    shader_set_texture_skybox(shader_skybox, "texture_evening_sampler", texture_skybox_evening, 1);
+    shader_set_texture_skybox(shader_skybox, "texture_night_sampler", texture_skybox_night, 2);
     
     shader_set_float1(shader_skybox, "time", map_get_time());
     shader_set_float1(shader_skybox, "day_to_evn_start", DAY_TO_EVN_START);
@@ -287,9 +284,6 @@ void map_render_sky(Camera* cam)
     shader_set_float1(shader_skybox, "night_start", NIGHT_START);
     shader_set_float1(shader_skybox, "night_to_day_start", NIGHT_TO_DAY_START);
 
-    skybox_texture_bind(texture_skybox_day, 0);
-    skybox_texture_bind(texture_skybox_evening, 1);
-    skybox_texture_bind(texture_skybox_night, 2);
 
     glDepthFunc(GL_ALWAYS);
     glBindVertexArray(map->VAO_skybox);
@@ -304,8 +298,7 @@ void map_render_chunks(Camera* cam)
     shader_set_mat4(shader_block, "mvp_matrix", cam->vp_matrix);
     shader_set_float1(shader_block, "block_light", map_get_blocks_light());
 
-    shader_set_int1(shader_block, "texture_sampler", 0);
-    array_texture_bind(texture_blocks, 0);
+    shader_set_texture_array(shader_block, "texture_sampler", texture_blocks, 0);
 
     shader_set_float3(shader_block, "cam_pos", cam->pos);
     shader_set_float1(shader_block, "fog_dist", CHUNK_RENDER_RADIUS * CHUNK_SIZE * 0.9f);

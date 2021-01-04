@@ -111,15 +111,10 @@ void ui_render_crosshair(UI* ui)
     glm_mat4_identity(ident);
     shader_set_mat4(shader_line, "mvp_matrix", ident);
     
-    glDepthMask(GL_FALSE);
-    glEnable(GL_COLOR_LOGIC_OP);
-    glLogicOp(GL_INVERT);
+    glDisable(GL_DEPTH_TEST);
     glLineWidth(4);
-
     glDrawArrays(GL_LINES, 0, 4);
-    
-    glDisable(GL_COLOR_LOGIC_OP);
-    glDepthMask(GL_TRUE);
+    glEnable(GL_DEPTH_TEST);
 }
 
 void ui_render_block_wireframe(UI* ui, Player* p)
@@ -139,10 +134,9 @@ void ui_render_block_wireframe(UI* ui, Player* p)
 
     glUseProgram(shader_line);
     shader_set_mat4(shader_line, "mvp_matrix", mvp);
-
-    glEnable(GL_COLOR_LOGIC_OP);
-    glLogicOp(GL_INVERT);
+    
+    glDepthMask(GL_FALSE);
     glLineWidth(2);
     glDrawArrays(GL_LINES, 0, 24);
-    glDisable(GL_COLOR_LOGIC_OP);
+    glDepthMask(GL_TRUE);
 }

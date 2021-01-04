@@ -1,6 +1,7 @@
 #version 330 core
 
-out vec4 out_color;
+// write to ui color texture
+layout(location = 1) out vec4 out_color;
 
 void main()
 {

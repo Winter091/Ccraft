@@ -83,3 +83,11 @@ GLuint opengl_create_vbo_quad()
 
     return opengl_create_vbo(vertices, sizeof(vertices));
 }
+
+GLuint opengl_create_fbo()
+{
+    GLuint fbo;
+    glGenFramebuffers(1, &fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+    return fbo;
+}

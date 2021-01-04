@@ -13,6 +13,7 @@
 #include "texture.h"
 #include "shader.h"
 #include "utils.h"
+#include "framebuffer.h"
 
 static void print_fps()
 {
@@ -55,11 +56,8 @@ void update(GLFWwindow* window, GameObjects* game)
     map_update(game->player->cam);
 }
 
-void render(GLFWwindow* window, GameObjects* game)
+void render_game(GameObjects* game)
 {
-    //glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
-    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
     map_render_sky(game->player->cam);
     map_render_sun_moon(game->player->cam);
     map_render_chunks(game->player->cam);
@@ -68,9 +66,39 @@ void render(GLFWwindow* window, GameObjects* game)
         ui_render_block_wireframe(game->ui, game->player);
     ui_render_crosshair(game->ui);
     player_render_item(game->player);
+}
 
-    //glfwSwapBuffers(window);
-    //glfwPollEvents();
+void render_game_quad(GameObjects* game)
+{
+    glUseProgram(shader_screen);
+
+    shader_set_texture_2d(shader_screen, "texture_sampler_color",    FBO_game_texture_color, 0);
+    shader_set_texture_2d(shader_screen, "texture_sampler_color_ui", FBO_game_texture_color_ui, 1);
+    shader_set_texture_2d(shader_screen, "texture_sampler_depth",    FBO_game_texture_depth, 2);
+
+    shader_set_float1(shader_screen, "u_max_blur", DOF_MAX_BLUR);
+    shader_set_float1(shader_screen, "u_aperture", DOF_APERTURE);
+    shader_set_float1(shader_screen, "u_aspect_ratio", (float)window_w / window_h);
+    shader_set_float1(shader_screen, "u_gamma", GAMMA_CORRECTION);
+    shader_set_float1(shader_screen, "u_saturation", SATURATION);
+
+    glDepthFunc(GL_ALWAYS);
+
+    glBindVertexArray(VAO_screen);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    glDepthFunc(GL_LESS);
+}
+
+void render(GLFWwindow* window, GameObjects* game)
+{
+    framebuffer_bind(FBO_game);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    render_game(game);
+
+    framebuffer_bind(FBO_screen);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    render_game_quad(game);
 }
 
 int main()
@@ -92,6 +120,7 @@ int main()
     glCullFace(GL_BACK);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
 
     const GLubyte* version = glGetString(GL_VERSION);
     fprintf(stdout, "Using OpenGL %s\n", version);
@@ -103,9 +132,10 @@ int main()
     // Start at the beginning of day
     glfwSetTime(DAY_LENGTH / 2.0);
 
-    shader_load();
-    texture_load();
+    shaders_load();
+    textures_load();
     map_init();
+    framebuffer_create(WINDOW_WIDTH, WINDOW_HEIGHT);
 
     GameObjects* game = malloc(sizeof(GameObjects));
     game->player = player_create(
@@ -114,99 +144,16 @@ int main()
     );
     game->ui = ui_create((float)WINDOW_WIDTH / WINDOW_HEIGHT);
 
-    // GameObj will be available in glfw callback
-    // functions (with glfwGetWindowUserPointer)
+    // GameObjects will be available in glfw callback
+    // functions (using glfwGetWindowUserPointer)
     glfwSetWindowUserPointer(window, game);
-
-    GLuint FBO;
-    glGenFramebuffers(1, &FBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-
-    GLuint texture_color;
-    glGenTextures(1, &texture_color);
-    glBindTexture(GL_TEXTURE_2D, texture_color);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1280, 720, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture_color, 0);
-
-    GLuint texture_depth;
-    glGenTextures(1, &texture_depth);
-    glBindTexture(GL_TEXTURE_2D, texture_depth);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, 1280, 720, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glBindTexture(GL_TEXTURE_2D, 0);
-
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, texture_depth, 0);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-    {
-        printf("Framebuffer is incomplete!\n");
-        return 1;
-    }
-
-    float vertices[] = {  
-        -1.0f, -1.0f, 0.0f,  0.0f, 0.0f, 
-        1.0f, -1.0f, 0.0f,   1.0f, 0.0f,
-        -1.0f, 1.0f, 0.0f,   0.0f, 1.0f, 
- 
-        -1.0f, 1.0f, 0.0f,   0.0f, 1.0f, 
-        1.0f, -1.0f, 0.0f,   1.0f, 0.0f,
-        1.0f, 1.0f, 0.0f,    1.0f, 1.0f
-    };
-
-    GLuint VAO_screen = opengl_create_vao();
-    GLuint VBO_screen = opengl_create_vbo(vertices, sizeof(vertices));
-    opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
-    opengl_vbo_layout(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 3 * sizeof(float));
 
     while (!glfwWindowShouldClose(window))
     {
         print_fps();
 
         update(window, game);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         render(window, game);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glClearColor(0.0f, 1.0f, 1.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        glUseProgram(shader_screen);
-        glBindVertexArray(VAO_screen);
-        texture_bind(texture_color, 0);
-        shader_set_int1(shader_screen, "texture_sampler_color", 0);
-        texture_bind(texture_depth, 1);
-        shader_set_int1(shader_screen, "texture_sampler_depth", 1);
-
-        int key_j = glfwGetKey(window, GLFW_KEY_J) == GLFW_PRESS;
-        int key_u = glfwGetKey(window, GLFW_KEY_U) == GLFW_PRESS;
-        int key_k = glfwGetKey(window, GLFW_KEY_K) == GLFW_PRESS;
-        int key_i = glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS;
-
-        static float max_blur = 0.0101f;
-        static float aperture = 0.1005f;
-        float diff = 0.0003f;
-
-        if (key_j) max_blur -= diff;
-        if (key_u) max_blur += diff;
-
-        if (key_k) aperture -= diff;
-        if (key_i) aperture += diff;
-
-        //printf("%.6f %.6f\n", max_blur, aperture);
-
-        shader_set_float1(shader_screen, "maxBlur", max_blur);
-        shader_set_float1(shader_screen, "aperture", aperture);
-
-        glDepthFunc(GL_ALWAYS);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        glDepthFunc(GL_LESS);
 
         glfwSwapBuffers(window);
         glfwPollEvents();

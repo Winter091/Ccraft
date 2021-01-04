@@ -12,6 +12,7 @@ GLuint opengl_create_vao();
 GLuint opengl_create_vbo(const void* vertices, size_t buf_size);
 GLuint opengl_create_vbo_cube();
 GLuint opengl_create_vbo_quad();
+GLuint opengl_create_fbo();
 
 static inline int chunked(int coord)
 {

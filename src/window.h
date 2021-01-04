@@ -9,6 +9,9 @@
 #include "ui.h"
 #include "player.h"
 
+extern int window_w;
+extern int window_h;
+
 typedef struct
 {
     Player* player;

@@ -32,22 +32,33 @@ void exit_if_not_loaded_or_wrong_channels(const char* path, unsigned char* data,
     }
 }
 
-
-GLuint texture_create(const char* path)
+GLuint texture_init(GLuint target)
 {
     GLuint texture;
     glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    glBindTexture(target, texture);
+    return texture;
+}
 
-    stbi_set_flip_vertically_on_load(0);
+void texture_load_from_file(GLuint target, const char* path, int desired_channels)
+{
     int w, h, channels;
     unsigned char* data = stbi_load(path, &w, &h, &channels, 0);
 
-    exit_if_not_loaded_or_wrong_channels(path, data, channels, 4);
+    exit_if_not_loaded_or_wrong_channels(path, data, channels, desired_channels);
     
+    GLuint format = desired_channels == 4 ? GL_RGBA : GL_RGB;
     glTexImage2D(
-        GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data
+        target, 0, format, w, h, 0, format, GL_UNSIGNED_BYTE, data
     );
+
+    stbi_image_free(data);
+}
+
+GLuint texture_2d_create(const char* path)
+{
+    GLuint texture = texture_init(GL_TEXTURE_2D);
+    texture_load_from_file(GL_TEXTURE_2D, path, 4);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -55,16 +66,12 @@ GLuint texture_create(const char* path)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    stbi_image_free(data);
-
     return texture;
 }
 
-GLuint array_texture_create(const char* path)
+GLuint texture_array_create(const char* path)
 {
-    GLuint texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
+    GLuint texture = texture_init(GL_TEXTURE_2D_ARRAY);
 
     stbi_set_flip_vertically_on_load(1);
     int w, h, channels;
@@ -126,26 +133,15 @@ GLuint array_texture_create(const char* path)
     return texture;
 }
 
-GLuint skybox_texture_create(const char* paths[6])
+GLuint texture_skybox_create(const char* paths[6])
 {
-    GLuint texture;
-    glGenTextures(1, &texture);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
+    GLuint texture = texture_init(GL_TEXTURE_CUBE_MAP);
 
     stbi_set_flip_vertically_on_load(0);
-    int w, h, channels;
 
     for (int i = 0; i < 6; i++)
     {
-        unsigned char* data = stbi_load(paths[i], &w, &h, &channels, 0);
-        exit_if_not_loaded_or_wrong_channels(paths[i], data, channels, 3);
-
-        glTexImage2D(
-            GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 
-            0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, data
-        );
-
-        stbi_image_free(data);
+        texture_load_from_file(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, paths[i], 3);
     }
 
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -158,13 +154,13 @@ GLuint skybox_texture_create(const char* paths[6])
     return texture;
 }
 
-void texture_load()
+void textures_load()
 {
-    texture_blocks = array_texture_create(
+    texture_blocks = texture_array_create(
         "textures/blocks.png"
     );
 
-    texture_skybox_day = skybox_texture_create(
+    texture_skybox_day = texture_skybox_create(
         (const char*[6]){
             "textures/skybox/day/right.png",
             "textures/skybox/day/left.png",
@@ -175,7 +171,7 @@ void texture_load()
         }
     );
 
-    texture_skybox_evening = skybox_texture_create(
+    texture_skybox_evening = texture_skybox_create(
         (const char*[6]){
             "textures/skybox/evening/right.png",
             "textures/skybox/evening/left.png",
@@ -186,7 +182,7 @@ void texture_load()
         }
     );
 
-    texture_skybox_night = skybox_texture_create(
+    texture_skybox_night = texture_skybox_create(
         (const char*[6]){
             "textures/skybox/night/right.png",
             "textures/skybox/night/left.png",
@@ -197,28 +193,54 @@ void texture_load()
         }
     );
 
-    texture_sun = texture_create(
+    texture_sun = texture_2d_create(
         "textures/sun.png"
     );
 
-    texture_moon = texture_create(
+    texture_moon = texture_2d_create(
         "textures/moon.png"
     );
 }
 
-void texture_bind(GLuint texture, int slot)
+GLuint framebuffer_color_texture_create(int width, int height)
+{
+    GLuint texture = texture_init(GL_TEXTURE_2D);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    return texture;
+}
+
+GLuint framebuffer_depth_texture_create(int width, int height)
+{
+    GLuint texture = texture_init(GL_TEXTURE_2D);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    return texture;
+}
+
+void texture_2d_bind(GLuint texture, int slot)
 {
     glActiveTexture(GL_TEXTURE0 + slot);
     glBindTexture(GL_TEXTURE_2D, texture);
 }
 
-void array_texture_bind(GLuint texture, int slot)
+void texture_array_bind(GLuint texture, int slot)
 {
     glActiveTexture(GL_TEXTURE0 + slot);
     glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
 }
 
-void skybox_texture_bind(GLuint texture, int slot)
+void texture_skybox_bind(GLuint texture, int slot)
 {
     glActiveTexture(GL_TEXTURE0 + slot);
     glBindTexture(GL_TEXTURE_CUBE_MAP, texture);

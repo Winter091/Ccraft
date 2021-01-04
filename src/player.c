@@ -239,28 +239,24 @@ void player_render_item(Player* p)
     // The camera is at (0, 0, -1) and looks at (0, 0, 0)
     mat4 view, projection;
     glm_look((vec3){0.0f, 0.0f, 1.0f}, (vec3){0.0f, 0.0f, -1.0f}, (vec3){0.0f, 1.0f, 0.0f}, view);
-    glm_perspective(glm_rad(50.0f), p->cam->aspect_ratio, 0.001f, 10.0f, projection);
+    glm_perspective(glm_rad(50.0f), p->cam->aspect_ratio, 0.01f, 2.0f, projection);
 
     mat4 mvp;
     glm_mat4_mulN((mat4* []){&projection, &view, &model}, 3, mvp);
 
     glUseProgram(shader_block);
     shader_set_mat4(shader_block, "mvp_matrix", mvp);
-    shader_set_int1(shader_block, "texture_sampler", 0);
-    array_texture_bind(texture_blocks, 0);
+    shader_set_texture_2d(shader_block, "texture_sampler", texture_blocks, 0);
 
     // remove fog effect
     shader_set_float3(shader_block, "cam_pos", (vec3){0.0f, 0.0f, 0.0f});
     shader_set_float1(shader_block, "fog_dist", 100000.0f);
 
-    glBindVertexArray(p->VAO_item);
-
-    //glDisable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_ALWAYS);
 
-    glEnable(GL_DEPTH_TEST);
+    glBindVertexArray(p->VAO_item);
     glDrawArrays(GL_TRIANGLES, 0, 36);
 
     glDepthFunc(GL_LESS);
-    glEnable(GL_CULL_FACE);
 }
