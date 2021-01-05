@@ -252,11 +252,10 @@ void player_render_item(Player* p)
     shader_set_float3(shader_block, "cam_pos", (vec3){0.0f, 0.0f, 0.0f});
     shader_set_float1(shader_block, "fog_dist", 100000.0f);
 
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_ALWAYS);
+    shader_set_int1(shader_block, "write_to_ui_texture", 1);
 
+    glDisable(GL_DEPTH_TEST);
     glBindVertexArray(p->VAO_item);
     glDrawArrays(GL_TRIANGLES, 0, 36);
 
-    glDepthFunc(GL_LESS);
 }

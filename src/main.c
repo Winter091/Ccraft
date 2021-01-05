@@ -52,6 +52,8 @@ static double get_dt()
 
 static float get_current_dof_focus(float dt)
 {
+    // Very slow function, on i5-3470 and r9 280 it takes about 2ms
+    
     static float curr_depth = 1.0f;
 
     // Read depth in the center of the screen 
@@ -89,12 +91,18 @@ void render_game_quad(GameObjects* game, float curr_depth)
     shader_set_texture_2d(shader_screen, "texture_sampler_color_ui", FBO_game_texture_color_ui, 1);
     shader_set_texture_2d(shader_screen, "texture_sampler_depth",    FBO_game_texture_depth, 2);
 
+#if DOF_ENABLED
+    shader_set_int1(shader_screen, "u_dof_enabled", 1);
     shader_set_float1(shader_screen, "u_max_blur", DOF_MAX_BLUR);
     shader_set_float1(shader_screen, "u_aperture", DOF_APERTURE);
     shader_set_float1(shader_screen, "u_aspect_ratio", (float)window_w / window_h);
+    shader_set_float1(shader_screen, "u_depth", curr_depth);
+#else
+    shader_set_int1(shader_screen, "u_dof_enabled", 0);
+#endif
+
     shader_set_float1(shader_screen, "u_gamma", GAMMA_CORRECTION);
     shader_set_float1(shader_screen, "u_saturation", SATURATION);
-    shader_set_float1(shader_screen, "u_depth", curr_depth);
 
     glDepthFunc(GL_ALWAYS);
 
@@ -110,7 +118,11 @@ void render(GLFWwindow* window, GameObjects* game, float dt)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     render_game(game);
 
+#if DOF_ENABLED
     float curr_depth = get_current_dof_focus(dt);
+#else
+    float curr_depth = 0.0f;
+#endif
 
     framebuffer_bind(FBO_screen);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -136,7 +148,7 @@ int main()
     glCullFace(GL_BACK);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glClearColor(1.0f, 0.0f, 1.0f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
     const GLubyte* version = glGetString(GL_VERSION);
     fprintf(stdout, "Using OpenGL %s\n", version);

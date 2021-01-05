@@ -10,8 +10,9 @@
 #define ANISOTROPIC_FILTERING_LEVEL 16
 
 // Depth of field effect
-#define DOF_MAX_BLUR 0.0101f
-#define DOF_APERTURE 0.1005f
+#define DOF_ENABLED 1
+#define DOF_MAX_BLUR 0.023f
+#define DOF_APERTURE 0.3505f
 #define DOF_SPEED 5.0f
 
 // gamma should be 2.2, but it looks very washed out
@@ -31,7 +32,7 @@
 #define DISABLE_TIME_FLOW 0
 
 // full day length in seconds
-#define DAY_LENGTH 20
+#define DAY_LENGTH 30
 
 // full day range is [0.0 - 1.0)
 #define DAY_TO_EVN_START 0.3f

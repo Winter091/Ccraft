@@ -7,8 +7,6 @@
 #include "texture.h"
 #include "perlin_noise.h"
 #include "utils.h"
-
-#define _USE_MATH_DEFINES
 #include "math.h"
 
 LINKEDLIST_IMPLEMENTATION(Chunk*, chunks);
@@ -223,8 +221,8 @@ void map_render_sun_moon(Camera* cam)
     
     // sun and moon are always on the opposite
     // parts of the sky
-    float angle_sun = time * M_PI * 2;
-    float angle_moon = angle_sun + M_PI;
+    float angle_sun = time * GLM_PI * 2;
+    float angle_moon = angle_sun + GLM_PI;
 
     // distance to the quads sun and moon are rendered on
     float dist = 5.0f;
@@ -266,7 +264,7 @@ void map_render_sky(Camera* cam)
     glm_translate(model, cam->pos);
 
     // rotate cubemap slightly, why not?
-    glm_rotate(model, M_PI / 4.0f, (vec3){0.0f, 1.0f, 0.0f});
+    glm_rotate(model, GLM_PI / 4.0f, (vec3){0.0f, 1.0f, 0.0f});
 
     mat4 mvp_matrix;
     glm_mat4_mul(cam->vp_matrix, model, mvp_matrix);
@@ -303,8 +301,11 @@ void map_render_chunks(Camera* cam)
     shader_set_float3(shader_block, "cam_pos", cam->pos);
     shader_set_float1(shader_block, "fog_dist", CHUNK_RENDER_RADIUS * CHUNK_SIZE * 0.9f);
     shader_set_float3(shader_block, "fog_color", (vec3){0.49f, 0.6f, 0.63f});
+
+    shader_set_int1(shader_block, "write_to_ui_texture", 0);
     
     glEnable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
     LIST_FOREACH_CHUNK_BEGIN(map->chunks_to_render, c)
     {
         glBindVertexArray(c->VAO);

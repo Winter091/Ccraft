@@ -135,7 +135,7 @@ void ui_render_block_wireframe(UI* ui, Player* p)
 
     glUseProgram(shader_line);
     shader_set_mat4(shader_line, "mvp_matrix", mvp);
-    shader_set_int1(shader_line, "write_to_ui_texture", 0);
+    shader_set_int1(shader_line, "write_to_ui_texture", 1);
     
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);

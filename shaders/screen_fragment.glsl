@@ -8,6 +8,8 @@ uniform sampler2D texture_sampler_color;
 uniform sampler2D texture_sampler_color_ui;
 uniform sampler2D texture_sampler_depth;
 
+uniform int u_dof_enabled;
+
 uniform float u_max_blur;
 uniform float u_aperture;
 uniform float u_aspect_ratio;
@@ -93,10 +95,11 @@ void main()
 {   
     // Handle UI elements
     vec4 ui_color = texture(texture_sampler_color_ui, v_texcoord);
-    if (ui_color != vec4(1.0, 0.0, 1.0, 1.0))
+    if (ui_color.a > 0.5)
     {
-        vec4 color = texture(texture_sampler_color, v_texcoord);
-        out_color = vec4(1 - color.xyz, 1.0);
+        out_color = ui_color;
+        out_color.rgb = gamma_correction(out_color.rgb);
+        out_color.rgb = saturation(out_color.rgb);
         return;
     }
     
@@ -105,7 +108,9 @@ void main()
     out_color.a = 1.0;
 
     // Postprocessing
-    out_color.rgb = depth_of_field(out_color.rgb);
+    if (u_dof_enabled == 1)
+        out_color.rgb = depth_of_field(out_color.rgb);
+    
     out_color.rgb = gamma_correction(out_color.rgb);
     out_color.rgb = saturation(out_color.rgb);
 } 
