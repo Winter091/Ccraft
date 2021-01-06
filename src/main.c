@@ -93,6 +93,7 @@ void render_game_quad(GameObjects* game, float curr_depth)
 
 #if DOF_ENABLED
     shader_set_int1(shader_screen, "u_dof_enabled", 1);
+    shader_set_int1(shader_screen, "u_dof_smooth", DOF_SMOOTH);
     shader_set_float1(shader_screen, "u_max_blur", DOF_MAX_BLUR);
     shader_set_float1(shader_screen, "u_aperture", DOF_APERTURE);
     shader_set_float1(shader_screen, "u_aspect_ratio", (float)window_w / window_h);
@@ -118,7 +119,7 @@ void render(GLFWwindow* window, GameObjects* game, float dt)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     render_game(game);
 
-#if DOF_ENABLED
+#if DOF_ENABLED && DOF_SMOOTH
     float curr_depth = get_current_dof_focus(dt);
 #else
     float curr_depth = 0.0f;

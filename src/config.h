@@ -11,6 +11,7 @@
 
 // Depth of field effect
 #define DOF_ENABLED 1
+#define DOF_SMOOTH 1  // Smooth DoF is very expensive but looks good
 #define DOF_MAX_BLUR 0.023f
 #define DOF_APERTURE 0.3505f
 #define DOF_SPEED 5.0f
