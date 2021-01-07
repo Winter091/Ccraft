@@ -9,6 +9,11 @@
 // Anisotropic filtering. Accepted values: 1 2 4 8 16
 #define ANISOTROPIC_FILTERING_LEVEL 16
 
+// Motion blur effect
+#define MOTION_BLUR_ENABLED 1
+#define MOTION_BLUR_STRENGTH 0.001f
+#define MOTION_BLUR_SAMPLES 7
+
 // Depth of field effect
 #define DOF_ENABLED 1
 #define DOF_SMOOTH 1  // Smooth DoF is very expensive but looks good

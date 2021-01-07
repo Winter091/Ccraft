@@ -172,7 +172,7 @@ void map_init()
 static double map_get_time()
 {
 #if DISABLE_TIME_FLOW
-    return 0.4;
+    return 0.0;
 #else
     return 0.5 + remainder(glfwGetTime(), DAY_LENGTH) / (double)DAY_LENGTH;
 #endif
@@ -272,9 +272,9 @@ void map_render_sky(Camera* cam)
     glUseProgram(shader_skybox);
     shader_set_mat4(shader_skybox, "mvp_matrix", mvp_matrix);
 
-    shader_set_texture_skybox(shader_skybox, "texture_day_sampler", texture_skybox_day, 0);
-    shader_set_texture_skybox(shader_skybox, "texture_evening_sampler", texture_skybox_evening, 1);
-    shader_set_texture_skybox(shader_skybox, "texture_night_sampler", texture_skybox_night, 2);
+    shader_set_texture_skybox(shader_skybox, "texture_day", texture_skybox_day, 0);
+    shader_set_texture_skybox(shader_skybox, "texture_evening", texture_skybox_evening, 1);
+    shader_set_texture_skybox(shader_skybox, "texture_night", texture_skybox_night, 2);
     
     shader_set_float1(shader_skybox, "time", map_get_time());
     shader_set_float1(shader_skybox, "day_to_evn_start", DAY_TO_EVN_START);

@@ -50,7 +50,7 @@ static double get_dt()
     return dt;
 }
 
-static float get_current_dof_focus(float dt)
+static float get_current_dof_depth(float dt)
 {
     // Very slow function, on i5-3470 and r9 280 it takes about 2ms
     
@@ -73,6 +73,10 @@ void update(GLFWwindow* window, GameObjects* game, float dt)
 
 void render_game(GameObjects* game)
 {
+    // Render everything to textures
+    framebuffer_bind(FBO_game);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
     map_render_sky(game->player->cam);
     map_render_sun_moon(game->player->cam);
     map_render_chunks(game->player->cam);
@@ -83,51 +87,86 @@ void render_game(GameObjects* game)
     player_render_item(game->player);
 }
 
-void render_game_quad(GameObjects* game, float curr_depth)
+// First pass is applying depth of field effect
+void render_first_pass(GameObjects* game, float dt)
 {
-    glUseProgram(shader_screen);
+    glUseProgram(shader_deferred1);
 
-    shader_set_texture_2d(shader_screen, "texture_sampler_color",    FBO_game_texture_color, 0);
-    shader_set_texture_2d(shader_screen, "texture_sampler_color_ui", FBO_game_texture_color_ui, 1);
-    shader_set_texture_2d(shader_screen, "texture_sampler_depth",    FBO_game_texture_depth, 2);
+    shader_set_texture_2d(shader_deferred1, "texture_color", FBO_game_texture_color, 0);
+    shader_set_texture_2d(shader_deferred1, "texture_depth", FBO_game_texture_depth, 1);
 
 #if DOF_ENABLED
-    shader_set_int1(shader_screen, "u_dof_enabled", 1);
-    shader_set_int1(shader_screen, "u_dof_smooth", DOF_SMOOTH);
-    shader_set_float1(shader_screen, "u_max_blur", DOF_MAX_BLUR);
-    shader_set_float1(shader_screen, "u_aperture", DOF_APERTURE);
-    shader_set_float1(shader_screen, "u_aspect_ratio", (float)window_w / window_h);
-    shader_set_float1(shader_screen, "u_depth", curr_depth);
+    float curr_depth = get_current_dof_depth(dt);
+
+    shader_set_int1(shader_deferred1, "u_dof_enabled", 1);
+    shader_set_int1(shader_deferred1, "u_dof_smooth", DOF_SMOOTH);
+    shader_set_float1(shader_deferred1, "u_max_blur", DOF_MAX_BLUR);
+    shader_set_float1(shader_deferred1, "u_aperture", DOF_APERTURE);
+    shader_set_float1(shader_deferred1, "u_aspect_ratio", (float)window_w / window_h);
+    shader_set_float1(shader_deferred1, "u_depth", curr_depth);
 #else
-    shader_set_int1(shader_screen, "u_dof_enabled", 0);
+    shader_set_int1(shader_deferred1, "u_dof_enabled", 0);
 #endif
 
-    shader_set_float1(shader_screen, "u_gamma", GAMMA_CORRECTION);
-    shader_set_float1(shader_screen, "u_saturation", SATURATION);
-
     glDepthFunc(GL_ALWAYS);
-
     glBindVertexArray(VAO_screen);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+}
 
-    glDepthFunc(GL_LESS);
+// Second pass is applying motion blur and color correction
+void render_second_pass(GameObjects* game, float dt)
+{
+    glUseProgram(shader_deferred2);
+
+    // Bind second color texture in which DoF is applied
+    shader_set_texture_2d(shader_deferred2, "texture_color", FBO_game_texture_color2, 0);
+    shader_set_texture_2d(shader_deferred2, "texture_ui",    FBO_game_texture_color_ui, 1);
+    shader_set_texture_2d(shader_deferred2, "texture_depth", FBO_game_texture_depth, 2);
+
+#if MOTION_BLUR_ENABLED
+    shader_set_int1(shader_deferred2, "u_motion_blur_enabled", 1);
+    
+    mat4 matrix;
+    glm_mat4_inv(game->player->cam->proj_matrix, matrix);
+    shader_set_mat4(shader_deferred2, "u_projection_inv_matrix", matrix);
+
+    glm_mat4_inv(game->player->cam->view_matrix, matrix);
+    shader_set_mat4(shader_deferred2, "u_view_inv_matrix", matrix);
+
+    glm_mat4_copy(game->player->cam->prev_view_matrix, matrix);
+    shader_set_mat4(shader_deferred2, "u_prev_view_matrix", matrix);
+
+    glm_mat4_copy(game->player->cam->proj_matrix, matrix);
+    shader_set_mat4(shader_deferred2, "u_projection_matrix", matrix);
+
+    shader_set_float3(shader_deferred2, "u_cam_pos", game->player->cam->pos);
+    shader_set_float3(shader_deferred2, "u_prev_cam_pos", game->player->cam->prev_pos);
+
+    shader_set_float1(shader_deferred2, "u_strength", MOTION_BLUR_STRENGTH);
+    shader_set_int1(shader_deferred2, "u_samples", MOTION_BLUR_SAMPLES);
+    shader_set_float1(shader_deferred2, "u_dt", dt);
+#else
+    shader_set_int1(shader_deferred2, "motion_blur_enabled", 0);
+#endif
+
+    shader_set_float1(shader_deferred2, "u_gamma", GAMMA_CORRECTION);
+    shader_set_float1(shader_deferred2, "u_saturation", SATURATION);
+
+    // It's final pass, render to default frame buffer
+    framebuffer_bind(FBO_screen);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glDepthFunc(GL_ALWAYS);
+    glBindVertexArray(VAO_screen);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
 void render(GLFWwindow* window, GameObjects* game, float dt)
 {
-    framebuffer_bind(FBO_game);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     render_game(game);
 
-#if DOF_ENABLED && DOF_SMOOTH
-    float curr_depth = get_current_dof_focus(dt);
-#else
-    float curr_depth = 0.0f;
-#endif
-
-    framebuffer_bind(FBO_screen);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    render_game_quad(game, curr_depth);
+    render_first_pass(game, dt);
+    render_second_pass(game, dt);
 }
 
 int main()

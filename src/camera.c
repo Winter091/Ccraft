@@ -9,6 +9,7 @@ Camera* camera_create(vec3 pos, vec3 dir)
     Camera* cam = malloc(sizeof(Camera));
 
     glm_vec3_copy(pos, cam->pos);
+    glm_vec3_copy(pos, cam->prev_pos);
     glm_vec3_copy(dir, cam->front);
 
     cam->up[0] = 0.0f;
@@ -39,6 +40,7 @@ Camera* camera_create(vec3 pos, vec3 dir)
         cam->clip_near, cam->clip_far, cam->proj_matrix
     );
     glm_mat4_mul(cam->proj_matrix, cam->view_matrix, cam->vp_matrix);
+    glm_mat4_copy(cam->view_matrix, cam->prev_view_matrix);
 
     return cam;
 }
@@ -147,11 +149,13 @@ void camera_update(Camera* cam, GLFWwindow* window, double dt)
         cam->active = 0;
     else
     {
+        glm_vec3_copy(cam->pos, cam->prev_pos);
         update_mouse(cam, window);
         update_keyboard(cam, window, dt);
     }
 
     // update vp matrices
+    glm_mat4_copy(cam->view_matrix, cam->prev_view_matrix);
     glm_look(cam->pos, cam->front, cam->up, cam->view_matrix);
     glm_mat4_mul(cam->proj_matrix, cam->view_matrix, cam->vp_matrix);
 

@@ -8,7 +8,8 @@ GLuint shader_block = 0;
 GLuint shader_line = 0;
 GLuint shader_skybox = 0;
 GLuint shader_sun = 0;
-GLuint shader_screen = 0;
+GLuint shader_deferred1 = 0;
+GLuint shader_deferred2 = 0;
 
 static char* get_file_data(const char* path)
 {
@@ -55,7 +56,7 @@ static GLuint compile_shader(const char* path, GLenum shader_type)
         glGetShaderInfoLog(shader_id, 512, NULL, info);
         fprintf(stderr, "Failed to compile shader\n%s\n", path);
         fprintf(stderr, "%s\n", info);
-        return 0;
+        exit(-1);
     }
 
     return shader_id;
@@ -114,9 +115,14 @@ void shaders_load()
         "shaders/sun_fragment.glsl"
     );
 
-    shader_screen = create_shader_program(
-        "shaders/screen_vertex.glsl",
-        "shaders/screen_fragment.glsl"
+    shader_deferred1 = create_shader_program(
+        "shaders/deferred1_vertex.glsl",
+        "shaders/deferred1_fragment.glsl"
+    );
+
+    shader_deferred2 = create_shader_program(
+        "shaders/deferred2_vertex.glsl",
+        "shaders/deferred2_fragment.glsl"
     );
 }
 

@@ -8,6 +8,7 @@
 typedef struct
 {
     vec3 pos;
+    vec3 prev_pos;
     vec3 front;
     vec3 up;
 
@@ -30,6 +31,7 @@ typedef struct
     mat4 view_matrix;
     mat4 proj_matrix;
     mat4 vp_matrix;
+    mat4 prev_view_matrix;
 }
 Camera;
 

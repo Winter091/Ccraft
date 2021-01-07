@@ -7,7 +7,7 @@ in float v_fog_amount;
 in float v_blend_amount;
 
 layout (location = 0) out vec4 out_color;
-layout (location = 1) out vec4 out_color_ui;
+layout (location = 2) out vec4 out_color_ui;
 
 uniform sampler2DArray texture_sampler;
 uniform float block_light;

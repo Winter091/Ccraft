@@ -8,7 +8,8 @@ extern GLuint shader_block;
 extern GLuint shader_line;
 extern GLuint shader_skybox;
 extern GLuint shader_sun;
-extern GLuint shader_screen;
+extern GLuint shader_deferred1;
+extern GLuint shader_deferred2;
 
 void shaders_load();
 

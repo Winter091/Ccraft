@@ -1,7 +1,7 @@
 #version 330 core
 
 layout(location = 0) out vec4 out_color;
-layout(location = 1) out vec4 out_color_ui;
+layout(location = 2) out vec4 out_color_ui;
 
 uniform int write_to_ui_texture;
 
