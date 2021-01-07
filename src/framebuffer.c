@@ -17,33 +17,25 @@ void framebuffer_create(int window_w, int window_h)
 {
     if (!VAO_screen)
     {
-        float vertices[] = {  
-            -1.0f, -1.0f, 0.0f,   0.0f, 0.0f, 
-             1.0f, -1.0f, 0.0f,   1.0f, 0.0f,
-            -1.0f,  1.0f, 0.0f,   0.0f, 1.0f, 
-    
-            -1.0f,  1.0f, 0.0f,   0.0f, 1.0f, 
-             1.0f, -1.0f, 0.0f,   1.0f, 0.0f,
-             1.0f,  1.0f, 0.0f,   1.0f, 1.0f
-        };
+        static float screen_vertices[] = {
+                //     pos             tex_coord
+                -1.0f, -1.0f, 0.0f,   0.0f, 0.0f, 
+                1.0f, -1.0f, 0.0f,   1.0f, 0.0f,
+                -1.0f,  1.0f, 0.0f,   0.0f, 1.0f, 
+
+                -1.0f,  1.0f, 0.0f,   0.0f, 1.0f, 
+                1.0f, -1.0f, 0.0f,   1.0f, 0.0f,
+                1.0f,  1.0f, 0.0f,   1.0f, 1.0f
+            };
         
         VAO_screen = opengl_create_vao();
-        opengl_create_vbo(vertices, sizeof(vertices));
+        opengl_create_vbo(screen_vertices, sizeof(screen_vertices));
         opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
-        opengl_vbo_layout(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 3 * sizeof(float));
+        opengl_vbo_layout(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 3 * sizeof(float));    
     }
-    
-    if (FBO_game)
-    {
-        glDeleteTextures(1, &FBO_game_texture_color);
-        glDeleteTextures(1, &FBO_game_texture_depth);
-        glDeleteFramebuffers(1, &FBO_game);
-    }
-    
+
     FBO_game = opengl_create_fbo();
 
-    // two color textures, one for main game image and one for
-    // ui elements
     FBO_game_texture_color = framebuffer_color_texture_create(window_w, window_h);
     FBO_game_texture_color2 = framebuffer_color_texture_create(window_w, window_h);
     FBO_game_texture_color_ui = framebuffer_color_texture_create(window_w, window_h);
@@ -54,7 +46,7 @@ void framebuffer_create(int window_w, int window_h)
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, FBO_game_texture_color_ui, 0);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, FBO_game_texture_depth, 0);
     
-    // Enable writing to both color textures
+    // Enable writing to every color texture
     GLenum bufs[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
     glDrawBuffers(3, bufs);
 
@@ -62,6 +54,15 @@ void framebuffer_create(int window_w, int window_h)
     {
         fprintf(stderr, "Game framebuffer is incomplete!\n");
     }
+}
+
+void framebuffer_rebuild(int window_w, int window_h)
+{
+    glDeleteTextures(1, &FBO_game_texture_color);
+    glDeleteTextures(1, &FBO_game_texture_depth);
+    glDeleteFramebuffers(1, &FBO_game);    
+    
+    framebuffer_create(window_w, window_h);
 }
 
 void framebuffer_bind(GLuint framebuffer)

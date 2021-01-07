@@ -146,7 +146,7 @@ void render_second_pass(GameObjects* game, float dt)
     shader_set_int1(shader_deferred2, "u_samples", MOTION_BLUR_SAMPLES);
     shader_set_float1(shader_deferred2, "u_dt", dt);
 #else
-    shader_set_int1(shader_deferred2, "motion_blur_enabled", 0);
+    shader_set_int1(shader_deferred2, "u_motion_blur_enabled", 0);
 #endif
 
     shader_set_float1(shader_deferred2, "u_gamma", GAMMA_CORRECTION);

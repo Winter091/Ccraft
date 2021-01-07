@@ -104,7 +104,8 @@ void db_update_chunk(Chunk* c)
         int z = sqlite3_column_int(stmt, 2);
         int block = sqlite3_column_int(stmt, 3);
 
-        c->blocks[XYZ(x, y, z)] = block;
+        if (x < CHUNK_WIDTH && y < CHUNK_HEIGHT && z < CHUNK_WIDTH)
+            c->blocks[XYZ(x, y, z)] = block;
     }
 }
 

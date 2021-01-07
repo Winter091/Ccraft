@@ -5,6 +5,7 @@
 #include "stdlib.h"
 #include "block.h"
 #include "utils.h"
+#include "db.h"
 
 Chunk* chunk_init(int chunk_x, int chunk_z)
 {
