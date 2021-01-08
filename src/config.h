@@ -34,11 +34,12 @@
 
 // ============= Gameplay settings ==============
 #define CURRENT_MAP "maps/test_map.db"
+#define USE_DATABASE 1
 
 #define DISABLE_TIME_FLOW 0
 
 // full day length in seconds
-#define DAY_LENGTH 60
+#define DAY_LENGTH 1200
 
 // full day range is [0.0 - 1.0)
 #define DAY_TO_EVN_START 0.3f
@@ -50,12 +51,11 @@
 #define EVENING_LIGHT 0.5f
 #define NIGHT_LIGHT 0.15f
 
-#define USE_DATABASE 1
 #define FOV 65
 #define FOV_ZOOM 20
 
 // ============ Core game settings ==============
-#define CHUNK_WIDTH 16
+#define CHUNK_WIDTH 32
 #define CHUNK_HEIGHT 256
 #define BLOCK_SIZE 0.5f
 #define CHUNK_SIZE (float)(CHUNK_WIDTH * BLOCK_SIZE)

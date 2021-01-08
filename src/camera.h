@@ -35,7 +35,7 @@ typedef struct
 }
 Camera;
 
-Camera* camera_create(vec3 pos, vec3 dir);
+Camera* camera_create();
 void camera_update(Camera* cam, GLFWwindow* window, double dt);
 int camera_looks_at_block(Camera* cam, int x, int y, int z);
 

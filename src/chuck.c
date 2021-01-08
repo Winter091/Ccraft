@@ -81,7 +81,7 @@ void chunk_generate(Chunk* c)
 
 #if USE_DATABASE
     // load block differences from database
-    db_update_chunk(c);
+    db_get_blocks_for_chunk(c);
 #endif
 }
 

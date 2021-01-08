@@ -199,7 +199,7 @@ int main()
 #endif
 
     // Start at the beginning of day
-    glfwSetTime(DAY_LENGTH / 2.0);
+    glfwSetTime(DAY_LENGTH);
 
     shaders_load();
     textures_load();
@@ -207,10 +207,7 @@ int main()
     framebuffer_create(WINDOW_WIDTH, WINDOW_HEIGHT);
 
     GameObjects* game = malloc(sizeof(GameObjects));
-    game->player = player_create(
-        (vec3){ 0.0f, 96.0f * BLOCK_SIZE, 0.0f },
-        (vec3){ 0.0f, 0.0f, 1.0f }
-    );
+    game->player = player_create();
     game->ui = ui_create((float)WINDOW_WIDTH / WINDOW_HEIGHT);
 
     // GameObjects will be available in glfw callback
@@ -230,12 +227,14 @@ int main()
         glfwPollEvents();
     }
 
-    glfwDestroyWindow(window);
-    glfwTerminate();
-
 #if USE_DATABASE
+    map_save();
+    player_save(game->player);
     db_close();
 #endif
 
+    glfwDestroyWindow(window);
+    glfwTerminate();
+    
     return 0;
 }

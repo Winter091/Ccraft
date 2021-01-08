@@ -4,13 +4,18 @@
 #include "config.h"
 #include "utils.h"
 
-Camera* camera_create(vec3 pos, vec3 dir)
+Camera* camera_create()
 {
     Camera* cam = malloc(sizeof(Camera));
 
-    glm_vec3_copy(pos, cam->pos);
-    glm_vec3_copy(pos, cam->prev_pos);
-    glm_vec3_copy(dir, cam->front);
+    cam->pos[0] = 0.0f;
+    cam->pos[1] = (CHUNK_HEIGHT / 3) * BLOCK_SIZE;
+    cam->pos[2] = 0.0f;
+    glm_vec3_copy(cam->pos, cam->prev_pos);
+    
+    cam->front[0] = 0.0f;
+    cam->front[1] = 0.0f;
+    cam->front[2] = -1.0f;
 
     cam->up[0] = 0.0f;
     cam->up[1] = 1.0f;

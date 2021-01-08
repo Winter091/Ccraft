@@ -8,6 +8,7 @@
 #include "perlin_noise.h"
 #include "utils.h"
 #include "math.h"
+#include "db.h"
 
 LINKEDLIST_IMPLEMENTATION(Chunk*, chunks);
 HASHMAP_IMPLEMENTATION(Chunk*, chunks, chunk_hash_func);
@@ -164,12 +165,13 @@ void map_init()
     opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
     opengl_vbo_layout(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 3 * sizeof(float));
 
-    // set world seed
-    *perlin2d_get_world_seed() = 123;
+#if USE_DATABASE
+    db_get_map_info();
+#endif
 }
 
 // [0.0 - 1.0)
-static double map_get_time()
+double map_get_time()
 {
 #if DISABLE_TIME_FLOW
     return 0.0;
@@ -185,19 +187,15 @@ static float map_get_blocks_light()
     if (time < DAY_TO_EVN_START)
         return DAY_LIGHT;
     
-    // 0.85 day - evening 0.7
     else if (time < EVN_TO_NIGHT_START)
         return EVENING_LIGHT + (DAY_LIGHT - EVENING_LIGHT) * (1 - glm_smoothstep(DAY_TO_EVN_START, EVN_TO_NIGHT_START, time));
     
-    // 0.7 evening - night 0.3
     else if (time < NIGHT_START)
         return NIGHT_LIGHT + (EVENING_LIGHT - NIGHT_LIGHT) * (1 - glm_smoothstep(EVN_TO_NIGHT_START, NIGHT_START, time));
 
-    // night 0.3
     else if (time < NIGHT_TO_DAY_START)
         return NIGHT_LIGHT;
     
-    // 0.3 night - day 0.85
     else
         return NIGHT_LIGHT + (DAY_LIGHT - NIGHT_LIGHT) * glm_smoothstep(NIGHT_TO_DAY_START, 1.0f, time);
 }
@@ -398,4 +396,19 @@ void map_update(Camera* cam)
     map_load_chunks(cam);
 
     //printf("%.6f\n", glfwGetTime() - curr_time);
+}
+
+void map_set_seed(int new_seed)
+{
+    *perlin2d_get_world_seed() = new_seed;
+}
+
+void map_set_time(double new_time)
+{
+    glfwSetTime(DAY_LENGTH / 2 + new_time * DAY_LENGTH);
+}
+
+void map_save()
+{
+    db_insert_map_info();
 }

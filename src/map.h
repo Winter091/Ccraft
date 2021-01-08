@@ -46,11 +46,17 @@ typedef struct
 Map;
 
 void map_init();
+
 void map_update(Camera* cam);
 void map_render_sun_moon(Camera* cam);
 void map_render_sky(Camera* cam);
 void map_render_chunks(Camera* cam);
 unsigned char map_get_block(int x, int y, int z);
 void map_set_block(int x, int y, int z, unsigned char block);
+void map_set_seed(int new_seed);
+void map_set_time(double new_time);
+double map_get_time();
+
+void map_save();
 
 #endif

@@ -6,6 +6,7 @@
 #include "limits.h"
 #include "shader.h"
 #include "texture.h"
+#include "db.h"
 
 static void regenerate_item_buffer(Player* p)
 {
@@ -39,12 +40,17 @@ static void regenerate_item_buffer(Player* p)
     free(vertices);
 }
 
-Player* player_create(vec3 pos, vec3 dir)
+Player* player_create()
 {
     Player* p = malloc(sizeof(Player));
 
-    p->cam = camera_create(pos, dir);
+    p->cam = camera_create();
     p->build_block = BLOCK_STONE;
+
+#if USE_DATABASE
+    // overwrite some parameters
+    db_get_player_info(p);
+#endif
 
     p->pointing_at_block = 0;
     p->block_pointed_at[0] = 0;
@@ -258,4 +264,9 @@ void player_render_item(Player* p)
     glBindVertexArray(p->VAO_item);
     glDrawArrays(GL_TRIANGLES, 0, 36);
 
+}
+
+void player_save(Player* p)
+{
+    db_insert_player_info(p);
 }
