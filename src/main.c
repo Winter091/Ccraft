@@ -83,8 +83,8 @@ void render_game(GameObjects* game)
     map_render_chunks(game->player->cam);
     
     if (game->player->pointing_at_block)
-        ui_render_block_wireframe(game->ui, game->player);
-    ui_render_crosshair(game->ui);
+        ui_render_block_wireframe(game->player);
+    ui_render_crosshair();
     player_render_item(game->player);
 }
 
@@ -204,11 +204,11 @@ int main()
     shaders_load();
     textures_load();
     map_init();
+    ui_init((float)WINDOW_WIDTH / WINDOW_HEIGHT);
     framebuffer_create(WINDOW_WIDTH, WINDOW_HEIGHT);
 
     GameObjects* game = malloc(sizeof(GameObjects));
     game->player = player_create();
-    game->ui = ui_create((float)WINDOW_WIDTH / WINDOW_HEIGHT);
 
     // GameObjects will be available in glfw callback
     // functions (using glfwGetWindowUserPointer)
@@ -235,6 +235,6 @@ int main()
 
     glfwDestroyWindow(window);
     glfwTerminate();
-    
+
     return 0;
 }

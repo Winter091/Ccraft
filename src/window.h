@@ -15,7 +15,6 @@ extern int window_h;
 typedef struct
 {
     Player* player;
-    UI* ui;
 }
 GameObjects;
 

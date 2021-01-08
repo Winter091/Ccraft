@@ -16,7 +16,7 @@ static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     GameObjects* game = glfwGetWindowUserPointer(window);
 
     camera_set_aspect_ratio(game->player->cam, (float)width / height);
-    ui_update_aspect_ratio(game->ui, (float)width / height);
+    ui_update_aspect_ratio((float)width / height);
     framebuffer_rebuild(width, height);
 
     window_w = width;

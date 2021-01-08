@@ -5,9 +5,21 @@
 #include "shader.h"
 #include "config.h"
 
-UI* ui_create(float aspect_ratio)
+typedef struct
 {
-    UI* ui = malloc(sizeof(UI));
+    GLuint VAO_crosshair;
+    GLuint VBO_crosshair;
+
+    GLuint VAO_block_wireframe;
+    GLuint VBO_block_wireframe;
+}
+UI;
+
+static UI* ui;
+
+void ui_init(float aspect_ratio)
+{
+    ui = malloc(sizeof(UI));
 
     // Crosshair buffer
     float center = 0.0f;
@@ -81,7 +93,7 @@ UI* ui_create(float aspect_ratio)
     return ui;
 }
 
-void ui_update_aspect_ratio(UI* ui, float new_ratio)
+void ui_update_aspect_ratio(float new_ratio)
 {
     glDeleteVertexArrays(1, &ui->VAO_crosshair);
     glDeleteBuffers(1, &ui->VBO_crosshair);
@@ -102,7 +114,7 @@ void ui_update_aspect_ratio(UI* ui, float new_ratio)
     opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
 }
 
-void ui_render_crosshair(UI* ui)
+void ui_render_crosshair()
 {
     glBindVertexArray(ui->VAO_crosshair);
 
@@ -118,7 +130,7 @@ void ui_render_crosshair(UI* ui)
     glEnable(GL_DEPTH_TEST);
 }
 
-void ui_render_block_wireframe(UI* ui, Player* p)
+void ui_render_block_wireframe(Player* p)
 {
     glBindVertexArray(ui->VAO_block_wireframe);
 
