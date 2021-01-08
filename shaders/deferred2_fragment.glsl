@@ -79,7 +79,7 @@ void main()
 	out_color = texture(texture_color, v_texcoord);
 	out_color.a = 1.0;
 	
-	if (u_motion_blur_enabled)
+	if (u_motion_blur_enabled != 0)
 		out_color.rgb = motion_blur(out_color.rgb);
 
 	out_color.rgb = gamma_correction(out_color.rgb);

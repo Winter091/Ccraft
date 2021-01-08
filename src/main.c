@@ -14,6 +14,7 @@
 #include "shader.h"
 #include "utils.h"
 #include "framebuffer.h"
+#include "db.h"
 
 static void print_fps()
 {

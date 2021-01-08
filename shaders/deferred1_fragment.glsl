@@ -21,10 +21,10 @@ float dof_get_factor()
     float depth = texture(texture_depth, v_texcoord).r;
 
     float center_depth;
-    if (u_dof_smooth)
-        center_depth = u_depth;
-    else
+    if (u_dof_smooth == 0)
         center_depth = texture(texture_depth, vec2(0.5, 0.5)).r;
+    else
+        center_depth = u_depth;
     
     return center_depth - depth;
 }
