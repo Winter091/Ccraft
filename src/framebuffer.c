@@ -9,8 +9,8 @@ GLuint VAO_screen = 0;
 
 GLuint FBO_game = 0;
 GLuint FBO_game_texture_color = 0;
-GLuint FBO_game_texture_color2 = 0;
 GLuint FBO_game_texture_color_ui = 0;
+GLuint FBO_game_texture_color_pass_1 = 0;
 GLuint FBO_game_texture_depth = 0;
 
 void framebuffer_create(int window_w, int window_h)
@@ -37,18 +37,14 @@ void framebuffer_create(int window_w, int window_h)
     FBO_game = opengl_create_fbo();
 
     FBO_game_texture_color = framebuffer_color_texture_create(window_w, window_h);
-    FBO_game_texture_color2 = framebuffer_color_texture_create(window_w, window_h);
     FBO_game_texture_color_ui = framebuffer_color_texture_create(window_w, window_h);
+    FBO_game_texture_color_pass_1 = framebuffer_color_texture_create(window_w, window_h);
     FBO_game_texture_depth = framebuffer_depth_texture_create(window_w, window_h);
 
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, FBO_game_texture_color, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, FBO_game_texture_color2, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, FBO_game_texture_color_ui, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, FBO_game_texture_color_ui, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, FBO_game_texture_color_pass_1, 0);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, FBO_game_texture_depth, 0);
-    
-    // Enable writing to every color texture
-    GLenum bufs[] = {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2};
-    glDrawBuffers(3, bufs);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
     {

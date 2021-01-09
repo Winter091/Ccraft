@@ -89,8 +89,6 @@ void ui_init(float aspect_ratio)
     ui->VAO_block_wireframe = opengl_create_vao();
     ui->VBO_block_wireframe = opengl_create_vbo(vertices_wireframe, sizeof(vertices_wireframe));
     opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
-
-    return ui;
 }
 
 void ui_update_aspect_ratio(float new_ratio)
@@ -122,7 +120,6 @@ void ui_render_crosshair()
     mat4 ident;
     glm_mat4_identity(ident);
     shader_set_mat4(shader_line, "mvp_matrix", ident);
-    shader_set_int1(shader_line, "write_to_ui_texture", 1);
     
     glDisable(GL_DEPTH_TEST);
     glLineWidth(4);
@@ -147,7 +144,6 @@ void ui_render_block_wireframe(Player* p)
 
     glUseProgram(shader_line);
     shader_set_mat4(shader_line, "mvp_matrix", mvp);
-    shader_set_int1(shader_line, "write_to_ui_texture", 1);
     
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);

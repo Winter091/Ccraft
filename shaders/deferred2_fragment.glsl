@@ -4,7 +4,7 @@
 
 in vec2 v_texcoord;
 
-layout (location = 0) out vec4 out_color;
+out vec4 out_color;
 
 uniform sampler2D texture_color;
 uniform sampler2D texture_ui;

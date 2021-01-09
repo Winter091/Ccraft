@@ -8,8 +8,8 @@ extern GLuint VAO_screen;
 
 extern GLuint FBO_game;
 extern GLuint FBO_game_texture_color;
-extern GLuint FBO_game_texture_color2;
 extern GLuint FBO_game_texture_color_ui;
+extern GLuint FBO_game_texture_color_pass_1;
 extern GLuint FBO_game_texture_depth;
 
 void framebuffer_create(int window_w, int window_h);

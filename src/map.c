@@ -337,8 +337,6 @@ void map_render_chunks(Camera* cam)
     shader_set_float1(shader_block, "fog_dist", CHUNK_RENDER_RADIUS * CHUNK_SIZE * 0.9f);
     shader_set_float3(shader_block, "fog_color", (vec3){0.49f, 0.6f, 0.63f});
 
-    shader_set_int1(shader_block, "write_to_ui_texture", 0);
-    
     glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
     LIST_FOREACH_CHUNK_BEGIN(map->chunks_to_render, c)

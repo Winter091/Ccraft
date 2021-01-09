@@ -74,14 +74,23 @@ void update(GLFWwindow* window, GameObjects* game, float dt)
 
 void render_game(GameObjects* game)
 {
-    // Render everything to textures
     framebuffer_bind(FBO_game);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+    // Render everything except ui to the 0th color texture
+    glDrawBuffer(GL_COLOR_ATTACHMENT0);
+    glClearBufferfv(GL_COLOR, 0, (const GLfloat[]){1.0f, 0.0f, 0.0f, 1.0f});
+
     map_render_sky(game->player->cam);
     map_render_sun_moon(game->player->cam);
     map_render_chunks(game->player->cam);
-    
+
+    // Render ui to the color texture for ui;
+    // Clear with alpha 0.0f to blend ui with
+    // main game image in the final shader pass
+    glDrawBuffer(GL_COLOR_ATTACHMENT1);
+    glClearBufferfv(GL_COLOR, 0, (const GLfloat[]){0.0f, 1.0f, 0.0f, 0.0f});
+
     if (game->player->pointing_at_block)
         ui_render_block_wireframe(game->player);
     ui_render_crosshair();
@@ -109,6 +118,9 @@ void render_first_pass(GameObjects* game, float dt)
     shader_set_int1(shader_deferred1, "u_dof_enabled", 0);
 #endif
 
+    // Render to color texture for the first pass
+    glDrawBuffer(GL_COLOR_ATTACHMENT2);
+    glClearBufferfv(GL_COLOR, 0, (const GLfloat[]){1.0f, 0.0f, 1.0f, 1.0f});
     glDepthFunc(GL_ALWAYS);
     glBindVertexArray(VAO_screen);
     glDrawArrays(GL_TRIANGLES, 0, 6);
@@ -119,8 +131,7 @@ void render_second_pass(GameObjects* game, float dt)
 {
     glUseProgram(shader_deferred2);
 
-    // Bind second color texture in which DoF is applied
-    shader_set_texture_2d(shader_deferred2, "texture_color", FBO_game_texture_color2, 0);
+    shader_set_texture_2d(shader_deferred2, "texture_color", FBO_game_texture_color_pass_1, 0);
     shader_set_texture_2d(shader_deferred2, "texture_ui",    FBO_game_texture_color_ui, 1);
     shader_set_texture_2d(shader_deferred2, "texture_depth", FBO_game_texture_depth, 2);
 
