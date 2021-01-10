@@ -252,7 +252,7 @@ void player_render_item(Player* p)
 
     glUseProgram(shader_block);
     shader_set_mat4(shader_block, "mvp_matrix", mvp);
-    shader_set_texture_2d(shader_block, "texture_sampler", texture_blocks, 0);
+    shader_set_texture_array(shader_block, "texture_sampler", texture_blocks, 0);
 
     // remove fog effect
     shader_set_float3(shader_block, "cam_pos", (vec3){0.0f, 0.0f, 0.0f});
