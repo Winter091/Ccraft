@@ -3,7 +3,7 @@
 
 #include "chunk.h"
 
-#define BLOCKS_AMOUNT 24
+#define BLOCKS_AMOUNT 25
 
 // Block id's
 #define BLOCK_AIR               0
@@ -30,7 +30,8 @@
 #define BLOCK_SNOW_GRASS        21
 #define BLOCK_GLASS             22
 #define BLOCK_WATER             23
-#define BLOCK_PLAYER_HAND       24
+#define BLOCK_LEAVES            24
+#define BLOCK_PLAYER_HAND       25
 
 typedef struct
 {

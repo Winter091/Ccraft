@@ -338,7 +338,7 @@ void map_render_chunks(Camera* cam)
     shader_set_float3(shader_block, "fog_color", (vec3){0.49f, 0.6f, 0.63f});
 
     glDepthFunc(GL_LESS);
-    glEnable(GL_BLEND);
+    glDisable(GL_BLEND);
     LIST_FOREACH_CHUNK_BEGIN(map->chunks_to_render, c)
     {
         glBindVertexArray(c->VAO_land);
@@ -347,6 +347,7 @@ void map_render_chunks(Camera* cam)
     LIST_FOREACH_CHUNK_END()
 
     glDepthMask(GL_FALSE);
+    glEnable(GL_BLEND);
     LIST_FOREACH_CHUNK_BEGIN(map->chunks_to_render, c)
     {
         glBindVertexArray(c->VAO_water);

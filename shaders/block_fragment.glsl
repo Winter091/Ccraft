@@ -15,7 +15,7 @@ uniform vec3 fog_color;
 void main()
 {    
     vec4 color = texture(texture_sampler, vec3(v_texcoord, v_tile));
-    if (color.a < 0.3)
+    if (color.a < 0.5)
         discard;
         
     color.rgb -= 0.35 * v_ao;

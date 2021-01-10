@@ -26,8 +26,9 @@ unsigned char block_textures[][6] =
     {178, 178, 178, 178, 178, 178},      // 20  BLOCK_SNOW             
     {180, 180, 178, 242, 180, 180},      // 21  BLOCK_SNOW_GRASS       
     {193, 193, 193, 193, 193, 193},      // 22  BLOCK_GLASS            
-    { 61,  61,  61,  61,  61,  61},      // 23  BLOCK_WATER         
-    {239, 239, 239, 239, 239, 239}       // 24  BLOCK_PLAYER_HAND     
+    { 61,  61,  61,  61,  61,  61},      // 23  BLOCK_WATER   
+    {223, 223, 223, 223, 223, 223},      // 24  BLOCK_LEAVES      
+    {239, 239, 239, 239, 239, 239}       // 25  BLOCK_PLAYER_HAND     
 };
 
 int block_is_solid(unsigned char block)
@@ -49,6 +50,7 @@ int block_is_transparent(unsigned char block)
         case BLOCK_AIR:
         case BLOCK_GLASS:
         case BLOCK_WATER:
+        case BLOCK_LEAVES:
             return 1;
         default:
             return 0;
@@ -284,9 +286,7 @@ int block_set_visible_faces(Chunk* c, int x, int y, int z, Chunk* neighs[8], int
     int sum = 0;
     for (int i = 0; i < 6; i++)
     {
-        if (faces[i] == BLOCK_GLASS && c->blocks[XYZ(x, y, z)] == BLOCK_GLASS)
-            faces[i] = 0;
-        else if (faces[i] == BLOCK_WATER && c->blocks[XYZ(x, y, z)] == BLOCK_WATER)
+        if (faces[i] && faces[i] == c->blocks[XYZ(x, y, z)])
             faces[i] = 0;
         sum += (faces[i] ? 1 : 0);
     }

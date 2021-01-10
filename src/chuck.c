@@ -7,6 +7,61 @@
 #include "utils.h"
 #include "db.h"
 
+static void make_tree(Chunk* c, int x, int y, int z)
+{
+    for (int i = 1; i <= 5; i++)
+        c->blocks[XYZ(x, y + i, z)] = BLOCK_WOOD;
+    c->blocks[XYZ(x, y + 7, z)] = BLOCK_LEAVES;
+
+    for (int dx = -2; dx <= 2; dx++)
+        for (int dz = -1; dz <= 1; dz++)
+            for (int dy = 4; dy <= 5; dy++)
+            {
+                int bx = x + dx;
+                int by = y + dy;
+                int bz = z + dz;
+
+                if (bx < 0 || bx >= CHUNK_WIDTH || by < 0 || by >= CHUNK_HEIGHT || bz < 0 || bz >= CHUNK_WIDTH)
+                    continue;
+                else if (c->blocks[XYZ(bx, by, bz)] != BLOCK_AIR)
+                    continue;
+                
+                c->blocks[XYZ(bx, by, bz)] = BLOCK_LEAVES;
+            }
+
+    for (int dx = -1; dx <= 1; dx++)
+        for (int dz = -2; dz <= 2; dz++)
+            for (int dy = 4; dy <= 5; dy++)
+            {
+                int bx = x + dx;
+                int by = y + dy;
+                int bz = z + dz;
+
+                if (bx < 0 || bx >= CHUNK_WIDTH || by < 0 || by >= CHUNK_HEIGHT || bz < 0 || bz >= CHUNK_WIDTH)
+                    continue;
+                else if (c->blocks[XYZ(bx, by, bz)] != BLOCK_AIR)
+                    continue;
+                
+                c->blocks[XYZ(bx, by, bz)] = BLOCK_LEAVES;
+            }
+
+    for (int dx = -1; dx <= 1; dx++)
+        for (int dz = -1; dz <= 1; dz++)
+            for (int dy = 3; dy <= 6; dy++)
+            {
+                int bx = x + dx;
+                int by = y + dy;
+                int bz = z + dz;
+
+                if (bx < 0 || bx >= CHUNK_WIDTH || by < 0 || by >= CHUNK_HEIGHT || bz < 0 || bz >= CHUNK_WIDTH)
+                    continue;
+                else if (c->blocks[XYZ(bx, by, bz)] != BLOCK_AIR)
+                    continue;
+                
+                c->blocks[XYZ(bx, by, bz)] = BLOCK_LEAVES;
+            }
+}
+
 Chunk* chunk_init(int chunk_x, int chunk_z)
 {
     Chunk* c = malloc(sizeof(Chunk));
@@ -47,7 +102,7 @@ void chunk_generate(Chunk* c)
     const int grass_start = 60; 
     const int snow_start  = 80;
     
-    c->blocks = malloc(CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH);
+    c->blocks = calloc(CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH, 1);
     for (int x = 0; x < CHUNK_WIDTH; x++)
     {
         for (int z = 0; z < CHUNK_WIDTH; z++)
@@ -58,6 +113,9 @@ void chunk_generate(Chunk* c)
             unsigned int air_start = terrain_height_at(block_x, block_z);
             for (int y = 0; y < CHUNK_HEIGHT; y++)
             {
+                if (c->blocks[XYZ(x, y, z)] != BLOCK_AIR)
+                    continue;
+                
                 unsigned char block;
 
                 if (y > air_start)
@@ -80,6 +138,9 @@ void chunk_generate(Chunk* c)
                             block = BLOCK_SNOW_GRASS;
                         else
                             block = BLOCK_GRASS;
+                        
+                        if (rand() % 10000 > 9650)
+                            make_tree(c, x, y, z);
                     }
                 }
 

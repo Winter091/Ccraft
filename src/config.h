@@ -36,7 +36,7 @@
 #define CURRENT_MAP "maps/test_map.db"
 #define USE_DATABASE 1
 
-#define DISABLE_TIME_FLOW 0
+#define DISABLE_TIME_FLOW 1
 
 // full day length in seconds
 #define DAY_LENGTH 1200

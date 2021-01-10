@@ -26,7 +26,7 @@ Camera* camera_create()
 
     cam->fov = FOV;
     cam->sens = 0.1f;
-    cam->move_speed = 15.0f * BLOCK_SIZE;
+    cam->move_speed = 5.0f * BLOCK_SIZE;
 
     cam->active = 0;
     cam->mouse_last_x = 0;
