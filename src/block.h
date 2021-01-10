@@ -3,7 +3,7 @@
 
 #include "chunk.h"
 
-#define BLOCKS_AMOUNT 23
+#define BLOCKS_AMOUNT 24
 
 // Block id's
 #define BLOCK_AIR               0
@@ -29,7 +29,8 @@
 #define BLOCK_SNOW              20
 #define BLOCK_SNOW_GRASS        21
 #define BLOCK_GLASS             22
-#define BLOCK_PLAYER_HAND       23
+#define BLOCK_WATER             23
+#define BLOCK_PLAYER_HAND       24
 
 typedef struct
 {
@@ -42,6 +43,7 @@ Vertex;
 
 extern unsigned char block_textures[][6];
 
+int block_is_solid(unsigned char block);
 int block_is_transparent(unsigned char block);
 void block_get_neighs(Chunk* c, Chunk* neighs[8], int x, int y, int z, unsigned char b_neighs[27]);
 

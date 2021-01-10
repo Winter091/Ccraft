@@ -26,8 +26,21 @@ unsigned char block_textures[][6] =
     {178, 178, 178, 178, 178, 178},      // 20  BLOCK_SNOW             
     {180, 180, 178, 242, 180, 180},      // 21  BLOCK_SNOW_GRASS       
     {193, 193, 193, 193, 193, 193},      // 22  BLOCK_GLASS            
-    {239, 239, 239, 239, 239, 239}       // 23  BLOCK_PLAYER_HAND     
+    { 61,  61,  61,  61,  61,  61},      // 23  BLOCK_WATER         
+    {239, 239, 239, 239, 239, 239}       // 24  BLOCK_PLAYER_HAND     
 };
+
+int block_is_solid(unsigned char block)
+{
+    switch (block)
+    {
+        case BLOCK_AIR:
+        case BLOCK_WATER:
+            return 0;
+        default:
+            return 1;
+    }
+}
 
 int block_is_transparent(unsigned char block)
 {
@@ -35,6 +48,7 @@ int block_is_transparent(unsigned char block)
     {
         case BLOCK_AIR:
         case BLOCK_GLASS:
+        case BLOCK_WATER:
             return 1;
         default:
             return 0;
@@ -192,6 +206,12 @@ void block_gen_vertices(
             vertices[vert_index].pos[1] = (positions[f][index][1] + y) * block_size;
             vertices[vert_index].pos[2] = (positions[f][index][2] + z) * block_size;
 
+            // make water block shorter
+            if (block_type == BLOCK_WATER)
+            {
+                vertices[vert_index].pos[1] -= 0.125f * block_size;
+            }
+
             if (center_align)
             {
                 vertices[vert_index].pos[0] -= 0.5f * block_size;
@@ -209,10 +229,16 @@ void block_gen_vertices(
     }
 }
 
-static int get_block_transparency(Chunk* c, int bx, int by, int bz)
+static unsigned char get_block_transparency(Chunk* c, int bx, int by, int bz)
 {
+    // If block is not transparent, return 0;
+    // Else:
+    //     return 1 if it's air block, 
+    //     otherwise return block id
+
     if (!c) return 1;
-    return block_is_transparent(c->blocks[XYZ(bx, by, bz)]);
+    return block_is_transparent(c->blocks[XYZ(bx, by, bz)]) ? 
+        (c->blocks[XYZ(bx, by, bz)] != BLOCK_AIR ? c->blocks[XYZ(bx, by, bz)] : 1) : 0;
 }
 
 int block_set_visible_faces(Chunk* c, int x, int y, int z, Chunk* neighs[8], int faces[6])
@@ -253,10 +279,17 @@ int block_set_visible_faces(Chunk* c, int x, int y, int z, Chunk* neighs[8], int
     else
         faces[5] = get_block_transparency(c, x, y, z + 1);
 
-    // return amount of visible faces
+    // return amount of visible faces and handle
+    // glass and water trasparency
     int sum = 0;
     for (int i = 0; i < 6; i++)
-        sum += faces[i];
+    {
+        if (faces[i] == BLOCK_GLASS && c->blocks[XYZ(x, y, z)] == BLOCK_GLASS)
+            faces[i] = 0;
+        else if (faces[i] == BLOCK_WATER && c->blocks[XYZ(x, y, z)] == BLOCK_WATER)
+            faces[i] = 0;
+        sum += (faces[i] ? 1 : 0);
+    }
     return sum;
 }
 

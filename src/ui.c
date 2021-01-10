@@ -124,7 +124,6 @@ void ui_render_crosshair()
     glDisable(GL_DEPTH_TEST);
     glLineWidth(4);
     glDrawArrays(GL_LINES, 0, 4);
-    glEnable(GL_DEPTH_TEST);
 }
 
 void ui_render_block_wireframe(Player* p)
@@ -145,8 +144,6 @@ void ui_render_block_wireframe(Player* p)
     glUseProgram(shader_line);
     shader_set_mat4(shader_line, "mvp_matrix", mvp);
     
-    glEnable(GL_DEPTH_TEST);
-    glDepthMask(GL_TRUE);
     glLineWidth(2);
     glDrawArrays(GL_LINES, 0, 24);
 }

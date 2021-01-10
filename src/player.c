@@ -90,7 +90,7 @@ static void update_block_pointing_at(Player* p)
                 if (camera_looks_at_block(p->cam, x, y, z))
                 {
                     unsigned char block = map_get_block(x, y, z);
-                    if (block == BLOCK_AIR)
+                    if (!block_is_solid(block))
                         continue;
                     
                     // we need closest block that camera is pointing to
@@ -167,7 +167,7 @@ static void find_best_spot_to_place_block(
     int cam_y = cam->pos[1] / BLOCK_SIZE;
     int cam_z = cam->pos[2] / BLOCK_SIZE;
     
-    if (camera_looks_at_block(cam, x, y, z) && map_get_block(x, y, z) == BLOCK_AIR)
+    if (camera_looks_at_block(cam, x, y, z) && !block_is_solid(map_get_block(x, y, z)))
     {
         int dist = block_player_dist2(cam_x, cam_y, cam_z, x, y, z);
         if (dist < *best_dist)
@@ -258,10 +258,9 @@ void player_render_item(Player* p)
     shader_set_float3(shader_block, "cam_pos", (vec3){0.0f, 0.0f, 0.0f});
     shader_set_float1(shader_block, "fog_dist", 100000.0f);
 
-    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_BLEND);
     glBindVertexArray(p->VAO_item);
     glDrawArrays(GL_TRIANGLES, 0, 36);
-
 }
 
 void player_save(Player* p)

@@ -13,9 +13,12 @@ Chunk* chunk_init(int chunk_x, int chunk_z)
 
     c->blocks = NULL;
     c->is_loaded = 0;
-    c->VAO = 0;
-    c->VBO = 0;
-    c->vertex_count = 0;
+    c->VAO_land = 0;
+    c->VBO_land = 0;
+    c->VAO_water = 0;
+    c->VBO_water = 0;
+    c->vertex_land_count = 0;
+    c->vertex_water_count = 0;
     c->x = chunk_x;
     c->z = chunk_z;
 
@@ -40,7 +43,8 @@ static unsigned int terrain_height_at(int x, int z)
 
 void chunk_generate(Chunk* c)
 {
-    const int grass_start = 50; 
+    const int water_end = 57;
+    const int grass_start = 60; 
     const int snow_start  = 80;
     
     c->blocks = malloc(CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH);
@@ -57,7 +61,12 @@ void chunk_generate(Chunk* c)
                 unsigned char block;
 
                 if (y > air_start)
-                    block = BLOCK_AIR;
+                {
+                    if (y <= water_end)
+                        block = BLOCK_WATER;
+                    else
+                        block = BLOCK_AIR;
+                }
                 else
                 {
                     if (y < grass_start)
@@ -89,22 +98,27 @@ void chunk_update_buffer(Chunk* c, Chunk* neighs[8])
 {
     if (c->is_loaded)
     {
-        glDeleteVertexArrays(1, &c->VAO);
-        glDeleteBuffers(1, &c->VBO);
+        glDeleteVertexArrays(2, (const GLuint[]){c->VAO_land, c->VAO_water});
+        glDeleteBuffers(2, (const GLuint[]){c->VBO_land, c->VBO_water});
     }
     
-    // Keep static buffer in order not to
+    // Keep static buffers in order not to
     // make a lot of big allocations
-    static Vertex* vertices = NULL;
-    if (!vertices)
+    static Vertex* vertices_land = NULL;
+    static Vertex* vertices_water = NULL;
+    if (!vertices_land && !vertices_water)
     {
         // space for all vertices in a chunk
-        vertices = malloc(
+        vertices_land = malloc(
+            CHUNK_WIDTH * CHUNK_WIDTH * CHUNK_HEIGHT * 36 * sizeof(Vertex)
+        );
+        vertices_water = malloc(
             CHUNK_WIDTH * CHUNK_WIDTH * CHUNK_HEIGHT * 36 * sizeof(Vertex)
         );
     }
 
-    int curr_vertex_count = 0;
+    int curr_vertex_land_count = 0;
+    int curr_vertex_water_count = 0;
     
     for (int x = 0; x < CHUNK_WIDTH; x++)
         for (int y = 0; y < CHUNK_HEIGHT; y++)
@@ -132,25 +146,42 @@ void chunk_update_buffer(Chunk* c, Chunk* neighs[8])
                 int block_y = y;
                 int block_z = z + c->z * CHUNK_WIDTH;
 
-                block_gen_vertices(
-                    vertices, curr_vertex_count, block_x, block_y, block_z,
-                    c->blocks[XYZ(x, y, z)], 0, BLOCK_SIZE, faces, ao
-                );
-
-                curr_vertex_count += faces_visible * 6;
+                if (c->blocks[XYZ(x, y, z)] == BLOCK_WATER)
+                {
+                    block_gen_vertices(
+                        vertices_water, curr_vertex_water_count, block_x, block_y, block_z,
+                        c->blocks[XYZ(x, y, z)], 0, BLOCK_SIZE, faces, ao
+                    );
+                    curr_vertex_water_count += faces_visible * 6;
+                }
+                else
+                {
+                    block_gen_vertices(
+                        vertices_land, curr_vertex_land_count, block_x, block_y, block_z,
+                        c->blocks[XYZ(x, y, z)], 0, BLOCK_SIZE, faces, ao
+                    );
+                    curr_vertex_land_count += faces_visible * 6;
+                }
+                
             }
 
-    // Generate VAO and VBO, send vertices to videocard
-    GLuint VAO = opengl_create_vao();
-    GLuint VBO = opengl_create_vbo(vertices, curr_vertex_count * sizeof(Vertex));
+    // Generate VAOs and VBOs
+    c->VAO_land = opengl_create_vao();
+    c->VBO_land = opengl_create_vbo(vertices_land, curr_vertex_land_count * sizeof(Vertex));;
     opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
     opengl_vbo_layout(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 3 * sizeof(float));
     opengl_vbo_layout(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), 5 * sizeof(float));
     opengl_vbo_layout(2, 1, GL_UNSIGNED_BYTE, GL_FALSE,  sizeof(Vertex), 6 * sizeof(float));
 
-    c->VAO = VAO;
-    c->VBO = VBO;
-    c->vertex_count = curr_vertex_count;
+    c->VAO_water = opengl_create_vao();
+    c->VBO_water = opengl_create_vbo(vertices_water, curr_vertex_water_count * sizeof(Vertex));;
+    opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+    opengl_vbo_layout(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 3 * sizeof(float));
+    opengl_vbo_layout(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), 5 * sizeof(float));
+    opengl_vbo_layout(2, 1, GL_UNSIGNED_BYTE, GL_FALSE,  sizeof(Vertex), 6 * sizeof(float));
+
+    c->vertex_land_count = curr_vertex_land_count;
+    c->vertex_water_count = curr_vertex_water_count;
     c->is_loaded = 1;
 }
 
@@ -185,8 +216,8 @@ void chunk_delete(Chunk* c)
     if (c->is_loaded)
     {
         free(c->blocks);
-        glDeleteVertexArrays(1, &c->VAO);
-        glDeleteBuffers(1, &c->VBO);
+        glDeleteVertexArrays(2, (const GLuint[]){c->VAO_land, c->VAO_water});
+        glDeleteBuffers(2, (const GLuint[]){c->VBO_land, c->VBO_water});
     }
     free(c);
 }

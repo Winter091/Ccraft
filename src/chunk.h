@@ -4,6 +4,7 @@
 #include "cglm/cglm.h"
 #include "config.h"
 #include "stdlib.h"
+#include "glad/glad.h"
 
 #define XYZ(x, y, z) ((x) * CHUNK_WIDTH * CHUNK_HEIGHT) + ((y) * CHUNK_WIDTH) + (z)
 
@@ -20,9 +21,12 @@
 typedef struct
 {
     unsigned char* blocks;
-    unsigned int VAO;
-    unsigned int VBO;
-    size_t vertex_count;
+    GLuint VAO_land;
+    GLuint VBO_land;
+    GLuint VAO_water;
+    GLuint VBO_water;
+    size_t vertex_land_count;
+    size_t vertex_water_count;
     int x, z;
     int is_loaded;
 }

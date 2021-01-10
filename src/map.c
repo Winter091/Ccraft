@@ -27,12 +27,12 @@ for (int i = 0; i < map->chunks_active->array_size; i++)\
 #define MAP_FOREACH_ACTIVE_CHUNK_END() }}
 
 #define LIST_FOREACH_CHUNK_BEGIN(LIST, CHUNK_NAME)\
-LinkedListNode_chunks* node = LIST->head;\
+{LinkedListNode_chunks* node = LIST->head;\
 for ( ; node; node = node->ptr_next)\
 {\
     Chunk* c = node->data;\
 
-#define LIST_FOREACH_CHUNK_END() }
+#define LIST_FOREACH_CHUNK_END() }}
 
 typedef struct
 {
@@ -317,7 +317,7 @@ void map_render_sky(Camera* cam)
     shader_set_float1(shader_skybox, "night_start", NIGHT_START);
     shader_set_float1(shader_skybox, "night_to_day_start", NIGHT_TO_DAY_START);
 
-
+    glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_ALWAYS);
     glBindVertexArray(map->VAO_skybox);
     glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -337,14 +337,23 @@ void map_render_chunks(Camera* cam)
     shader_set_float1(shader_block, "fog_dist", CHUNK_RENDER_RADIUS * CHUNK_SIZE * 0.9f);
     shader_set_float3(shader_block, "fog_color", (vec3){0.49f, 0.6f, 0.63f});
 
+    glDepthFunc(GL_LESS);
     glEnable(GL_BLEND);
-    glEnable(GL_DEPTH_TEST);
     LIST_FOREACH_CHUNK_BEGIN(map->chunks_to_render, c)
     {
-        glBindVertexArray(c->VAO);
-        glDrawArrays(GL_TRIANGLES, 0, c->vertex_count);
+        glBindVertexArray(c->VAO_land);
+        glDrawArrays(GL_TRIANGLES, 0, c->vertex_land_count);
     }
     LIST_FOREACH_CHUNK_END()
+
+    glDepthMask(GL_FALSE);
+    LIST_FOREACH_CHUNK_BEGIN(map->chunks_to_render, c)
+    {
+        glBindVertexArray(c->VAO_water);
+        glDrawArrays(GL_TRIANGLES, 0, c->vertex_water_count);
+    }
+    LIST_FOREACH_CHUNK_END()
+    glDepthMask(GL_TRUE);
 
     list_chunks_clear(map->chunks_to_render);
 }
