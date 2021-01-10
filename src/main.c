@@ -16,6 +16,97 @@
 #include "framebuffer.h"
 #include "db.h"
 
+void debug_callback(
+    GLenum source, GLenum type, GLuint id, GLenum severity, 
+    GLsizei length, const GLchar* message, const void* userParam
+)
+{
+    char* _source;
+    char* _type;
+    char* _severity;
+
+    switch (source) {
+        case GL_DEBUG_SOURCE_API_ARB:
+        _source = "API";
+        break;
+
+        case GL_DEBUG_SOURCE_WINDOW_SYSTEM_ARB:
+        _source = "WINDOW SYSTEM";
+        break;
+
+        case GL_DEBUG_SOURCE_SHADER_COMPILER_ARB:
+        _source = "SHADER COMPILER";
+        break;
+
+        case GL_DEBUG_SOURCE_THIRD_PARTY_ARB:
+        _source = "THIRD PARTY";
+        break;
+
+        case GL_DEBUG_SOURCE_APPLICATION_ARB:
+        _source = "APPLICATION";
+        break;
+
+        case GL_DEBUG_SOURCE_OTHER_ARB:
+        _source = "UNKNOWN";
+        break;
+
+        default:
+        _source = "UNKNOWN";
+        break;
+    }
+
+    switch (type) {
+        case GL_DEBUG_TYPE_ERROR_ARB:
+        _type = "ERROR";
+        break;
+
+        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR_ARB:
+        _type = "DEPRECATED BEHAVIOR";
+        break;
+
+        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR_ARB:
+        _type = "UDEFINED BEHAVIOR";
+        break;
+
+        case GL_DEBUG_TYPE_PORTABILITY_ARB:
+        _type = "PORTABILITY";
+        break;
+
+        case GL_DEBUG_TYPE_PERFORMANCE_ARB:
+        _type = "PERFORMANCE";
+        break;
+
+        case GL_DEBUG_TYPE_OTHER_ARB:
+        _type = "OTHER";
+        break;
+
+        default:
+        _type = "UNKNOWN";
+        break;
+    }
+
+    switch (severity) {
+        case GL_DEBUG_SEVERITY_HIGH_ARB:
+        _severity = "HIGH";
+        break;
+
+        case GL_DEBUG_SEVERITY_MEDIUM_ARB:
+        _severity = "MEDIUM";
+        break;
+
+        case GL_DEBUG_SEVERITY_LOW_ARB:
+        _severity = "LOW";
+        break;
+
+        default:
+        _severity = "UNKNOWN";
+        break;
+    }
+
+    printf("%d: %s of %s severity, raised from %s: %s\n",
+            id, _type, _severity, _source, message);
+}
+
 static void print_fps()
 {
     static double last_time = -1.0;
@@ -201,6 +292,14 @@ int main()
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+
+    GLint context_flags;
+    glGetIntegerv(GL_CONTEXT_FLAGS, &context_flags);
+    if (context_flags & GLFW_OPENGL_DEBUG_CONTEXT)
+    {
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
+        glDebugMessageCallbackARB(debug_callback, NULL);
+    }
 
     const GLubyte* version = glGetString(GL_VERSION);
     fprintf(stdout, "Using OpenGL %s\n", version);
