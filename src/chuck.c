@@ -137,8 +137,13 @@ Chunk* chunk_create(int chunk_x, int chunk_z)
                         block = BLOCK_GRASS;
                         if (rand() % 10000 > 9950 && x >= 2 && x <= CHUNK_WIDTH - 3 && z >= 2 && z <= CHUNK_WIDTH - 3)
                             make_tree(c, x, y, z);
-                        else if (rand() % 10 > 6)
-                            c->blocks[XYZ(x, y + 1, z)] = BLOCK_GRASS_PLANT;
+                        else if (rand() % 10 > 7)
+                        {
+                            if (rand() % 2)
+                                c->blocks[XYZ(x, y + 1, z)] = BLOCK_FLOWER_DANDELION;
+                            else
+                                c->blocks[XYZ(x, y + 1, z)] = BLOCK_FLOWER_ROSE;
+                        }
                     }
                     
                 }

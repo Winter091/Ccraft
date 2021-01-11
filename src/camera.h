@@ -37,7 +37,7 @@ Camera;
 
 Camera* camera_create();
 void camera_update(Camera* cam, GLFWwindow* window, double dt);
-int camera_looks_at_block(Camera* cam, int x, int y, int z);
+int camera_looks_at_block(Camera* cam, int x, int y, int z, unsigned char block_type);
 
 void camera_set_aspect_ratio(Camera* cam, float new_ratio);
 void camera_set_fov(Camera* cam, int new_fov);

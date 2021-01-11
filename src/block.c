@@ -30,6 +30,14 @@ unsigned char block_textures[][6] =
     { 61,  61,  61,  61,  61,  61},      // 24  BLOCK_WATER   
     {223, 223, 223, 223, 223, 223},      // 25  BLOCK_LEAVES      
     {215, 215, 215, 215, 215, 215},      // 26  BLOCK_GRASS_PLANT     
+    {252, 252, 252, 252, 252, 252},      // 27  BLOCK_FLOWER_ROSE             
+    {253, 253, 253, 253, 253, 253},      // 28  BLOCK_FLOWER_DANDELION       
+    {237, 237, 237, 237, 237, 237},      // 29  BLOCK_MUSHROOM_BROWN            
+    {236, 236, 236, 236, 236, 236},      // 30  BLOCK_MUSHROOM_RED       
+    {199, 199, 199, 199, 199, 199},      // 31  BLOCK_DEAD_PLANT      
+    {182, 182, 181, 183, 182, 182},      // 32  BLOCK_CACTUS      
+    { 48,  48,  64,  32,  48,  48},      // 33  BLOCK_SANDSTONE      
+    { 21,  21,  64,  32,  21,  21},      // 34  BLOCK_SANDSTONE_CHISELED      
 };
 
 /*
@@ -53,6 +61,17 @@ void gen_cube_vertices(
         { {0, 0, 0}, {0, 0, 1}, {1, 0, 0}, {1, 0, 1} }, // bottom
         { {0, 0, 0}, {0, 1, 0}, {1, 0, 0}, {1, 1, 0} }, // back
         { {0, 0, 1}, {0, 1, 1}, {1, 0, 1}, {1, 1, 1} }  // front
+    };
+
+    static const float a = 0.0625f, b = 1.0f - 0.0625f;
+    static const float positions_cactus[6][4][3] = 
+    {
+        { {a, 0, 0}, {a, 0, 1}, {a, 1, 0}, {a, 1, 1} }, // left
+        { {b, 0, 0}, {b, 0, 1}, {b, 1, 0}, {b, 1, 1} }, // right
+        { {0, 1, 0}, {0, 1, 1}, {1, 1, 0}, {1, 1, 1} }, // top
+        { {0, 0, 0}, {0, 0, 1}, {1, 0, 0}, {1, 0, 1} }, // bottom
+        { {0, 0, a}, {0, 1, a}, {1, 0, a}, {1, 1, a} }, // back
+        { {0, 0, b}, {0, 1, b}, {1, 0, b}, {1, 1, b} }  // front
     };
 
     static const int indices[6][6] = 
@@ -98,9 +117,19 @@ void gen_cube_vertices(
 
             int vert_index = (*curr_vertex_count)++;
 
-            vertices[vert_index].pos[0] = (positions[f][index][0] + x) * block_size;
-            vertices[vert_index].pos[1] = (positions[f][index][1] + y) * block_size;
-            vertices[vert_index].pos[2] = (positions[f][index][2] + z) * block_size;
+            // cactus is a bit smaller that other blocks
+            if (block_type == BLOCK_CACTUS)
+            {
+                vertices[vert_index].pos[0] = (positions_cactus[f][index][0] + x) * block_size;
+                vertices[vert_index].pos[1] = (positions_cactus[f][index][1] + y) * block_size;
+                vertices[vert_index].pos[2] = (positions_cactus[f][index][2] + z) * block_size;
+            }
+            else
+            {
+                vertices[vert_index].pos[0] = (positions[f][index][0] + x) * block_size;
+                vertices[vert_index].pos[1] = (positions[f][index][1] + y) * block_size;
+                vertices[vert_index].pos[2] = (positions[f][index][2] + z) * block_size;
+            }
 
             // make water block shorter
             if (block_type == BLOCK_WATER && positions[f][index][1] > 0)
@@ -184,6 +213,12 @@ int block_is_transparent(unsigned char block)
         case BLOCK_WATER:
         case BLOCK_LEAVES:
         case BLOCK_GRASS_PLANT:
+        case BLOCK_FLOWER_ROSE:
+        case BLOCK_FLOWER_DANDELION:
+        case BLOCK_MUSHROOM_BROWN:
+        case BLOCK_MUSHROOM_RED:
+        case BLOCK_DEAD_PLANT:
+        case BLOCK_CACTUS:
             return 1;
         default:
             return 0;
@@ -195,6 +230,11 @@ int block_is_plant(unsigned char block)
     switch (block)
     {
         case BLOCK_GRASS_PLANT:
+        case BLOCK_FLOWER_ROSE:
+        case BLOCK_FLOWER_DANDELION:
+        case BLOCK_MUSHROOM_BROWN:
+        case BLOCK_MUSHROOM_RED:
+        case BLOCK_DEAD_PLANT:
             return 1;
         default:
             return 0;

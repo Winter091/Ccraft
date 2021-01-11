@@ -98,12 +98,12 @@ static void update_block_pointing_at(Player* p)
                 if (block_player_dist2(x, y, z, cam_x, cam_y, cam_z) > BLOCK_BREAK_RADIUS * BLOCK_BREAK_RADIUS)
                     continue;
                 
-                if (camera_looks_at_block(p->cam, x, y, z))
+                unsigned char block = map_get_block(x, y, z);
+                if (!block_is_solid(block))
+                    continue;
+                
+                if (camera_looks_at_block(p->cam, x, y, z, block))
                 {
-                    unsigned char block = map_get_block(x, y, z);
-                    if (!block_is_solid(block))
-                        continue;
-                    
                     // we need closest block that camera is pointing to
                     int distance = block_player_dist2(cam_x, cam_y, cam_z, x, y, z);
                     if (distance < best_dist)
@@ -186,7 +186,7 @@ static void find_best_spot_to_place_block(
     int cam_y = cam->pos[1] / BLOCK_SIZE;
     int cam_z = cam->pos[2] / BLOCK_SIZE;
     
-    if (camera_looks_at_block(cam, x, y, z) && !block_is_solid(map_get_block(x, y, z)))
+    if (camera_looks_at_block(cam, x, y, z, 0) && !block_is_solid(map_get_block(x, y, z)))
     {
         int dist = block_player_dist2(cam_x, cam_y, cam_z, x, y, z);
         if (dist < *best_dist)
@@ -256,7 +256,7 @@ void player_render_item(Player* p)
         glm_rotate(model, 0.364f, (vec3){0.0f, 1.0f, 0.0f});
         glm_rotate(model, 0.000f, (vec3){0.0f, 0.0f, 1.0f});
         glm_scale(model, (vec3){0.1f, 0.1f, 0.1f});
-        glm_translate(model, (vec3){-1.98f, -1.0f, 7.01f});
+        glm_translate(model, (vec3){-1.98f, -0.80f, 7.01f});
     }
     else
     {

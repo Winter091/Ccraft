@@ -3,6 +3,7 @@
 #include "math.h"
 #include "config.h"
 #include "utils.h"
+#include "block.h"
 
 Camera* camera_create()
 {
@@ -170,10 +171,21 @@ void camera_update(Camera* cam, GLFWwindow* window, double dt)
 
 // ray - axis aligned box hit detection, see
 // https://medium.com/@bromanz/another-view-on-the-classic-ray-aabb-intersection-algorithm-for-bvh-traversal-41125138b525
-int camera_looks_at_block(Camera* cam, int x, int y, int z)
+int camera_looks_at_block(Camera* cam, int x, int y, int z, unsigned char block_type)
 {
     vec3 min = { x * BLOCK_SIZE, y * BLOCK_SIZE, z * BLOCK_SIZE };
     vec3 max = { min[0] + BLOCK_SIZE, min[1] + BLOCK_SIZE, min[2] + BLOCK_SIZE };
+
+    // make hitbox smaller
+    if (block_is_plant(block_type))
+    {
+        float a = BLOCK_SIZE * 0.25f;
+        min[0] += a;
+        min[2] += a;
+        max[0] -= a;
+        max[1] -= 2 * a;
+        max[2] -= a;
+    }
 
     float tmin = 0.00001f;
     float tmax = 10000.0f;
