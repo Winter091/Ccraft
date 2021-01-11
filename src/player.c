@@ -20,15 +20,26 @@ static void regenerate_item_buffer(Player* p)
     Vertex* vertices = malloc(36 * sizeof(Vertex));
     int faces[6] = {1, 1, 1, 1, 1, 1};
     float ao[6][4] = {0};
+    int curr_vertex_count = 0;
 
-    block_gen_vertices(
-            vertices, 0, 0, 0, 0,
+    if (block_is_plant(p->build_block))
+    {
+        gen_plant_vertices(
+            vertices, &curr_vertex_count, 0, 0, 0,
+            p->build_block, 1
+        );
+    }
+    else
+    {
+        gen_cube_vertices(
+            vertices, &curr_vertex_count, 0, 0, 0,
             p->build_block ? p->build_block : BLOCK_PLAYER_HAND,
-            1, 2.0f, faces, ao
-    );
+            1, faces, ao
+        );
+    }
 
     p->VAO_item = opengl_create_vao();
-    p->VBO_item = opengl_create_vbo(vertices, 36 * sizeof(Vertex));
+    p->VBO_item = opengl_create_vbo(vertices, curr_vertex_count * sizeof(Vertex));
     opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
     opengl_vbo_layout(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 3 * sizeof(float));
     opengl_vbo_layout(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), 5 * sizeof(float));
@@ -123,6 +134,14 @@ void player_set_build_block(Player* p, int new_block)
     new_block %= BLOCKS_AMOUNT;
     if (new_block < 0) 
         new_block += BLOCKS_AMOUNT;
+    
+    if (new_block == 1)
+    {
+        if (p->build_block > new_block)
+            new_block--;
+        else
+            new_block++;
+    }
     
     p->build_block = new_block;
     regenerate_item_buffer(p);
@@ -225,20 +244,27 @@ void player_render_item(Player* p)
     // No block is selected; create hand matrix
     if (p->build_block == BLOCK_AIR)
     {
-        glm_translate(model, (vec3){0.528f, -0.506f, -0.159f});
-        glm_rotate(model, -1.129f, (vec3){1.0f, 0.0f, 0.0f});
-        glm_rotate(model, 0.422f, (vec3){0.0f, 1.0f, 0.0f});
-        glm_rotate(model, -0.31f, (vec3){0.0f, 0.0f, 1.0f});
+        glm_rotate(model, -1.092f, (vec3){1.0f, 0.0f, 0.0f});
+        glm_rotate(model, 0.336f, (vec3){0.0f, 1.0f, 0.0f});
+        glm_rotate(model, -0.154f, (vec3){0.0f, 0.0f, 1.0f});
         glm_scale(model, (vec3){0.1f, 0.3f, 0.1f});
+        glm_translate(model, (vec3){2.76f, -1.98f, 0.16f});
     }
-    // block matrix
+    else if (block_is_plant(p->build_block))
+    {
+        glm_rotate(model, 0.063f, (vec3){1.0f, 0.0f, 0.0f});
+        glm_rotate(model, 0.364f, (vec3){0.0f, 1.0f, 0.0f});
+        glm_rotate(model, 0.000f, (vec3){0.0f, 0.0f, 1.0f});
+        glm_scale(model, (vec3){0.1f, 0.1f, 0.1f});
+        glm_translate(model, (vec3){-1.98f, -1.0f, 7.01f});
+    }
     else
     {
-        glm_translate(model, (vec3){0.562f, -0.536f, -0.092f});
-        glm_rotate(model, 0.132f, (vec3){1.0f, 0.0f, 0.0f});
-        glm_rotate(model, 0.416f, (vec3){0.0f, 1.0f, 0.0f});
-        glm_rotate(model, 0.0f, (vec3){0.0f, 0.0f, 1.0f});
-        glm_scale(model, (vec3){0.2f, 0.2f, 0.2f});
+        glm_rotate(model, 0.154f, (vec3){1.0f, 0.0f, 0.0f});
+        glm_rotate(model, 0.448f, (vec3){0.0f, 1.0f, 0.0f});
+        glm_rotate(model, 0.049f, (vec3){0.0f, 0.0f, 1.0f});
+        glm_scale(model, (vec3){0.1f, 0.1f, 0.1f});
+        glm_translate(model, (vec3){-2.4f, -0.57f, 6.78f});
     }
 
     // Item renders using additional camera created here;

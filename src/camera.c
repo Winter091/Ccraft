@@ -109,9 +109,9 @@ static void update_keyboard(Camera* cam, GLFWwindow* window, double dt)
 
     // handle move speed
     if (key_pageup)
-        cam->move_speed *= 1.003f;
+        cam->move_speed *= (1 + dt);
     if (key_pagedown)
-        cam->move_speed /= 1.003f;
+        cam->move_speed /= (1 + dt);
 
     vec3 move;
 

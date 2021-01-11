@@ -21,23 +21,33 @@
 typedef struct
 {
     unsigned char* blocks;
+    int x, z;
+    int is_loaded;
+
     GLuint VAO_land;
     GLuint VBO_land;
     GLuint VAO_water;
     GLuint VBO_water;
     size_t vertex_land_count;
     size_t vertex_water_count;
-    int x, z;
-    int is_loaded;
 }
 Chunk;
 
-Chunk* chunk_init(int chunk_x, int chunk_z);
-void chunk_generate(Chunk* c);
+Chunk* chunk_create(int chunk_x, int chunk_z);
 void chunk_update_buffer(Chunk* c, Chunk* neighs[8]);
+
 int chunk_is_visible(int chunk_x, int chunk_z, vec4 planes[6]);
-uint32_t chunk_hash_func(Chunk* c);
-uint32_t chunk_hash_func2(int chunk_x, int chunk_z);
+
+static inline uint32_t chunk_hash_func(Chunk* c)
+{
+    return (c->x + c->z) * (c->x + c->z + 1) / 2 + c->z;
+}
+
+static inline uint32_t chunk_hash_func2(int chunk_x, int chunk_z)
+{
+    return (chunk_x + chunk_z) * (chunk_x + chunk_z + 1) / 2 + chunk_z;
+}
+
 void chunk_delete(Chunk* c);
 
 #endif

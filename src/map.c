@@ -87,15 +87,13 @@ static void map_update_chunk_buffer(Chunk* c, int update_neighbours)
     if (update_neighbours)
     {
         for (int i = 0; i < 4; i++)
-            if (neighs[i])
-                map_update_chunk_buffer(neighs[i], 0);
+            map_update_chunk_buffer(neighs[i], 0);
     }
 }
 
 static void map_load_chunk(int chunk_x, int chunk_z)
 {
-    Chunk* c = chunk_init(chunk_x, chunk_z);
-    chunk_generate(c);
+    Chunk* c = chunk_create(chunk_x, chunk_z);
     hashmap_chunks_insert(map->chunks_active, c);
     map_update_chunk_buffer(c, 1);
 }

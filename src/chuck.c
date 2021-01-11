@@ -6,6 +6,7 @@
 #include "block.h"
 #include "utils.h"
 #include "db.h"
+#include "string.h"
 
 static void make_tree(Chunk* c, int x, int y, int z)
 {
@@ -62,24 +63,6 @@ static void make_tree(Chunk* c, int x, int y, int z)
             }
 }
 
-Chunk* chunk_init(int chunk_x, int chunk_z)
-{
-    Chunk* c = malloc(sizeof(Chunk));
-
-    c->blocks = NULL;
-    c->is_loaded = 0;
-    c->VAO_land = 0;
-    c->VBO_land = 0;
-    c->VAO_water = 0;
-    c->VBO_water = 0;
-    c->vertex_land_count = 0;
-    c->vertex_water_count = 0;
-    c->x = chunk_x;
-    c->z = chunk_z;
-
-    return c;
-}
-
 static unsigned int terrain_height_at(int x, int z)
 {  
     float freq = 0.0075f;
@@ -96,56 +79,72 @@ static unsigned int terrain_height_at(int x, int z)
     return height;
 }
 
-void chunk_generate(Chunk* c)
+Chunk* chunk_create(int chunk_x, int chunk_z)
 {
+    Chunk* c = malloc(sizeof(Chunk));
+
+    c->blocks = NULL;
+    c->x = chunk_x;
+    c->z = chunk_z;
+    c->is_loaded = 0;
+
+    c->VAO_land = 0;
+    c->VBO_land = 0;
+    c->VAO_water = 0;
+    c->VBO_water = 0;
+    c->vertex_land_count = 0;
+    c->vertex_water_count = 0;
+
+    // Generate terrain
     const int water_end = 57;
     const int grass_start = 60; 
     const int snow_start  = 80;
     
     c->blocks = calloc(CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH, 1);
     for (int x = 0; x < CHUNK_WIDTH; x++)
+    for (int z = 0; z < CHUNK_WIDTH; z++)
     {
-        for (int z = 0; z < CHUNK_WIDTH; z++)
+        int block_x = x + c->x * CHUNK_WIDTH;
+        int block_z = z + c->z * CHUNK_WIDTH;
+
+        unsigned int air_start = terrain_height_at(block_x, block_z);
+
+        for (int y = 0; y < CHUNK_HEIGHT; y++)
         {
-            int block_x = x + c->x * CHUNK_WIDTH;
-            int block_z = z + c->z * CHUNK_WIDTH;
-
-            unsigned int air_start = terrain_height_at(block_x, block_z);
-            for (int y = 0; y < CHUNK_HEIGHT; y++)
+            if (c->blocks[XYZ(x, y, z)] != BLOCK_AIR)
+                continue;
+            
+            unsigned char block;
+            if (y > air_start)
             {
-                if (c->blocks[XYZ(x, y, z)] != BLOCK_AIR)
-                    continue;
-                
-                unsigned char block;
-
-                if (y > air_start)
-                {
-                    if (y <= water_end)
-                        block = BLOCK_WATER;
-                    else
-                        block = BLOCK_AIR;
-                }
+                if (y <= water_end)
+                    block = BLOCK_WATER;
                 else
-                {
-                    if (y < grass_start)
-                        block = BLOCK_SAND;
-                    else
-                        block = BLOCK_DIRT;
-
-                    if (block == BLOCK_DIRT && y == air_start)
-                    {
-                        if (y >= snow_start)
-                            block = BLOCK_SNOW_GRASS;
-                        else
-                            block = BLOCK_GRASS;
-                        
-                        if (rand() % 10000 > 9650)
-                            make_tree(c, x, y, z);
-                    }
-                }
-
-                c->blocks[XYZ(x, y, z)] = block;
+                    block = BLOCK_AIR;
             }
+            else
+            {
+                if (y < grass_start)
+                    block = BLOCK_SAND;
+                else
+                    block = BLOCK_DIRT;
+                if (block == BLOCK_DIRT && y == air_start)
+                {
+                    if (y >= snow_start)
+                        block = BLOCK_SNOW_GRASS;
+                    else
+                    {
+                        block = BLOCK_GRASS;
+                        if (rand() % 10000 > 9950 && x >= 2 && x <= CHUNK_WIDTH - 3 && z >= 2 && z <= CHUNK_WIDTH - 3)
+                            make_tree(c, x, y, z);
+                        else if (rand() % 10 > 6)
+                            c->blocks[XYZ(x, y + 1, z)] = BLOCK_GRASS_PLANT;
+                    }
+                    
+                }
+            }
+
+            c->blocks[XYZ(x, y, z)] = block;
         }
     }
 
@@ -153,6 +152,8 @@ void chunk_generate(Chunk* c)
     // load block differences from database
     db_get_blocks_for_chunk(c);
 #endif
+
+    return c;
 }
 
 void chunk_update_buffer(Chunk* c, Chunk* neighs[8])
@@ -209,19 +210,27 @@ void chunk_update_buffer(Chunk* c, Chunk* neighs[8])
 
                 if (c->blocks[XYZ(x, y, z)] == BLOCK_WATER)
                 {
-                    block_gen_vertices(
-                        vertices_water, curr_vertex_water_count, block_x, block_y, block_z,
-                        c->blocks[XYZ(x, y, z)], 0, BLOCK_SIZE, faces, ao
+                    gen_cube_vertices(
+                        vertices_water, &curr_vertex_water_count, block_x, block_y, block_z,
+                        c->blocks[XYZ(x, y, z)], BLOCK_SIZE, faces, ao
                     );
-                    curr_vertex_water_count += faces_visible * 6;
                 }
                 else
                 {
-                    block_gen_vertices(
-                        vertices_land, curr_vertex_land_count, block_x, block_y, block_z,
-                        c->blocks[XYZ(x, y, z)], 0, BLOCK_SIZE, faces, ao
-                    );
-                    curr_vertex_land_count += faces_visible * 6;
+                    if (block_is_plant(c->blocks[XYZ(x, y, z)]))
+                    {
+                        gen_plant_vertices(
+                            vertices_land, &curr_vertex_land_count, block_x, block_y, block_z,
+                            c->blocks[XYZ(x, y, z)], BLOCK_SIZE
+                        );
+                    }
+                    else
+                    {
+                        gen_cube_vertices(
+                            vertices_land, &curr_vertex_land_count, block_x, block_y, block_z,
+                            c->blocks[XYZ(x, y, z)], BLOCK_SIZE, faces, ao
+                        );
+                    }
                 }
                 
             }
@@ -260,16 +269,6 @@ int chunk_is_visible(int chunk_x, int chunk_z, vec4 planes[6])
     // and use this nice function to determine 
     // whether the box is visible to camera or not
     return glm_aabb_frustum(aabb, planes);
-}
-
-uint32_t chunk_hash_func(Chunk* c)
-{
-    return (c->x + c->z) * (c->x + c->z + 1) / 2 + c->z;
-}
-
-uint32_t chunk_hash_func2(int chunk_x, int chunk_z)
-{
-    return (chunk_x + chunk_z) * (chunk_x + chunk_z + 1) / 2 + chunk_z;
 }
 
 void chunk_delete(Chunk* c)
