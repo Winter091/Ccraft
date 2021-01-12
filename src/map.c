@@ -332,7 +332,7 @@ void map_render_chunks(Camera* cam)
     shader_set_texture_array(shader_block, "texture_sampler", texture_blocks, 0);
 
     shader_set_float3(shader_block, "cam_pos", cam->pos);
-    shader_set_float1(shader_block, "fog_dist", CHUNK_RENDER_RADIUS * CHUNK_SIZE * 0.9f);
+    shader_set_float1(shader_block, "fog_dist", CHUNK_RENDER_RADIUS * CHUNK_SIZE * 0.95f);
     shader_set_float3(shader_block, "fog_color", (vec3){0.49f, 0.6f, 0.63f});
 
     glDepthFunc(GL_LESS);

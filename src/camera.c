@@ -37,7 +37,7 @@ Camera* camera_create()
     cam->clip_near = BLOCK_SIZE / 10.0f;
 
     // at least 512 blocks
-    cam->clip_far = MAX((CHUNK_RENDER_RADIUS * 1.1f) * CHUNK_SIZE, 512 * BLOCK_SIZE);
+    cam->clip_far = MAX((CHUNK_RENDER_RADIUS * 1.2f) * CHUNK_SIZE, 512 * BLOCK_SIZE);
 
     // generate view, proj and vp matrices
     glm_look(cam->pos, cam->front, cam->up, cam->view_matrix);

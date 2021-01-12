@@ -4,7 +4,6 @@ in vec2 v_texcoord;
 in float v_ao;
 flat in uint v_tile;
 in float v_fog_amount;
-in float v_blend_amount;
 
 out vec4 out_color;
 
@@ -22,8 +21,6 @@ void main()
 
     color = mix(color, vec4(fog_color * block_light, 1.0), v_fog_amount);
     color.rgb *= block_light;
-
-    color.a -= v_blend_amount;
 
     out_color = color;
 }
