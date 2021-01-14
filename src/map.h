@@ -19,6 +19,7 @@ void map_set_block(int x, int y, int z, unsigned char block);
 void map_set_seed(int new_seed);
 void map_set_time(double new_time);
 double map_get_time();
+int map_get_seed();
 
 void map_save();
 

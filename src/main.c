@@ -15,6 +15,7 @@
 #include "utils.h"
 #include "framebuffer.h"
 #include "db.h"
+#include "fastnoiselite.h"
 
 void debug_callback(
     GLenum source, GLenum type, GLuint id, GLenum severity, 
@@ -107,7 +108,7 @@ void debug_callback(
             id, _type, _severity, _source, message);
 }
 
-static void print_fps()
+static void print_fps(GLFWwindow* window)
 {
     static double last_time = -1.0;
     if (last_time < 0)
@@ -121,7 +122,9 @@ static void print_fps()
     double curr_time = glfwGetTime();
     if (curr_time - last_time >= 1.0)
     {
-        printf("%d\n", frames);
+        char title[128];
+        sprintf(title, "%s - %d FPS", WINDOW_TITLE, frames);
+        glfwSetWindowTitle(window, title);
         frames = 0;
         last_time = curr_time;
     }
@@ -264,7 +267,7 @@ void render_second_pass(GameObjects* game, float dt)
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-void render(GLFWwindow* window, GameObjects* game, float dt)
+void render(GameObjects* game, float dt)
 {
     render_game(game);
 
@@ -304,15 +307,20 @@ int main()
     const GLubyte* version = glGetString(GL_VERSION);
     fprintf(stdout, "Using OpenGL %s\n", version);
 
+    const GLubyte* vendor = glGetString(GL_VENDOR);
+    const GLubyte* renderer = glGetString(GL_RENDERER);
+    fprintf(stdout, "Renderer: %s (%s)\n\n", vendor, renderer);
+
 #if USE_DATABASE
     db_init();
 #endif
 
     // Start at the beginning of day
-    glfwSetTime(DAY_LENGTH);
+    glfwSetTime(DAY_LENGTH / 2.0f);
 
     shaders_load();
     textures_load();
+    noise_init();
     map_init();
     ui_init((float)WINDOW_WIDTH / WINDOW_HEIGHT);
     framebuffer_create(WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -326,12 +334,12 @@ int main()
 
     while (!glfwWindowShouldClose(window))
     {
-        print_fps();
+        print_fps(window);
 
         float dt = get_dt();
 
         update(window, game, dt);
-        render(window, game, dt);
+        render(game, dt);
 
         glfwSwapBuffers(window);
         glfwPollEvents();

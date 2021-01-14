@@ -4,6 +4,8 @@
 #include "stdlib.h"
 #include "shader.h"
 #include "config.h"
+#include "block.h"
+#include "map.h"
 
 typedef struct
 {
@@ -137,6 +139,17 @@ void ui_render_block_wireframe(Player* p)
     mat4 model;
     glm_mat4_identity(model);
     glm_translate(model, (vec3){ x, y, z });
+
+    unsigned char block = map_get_block(
+        p->block_pointed_at[0], p->block_pointed_at[1], p->block_pointed_at[2]
+    );
+
+    // make wireframe smaller
+    if (block_is_plant(block))
+    {
+        glm_scale(model, (vec3){0.5, 0.5f, 0.5f});
+        glm_translate(model, (vec3){BLOCK_SIZE / 2, 0.0f, BLOCK_SIZE / 2});
+    }
 
     mat4 mvp;
     glm_mat4_mul(p->cam->vp_matrix, model, mvp);

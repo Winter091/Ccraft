@@ -55,8 +55,14 @@
 #define FOV_ZOOM 20
 
 // ============ Core game settings ==============
+
+// Chunk width should be a multiple of 8, otherwise
+// world generation will completely break
 #define CHUNK_WIDTH 32
+
+// Changing height will also break world generation
 #define CHUNK_HEIGHT 256
+
 #define BLOCK_SIZE 0.5f
 #define CHUNK_SIZE (float)(CHUNK_WIDTH * BLOCK_SIZE)
 

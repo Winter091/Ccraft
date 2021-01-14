@@ -3,6 +3,7 @@
 #include "math.h"
 #include "config.h"
 #include "utils.h"
+#include "block.h"
 
 Camera* camera_create()
 {
@@ -26,7 +27,7 @@ Camera* camera_create()
 
     cam->fov = FOV;
     cam->sens = 0.1f;
-    cam->move_speed = 15.0f * BLOCK_SIZE;
+    cam->move_speed = 5.0f * BLOCK_SIZE;
 
     cam->active = 0;
     cam->mouse_last_x = 0;
@@ -36,7 +37,7 @@ Camera* camera_create()
     cam->clip_near = BLOCK_SIZE / 10.0f;
 
     // at least 512 blocks
-    cam->clip_far = MAX((CHUNK_RENDER_RADIUS * 1.1f) * CHUNK_SIZE, 512 * BLOCK_SIZE);
+    cam->clip_far = MAX((CHUNK_RENDER_RADIUS * 1.2f) * CHUNK_SIZE, 512 * BLOCK_SIZE);
 
     // generate view, proj and vp matrices
     glm_look(cam->pos, cam->front, cam->up, cam->view_matrix);
@@ -109,9 +110,9 @@ static void update_keyboard(Camera* cam, GLFWwindow* window, double dt)
 
     // handle move speed
     if (key_pageup)
-        cam->move_speed *= 1.003f;
+        cam->move_speed *= (1 + dt);
     if (key_pagedown)
-        cam->move_speed /= 1.003f;
+        cam->move_speed /= (1 + dt);
 
     vec3 move;
 
@@ -170,10 +171,21 @@ void camera_update(Camera* cam, GLFWwindow* window, double dt)
 
 // ray - axis aligned box hit detection, see
 // https://medium.com/@bromanz/another-view-on-the-classic-ray-aabb-intersection-algorithm-for-bvh-traversal-41125138b525
-int camera_looks_at_block(Camera* cam, int x, int y, int z)
+int camera_looks_at_block(Camera* cam, int x, int y, int z, unsigned char block_type)
 {
     vec3 min = { x * BLOCK_SIZE, y * BLOCK_SIZE, z * BLOCK_SIZE };
     vec3 max = { min[0] + BLOCK_SIZE, min[1] + BLOCK_SIZE, min[2] + BLOCK_SIZE };
+
+    // make hitbox smaller
+    if (block_is_plant(block_type))
+    {
+        float a = BLOCK_SIZE * 0.25f;
+        min[0] += a;
+        min[2] += a;
+        max[0] -= a;
+        max[1] -= 2 * a;
+        max[2] -= a;
+    }
 
     float tmin = 0.00001f;
     float tmax = 10000.0f;
