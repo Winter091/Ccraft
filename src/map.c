@@ -219,28 +219,20 @@ static float map_get_blocks_light()
 {    
     double time = map_get_time();
 
-    if (time < DAY_TO_EVN_START)
-        return DAY_LIGHT;
-    
-    else if (time < EVN_TO_NIGHT_START)
-        return EVENING_LIGHT + (DAY_LIGHT - EVENING_LIGHT) * (1 - glm_smoothstep(DAY_TO_EVN_START, EVN_TO_NIGHT_START, time));
-    
-    else if (time < NIGHT_START)
-        return NIGHT_LIGHT + (EVENING_LIGHT - NIGHT_LIGHT) * (1 - glm_smoothstep(EVN_TO_NIGHT_START, NIGHT_START, time));
-
+    if (time < EVN_TO_NIGHT_START)
+        return glm_lerp(DAY_LIGHT, EVENING_LIGHT, glm_smoothstep(DAY_TO_EVN_START, EVN_TO_NIGHT_START, time));
     else if (time < NIGHT_TO_DAY_START)
-        return NIGHT_LIGHT;
-    
+        return glm_lerp(EVENING_LIGHT, NIGHT_LIGHT, glm_smoothstep(EVN_TO_NIGHT_START, NIGHT_START, time));
     else
-        return NIGHT_LIGHT + (DAY_LIGHT - NIGHT_LIGHT) * glm_smoothstep(NIGHT_TO_DAY_START, 1.0f, time);
+        return glm_lerp(NIGHT_LIGHT, DAY_LIGHT, glm_smoothstep(NIGHT_TO_DAY_START, 1.0, time));
 }
 
 static void map_get_fog_color(float* r, float* g, float* b)
 {    
     double time = map_get_time();
-    vec3 day_color = {0.5f, 0.6f, 0.7f}; 
-    vec3 evening_color = {1.0f, 0.9f, 0.7f}; 
-    vec3 night_color = {0.2f, 0.2f, 0.2f}; 
+    static vec3 day_color = {0.5f, 0.6f, 0.7f}; 
+    static vec3 evening_color = {1.0f, 0.9f, 0.7f}; 
+    static vec3 night_color = {0.2f, 0.2f, 0.2f}; 
     vec3 color;
 
     if (time < EVN_TO_NIGHT_START)

@@ -301,7 +301,7 @@ int main()
     if (context_flags & GLFW_OPENGL_DEBUG_CONTEXT)
     {
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
-        glDebugMessageCallbackARB(debug_callback, NULL);
+        glDebugMessageCallbackARB((GLDEBUGPROCARB)debug_callback, NULL);
     }
 
     const GLubyte* version = glGetString(GL_VERSION);
