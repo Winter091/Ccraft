@@ -5,7 +5,7 @@
 #include "limits.h"
 #include "shader.h"
 #include "texture.h"
-#include "perlin_noise.h"
+#include "fastnoiselite.h"
 #include "utils.h"
 #include "math.h"
 #include "db.h"
@@ -235,6 +235,26 @@ static float map_get_blocks_light()
         return NIGHT_LIGHT + (DAY_LIGHT - NIGHT_LIGHT) * glm_smoothstep(NIGHT_TO_DAY_START, 1.0f, time);
 }
 
+static void map_get_fog_color(float* r, float* g, float* b)
+{    
+    double time = map_get_time();
+    vec3 day_color = {0.5f, 0.6f, 0.7f}; 
+    vec3 evening_color = {1.0f, 0.9f, 0.7f}; 
+    vec3 night_color = {0.2f, 0.2f, 0.2f}; 
+    vec3 color;
+
+    if (time < EVN_TO_NIGHT_START)
+        glm_vec3_mix(day_color, evening_color, glm_smoothstep(DAY_TO_EVN_START, EVN_TO_NIGHT_START, time), color);
+    else if (time < NIGHT_TO_DAY_START)
+        glm_vec3_mix(evening_color, night_color, glm_smoothstep(EVN_TO_NIGHT_START, NIGHT_START, time), color);
+    else
+        glm_vec3_mix(night_color, day_color, glm_smoothstep(NIGHT_TO_DAY_START, 1.0, time), color);
+
+    *r = color[0];
+    *g = color[1];
+    *b = color[2];
+}
+
 void map_render_sun_moon(Camera* cam)
 {
     mat4 model_sun, model_moon;
@@ -333,7 +353,10 @@ void map_render_chunks(Camera* cam)
 
     shader_set_float3(shader_block, "cam_pos", cam->pos);
     shader_set_float1(shader_block, "fog_dist", CHUNK_RENDER_RADIUS * CHUNK_SIZE * 0.95f);
-    shader_set_float3(shader_block, "fog_color", (vec3){0.49f, 0.6f, 0.63f});
+
+    float r, g, b;
+    map_get_fog_color(&r, &g, &b);
+    shader_set_float3(shader_block, "fog_color", (vec3){r, g, b});
 
     glDepthFunc(GL_LESS);
     glDisable(GL_BLEND);
@@ -443,12 +466,18 @@ void map_update(Camera* cam)
 
 void map_set_seed(int new_seed)
 {
-    *perlin2d_get_world_seed() = new_seed;
+    printf("Using seed: %d\n", new_seed);
+    noise_set_seed(new_seed);
 }
 
 void map_set_time(double new_time)
 {
     glfwSetTime(DAY_LENGTH / 2 + new_time * DAY_LENGTH);
+}
+
+int map_get_seed()
+{
+    return noise_get_seed();
 }
 
 void map_save()

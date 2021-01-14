@@ -15,7 +15,7 @@
 #define MOTION_BLUR_SAMPLES 7
 
 // Depth of field effect
-#define DOF_ENABLED 1
+#define DOF_ENABLED 0
 #define DOF_SMOOTH 1  // Smooth DoF is very expensive but looks good
 #define DOF_MAX_BLUR 0.023f
 #define DOF_APERTURE 0.3505f
@@ -36,7 +36,7 @@
 #define CURRENT_MAP "maps/test_map.db"
 #define USE_DATABASE 1
 
-#define DISABLE_TIME_FLOW 1
+#define DISABLE_TIME_FLOW 0
 
 // full day length in seconds
 #define DAY_LENGTH 1200

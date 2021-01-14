@@ -56,7 +56,10 @@ static void db_insert_default_map_info()
 
     // generate random seed
     srand(time(0));
-    int seed = rand() % 10000 - 5000;
+    int seed = rand();
+    seed = ((seed >> 16) ^ seed) * 0x45d9f3b;
+    seed = ((seed >> 16) ^ seed) * 0x45d9f3b;
+    seed = (seed >> 16) ^ seed;
     printf("Generated world seed: %d\n", seed);
 
     sqlite3_bind_int(stmt, 1, seed);

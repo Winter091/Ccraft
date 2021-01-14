@@ -15,6 +15,7 @@
 #include "utils.h"
 #include "framebuffer.h"
 #include "db.h"
+#include "fastnoiselite.h"
 
 void debug_callback(
     GLenum source, GLenum type, GLuint id, GLenum severity, 
@@ -308,17 +309,18 @@ int main()
 
     const GLubyte* vendor = glGetString(GL_VENDOR);
     const GLubyte* renderer = glGetString(GL_RENDERER);
-    fprintf(stdout, "Renderer: %s (%s)\n", vendor, renderer);
+    fprintf(stdout, "Renderer: %s (%s)\n\n", vendor, renderer);
 
 #if USE_DATABASE
     db_init();
 #endif
 
     // Start at the beginning of day
-    glfwSetTime(DAY_LENGTH);
+    glfwSetTime(DAY_LENGTH / 2.0f);
 
     shaders_load();
     textures_load();
+    noise_init();
     map_init();
     ui_init((float)WINDOW_WIDTH / WINDOW_HEIGHT);
     framebuffer_create(WINDOW_WIDTH, WINDOW_HEIGHT);

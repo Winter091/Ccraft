@@ -1,83 +1,12 @@
 #include "chunk.h"
 
 #include "glad/glad.h"
-#include "perlin_noise.h"
 #include "stdlib.h"
 #include "block.h"
 #include "utils.h"
 #include "db.h"
 #include "string.h"
-
-static void make_tree(Chunk* c, int x, int y, int z)
-{
-    for (int i = 1; i <= 5; i++)
-        c->blocks[XYZ(x, y + i, z)] = BLOCK_WOOD;
-    c->blocks[XYZ(x, y + 7, z)] = BLOCK_LEAVES;
-
-    for (int dx = -2; dx <= 2; dx++)
-        for (int dz = -1; dz <= 1; dz++)
-            for (int dy = 4; dy <= 5; dy++)
-            {
-                int bx = x + dx;
-                int by = y + dy;
-                int bz = z + dz;
-
-                if (bx < 0 || bx >= CHUNK_WIDTH || by < 0 || by >= CHUNK_HEIGHT || bz < 0 || bz >= CHUNK_WIDTH)
-                    continue;
-                else if (c->blocks[XYZ(bx, by, bz)] != BLOCK_AIR)
-                    continue;
-                
-                c->blocks[XYZ(bx, by, bz)] = BLOCK_LEAVES;
-            }
-
-    for (int dx = -1; dx <= 1; dx++)
-        for (int dz = -2; dz <= 2; dz++)
-            for (int dy = 4; dy <= 5; dy++)
-            {
-                int bx = x + dx;
-                int by = y + dy;
-                int bz = z + dz;
-
-                if (bx < 0 || bx >= CHUNK_WIDTH || by < 0 || by >= CHUNK_HEIGHT || bz < 0 || bz >= CHUNK_WIDTH)
-                    continue;
-                else if (c->blocks[XYZ(bx, by, bz)] != BLOCK_AIR)
-                    continue;
-                
-                c->blocks[XYZ(bx, by, bz)] = BLOCK_LEAVES;
-            }
-
-    for (int dx = -1; dx <= 1; dx++)
-        for (int dz = -1; dz <= 1; dz++)
-            for (int dy = 3; dy <= 6; dy++)
-            {
-                int bx = x + dx;
-                int by = y + dy;
-                int bz = z + dz;
-
-                if (bx < 0 || bx >= CHUNK_WIDTH || by < 0 || by >= CHUNK_HEIGHT || bz < 0 || bz >= CHUNK_WIDTH)
-                    continue;
-                else if (c->blocks[XYZ(bx, by, bz)] != BLOCK_AIR)
-                    continue;
-                
-                c->blocks[XYZ(bx, by, bz)] = BLOCK_LEAVES;
-            }
-}
-
-static unsigned int terrain_height_at(int x, int z)
-{  
-    float freq = 0.0075f;
-
-    float height = perlin2d(
-        (float)x * freq, (float)z * freq, 
-        8,             // octaves
-        0.5f,          // persistence
-        1.5f,          // lacunarity
-        0.5f           // amplitude
-    );
-
-    height *= CHUNK_HEIGHT * 0.5098f;
-    return height;
-}
+#include "worldgen.h"
 
 Chunk* chunk_create(int chunk_x, int chunk_z)
 {
@@ -96,62 +25,8 @@ Chunk* chunk_create(int chunk_x, int chunk_z)
     c->vertex_water_count = 0;
 
     // Generate terrain
-    const int water_end = 57;
-    const int grass_start = 60; 
-    const int snow_start  = 80;
-    
     c->blocks = calloc(CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH, 1);
-    for (int x = 0; x < CHUNK_WIDTH; x++)
-    for (int z = 0; z < CHUNK_WIDTH; z++)
-    {
-        int block_x = x + c->x * CHUNK_WIDTH;
-        int block_z = z + c->z * CHUNK_WIDTH;
-
-        unsigned int air_start = terrain_height_at(block_x, block_z);
-
-        for (int y = 0; y < CHUNK_HEIGHT; y++)
-        {
-            if (c->blocks[XYZ(x, y, z)] != BLOCK_AIR)
-                continue;
-            
-            unsigned char block;
-            if (y > air_start)
-            {
-                if (y <= water_end)
-                    block = BLOCK_WATER;
-                else
-                    block = BLOCK_AIR;
-            }
-            else
-            {
-                if (y < grass_start)
-                    block = BLOCK_SAND;
-                else
-                    block = BLOCK_DIRT;
-                if (block == BLOCK_DIRT && y == air_start)
-                {
-                    if (y >= snow_start)
-                        block = BLOCK_SNOW_GRASS;
-                    else
-                    {
-                        block = BLOCK_GRASS;
-                        if (rand() % 10000 > 9950 && x >= 2 && x <= CHUNK_WIDTH - 3 && z >= 2 && z <= CHUNK_WIDTH - 3)
-                            make_tree(c, x, y, z);
-                        else if (rand() % 10 > 7)
-                        {
-                            if (rand() % 2)
-                                c->blocks[XYZ(x, y + 1, z)] = BLOCK_FLOWER_DANDELION;
-                            else
-                                c->blocks[XYZ(x, y + 1, z)] = BLOCK_FLOWER_ROSE;
-                        }
-                    }
-                    
-                }
-            }
-
-            c->blocks[XYZ(x, y, z)] = block;
-        }
-    }
+    worldgen_generate_chunk(c);
 
 #if USE_DATABASE
     // load block differences from database
