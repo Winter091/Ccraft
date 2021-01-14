@@ -20,6 +20,7 @@ Biome;
 
 static Biome get_biome(int bx, int bz)
 {
+    // Voronoi noise
     noise_set_return_type(FNL_CELLULAR_RETURN_VALUE_CELLVALUE);
     noise_set_settings(FNL_NOISE_CELLULAR, 0.005f, 1, 2.0f, 0.5f);
 
@@ -43,17 +44,7 @@ static Biome get_biome(int bx, int bz)
         return BIOME_DESERT;
 }
 
-static unsigned char random_grass()
-{
-    int r = rand() % 3;
-    if (r == 0)
-        return BLOCK_GRASS_PLANT;
-    else if (r == 1)
-        return BLOCK_FLOWER_DANDELION;
-    else
-        return BLOCK_FLOWER_ROSE;
-}
-
+// I should rewrite it, it's not effective
 static void make_tree(Chunk* c, int x, int y, int z)
 {
     for (int i = 1; i <= 5; i++)
@@ -135,11 +126,12 @@ static void gen_forest(Chunk* c, int x, int z, int h)
         c->blocks[XYZ(x, y, z)] = BLOCK_DIRT;
     c->blocks[XYZ(x, h, z)] = BLOCK_GRASS;
 
-    if (rand() % 10000 > 9750 && x >= 2 && z >= 2 && x <= CHUNK_WIDTH - 3 && z <= CHUNK_WIDTH - 3)
+    if (rand() % 1000 > 975 && x >= 2 && z >= 2 && x <= CHUNK_WIDTH - 3 && z <= CHUNK_WIDTH - 3)
         make_tree(c, x, h, z);
 
     else if (rand() % 10 >= 9)
         c->blocks[XYZ(x, h + 1, z)] = BLOCK_GRASS_PLANT;
+    
     else if (rand() % 100 > 97)
     {
         if (rand() % 2)
@@ -158,10 +150,19 @@ static void gen_flower_forest(Chunk* c, int x, int z, int h)
         c->blocks[XYZ(x, y, z)] = BLOCK_DIRT;
     c->blocks[XYZ(x, h, z)] = BLOCK_GRASS;
 
-    if (rand() % 10000 > 9750 && x >= 2 && z >= 2 && x <= CHUNK_WIDTH - 3 && z <= CHUNK_WIDTH - 3)
+    if (rand() % 1000 > 975 && x >= 2 && z >= 2 && x <= CHUNK_WIDTH - 3 && z <= CHUNK_WIDTH - 3)
         make_tree(c, x, h, z);
+
     else if (rand() % 10 >= 7)
-        c->blocks[XYZ(x, h + 1, z)] = random_grass();
+    {
+        int r = rand() % 3;
+        if (r == 0)
+            c->blocks[XYZ(x, h + 1, z)] = BLOCK_GRASS_PLANT;
+        else if (r == 1)
+            c->blocks[XYZ(x, h + 1, z)] = BLOCK_FLOWER_DANDELION;
+        else
+            c->blocks[XYZ(x, h + 1, z)] = BLOCK_FLOWER_ROSE;
+    }
 
     for (int y = h + 1; y <= water_level; y++)
         c->blocks[XYZ(x, y, z)] = BLOCK_WATER;
@@ -192,13 +193,13 @@ static void gen_desert(Chunk* c, int x, int z, int h)
         c->blocks[XYZ(x, y, z)] = BLOCK_SANDSTONE;
     c->blocks[XYZ(x, h, z)] = BLOCK_SAND;
 
-    if (rand() % 10000 > 9950)
+    if (rand() % 1000 > 995)
     {
         int cactus_height = rand() % 6;
         for (int y = 0; y < cactus_height; y++)
             c->blocks[XYZ(x, h + 1 + y, z)] = BLOCK_CACTUS;
     }
-    else if (rand() % 10000 > 9950)
+    else if (rand() % 1000 > 995)
         c->blocks[XYZ(x, h + 1, z)] = BLOCK_DEAD_PLANT;
 
     for (int y = h + 1; y <= water_level; y++)
@@ -267,12 +268,19 @@ static float blerp(float h11, float h12, float h21, float h22, float x, float y)
 
 void worldgen_generate_chunk(Chunk* c)
 {
+    // Set seed for rand() in order to always get the
+    // same grass/flowers/trees
     unsigned int seed = noise_get_seed();
     seed = ((seed >> 16) ^ c->x) * 0x45d9f3b;
     seed = ((seed >> 16) ^ c->z) * 0x45d9f3b;
     seed = (seed >> 16) ^ seed;
     srand(seed);
     
+    /*
+    Generate height only for some blocks (for every 8th block
+    in a grid: (0, 0), (0, 8), (8, 0) etc), then interpolate
+    these heights in order to get all remaining heights.
+    */
     Biome biomes[CHUNK_WIDTH + 1][CHUNK_WIDTH + 1];
     int heightmap[CHUNK_WIDTH + 1][CHUNK_WIDTH + 1];
     
@@ -287,6 +295,7 @@ void worldgen_generate_chunk(Chunk* c)
 
         biomes[x][z] = get_biome(bx, bz);
 
+        // Generate height using noise only for some blocks
         if (x % 8 == 0 && z % 8 == 0)
             heightmap[x][z] = get_height(biomes[x][z], bx, bz);
     }
@@ -294,6 +303,7 @@ void worldgen_generate_chunk(Chunk* c)
     for (int x = 0; x < CHUNK_WIDTH; x++)
     for (int z = 0; z < CHUNK_WIDTH; z++)
     {
+        // Interpolate generated heights over all blocks
         if (x % 8 || z % 8)
         {
             heightmap[x][z] = blerp(
