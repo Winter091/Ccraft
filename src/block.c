@@ -192,6 +192,16 @@ void gen_plant_vertices(
     }
 }
 
+void block_gen_aabb(int x, int y, int z, vec3 aabb[2])
+{
+    aabb[0][0] = x * BLOCK_SIZE;
+    aabb[0][1] = y * BLOCK_SIZE;
+    aabb[0][2] = z * BLOCK_SIZE;
+    aabb[1][0] = aabb[0][0] + BLOCK_SIZE;
+    aabb[1][1] = aabb[0][1] + BLOCK_SIZE;
+    aabb[1][2] = aabb[0][2] + BLOCK_SIZE;
+}
+
 int block_is_solid(unsigned char block)
 {
     switch (block)

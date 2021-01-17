@@ -51,6 +51,18 @@ static void regenerate_item_buffer(Player* p)
     free(vertices);
 }
 
+static void update_hitbox(Player* p)
+{
+    p->hitbox[0][0] = p->cam->pos[0] - BLOCK_SIZE * 0.3f;
+    p->hitbox[0][1] = p->cam->pos[1] - BLOCK_SIZE * 1.625f;
+    p->hitbox[0][2] = p->cam->pos[2] - BLOCK_SIZE * 0.3f;
+    p->hitbox[1][0] = p->cam->pos[0] + BLOCK_SIZE * 0.3f;
+    p->hitbox[1][1] = p->cam->pos[1] + BLOCK_SIZE * 0.175f;
+    p->hitbox[1][2] = p->cam->pos[2] + BLOCK_SIZE * 0.3f;
+
+    //printf("%.2f %.2f %.2f === %.2f %.2f %.2f\n", p->hitbox[0][0], p->hitbox[0][1], p->hitbox[0][2], p->hitbox[1][0], p->hitbox[1][1], p->hitbox[1][2]);
+}
+
 Player* player_create()
 {
     Player* p = malloc(sizeof(Player));
@@ -67,6 +79,16 @@ Player* player_create()
     p->block_pointed_at[0] = 0;
     p->block_pointed_at[1] = 0;
     p->block_pointed_at[2] = 0;
+
+    update_hitbox(p);
+    p->move_speed = 0.0f;
+    p->max_speed = 5.612f * BLOCK_SIZE;
+    p->horizontal_move[0] = 0.0f;
+    p->horizontal_move[1] = 0.0f;
+    p->vertical_move = 0.0f;
+    glm_vec3_fill(p->moved_now, 0.0f);
+
+    p->on_ground = 0;
 
     p->VAO_item = 0;
     p->VBO_item = 0;
@@ -135,9 +157,9 @@ void player_set_build_block(Player* p, int new_block)
     if (new_block < 0) 
         new_block += BLOCKS_AMOUNT;
     
-    if (new_block == 1)
+    if (new_block == BLOCK_PLAYER_HAND)
     {
-        if (p->build_block > new_block)
+        if (new_block < p->build_block)
             new_block--;
         else
             new_block++;
@@ -147,10 +169,245 @@ void player_set_build_block(Player* p, int new_block)
     regenerate_item_buffer(p);
 }
 
+int intersects(vec3 box[2], vec3 other[2]) {
+  return (box[0][0] < other[1][0] && box[1][0] > other[0][0])
+      && (box[0][1] < other[1][1] && box[1][1] > other[0][1])
+      && (box[0][2] < other[1][2] && box[1][2] > other[0][2]);
+}
+
+void collide_with_map(Player* p)
+{
+    int moving_x = p->horizontal_move[0] >= 0;
+    int moving_y = p->vertical_move >= 0;
+    int moving_z = p->horizontal_move[1] >= 0;
+    
+    p->cam->pos[1] += p->moved_now[1];
+    update_hitbox(p);
+    p->on_ground = 0;
+
+    // position of camera in blocks
+    int cam_x = p->cam->pos[0] / BLOCK_SIZE;
+    int cam_y = p->cam->pos[1] / BLOCK_SIZE;
+    int cam_z = p->cam->pos[2] / BLOCK_SIZE;
+
+    for (int x = -3; x <= 3; x++)
+    for (int y = -3; y <= 3; y++)
+    for (int z = -3; z <= 3; z++)
+    {
+        int bx = cam_x + x;
+        int by = cam_y + y;
+        int bz = cam_z + z;
+
+        unsigned char block = map_get_block(bx, by, bz);
+        if (!block_is_solid(block) || block_is_plant(block))
+            continue;
+
+        vec3 block_hitbox[2];
+        block_gen_aabb(bx, by, bz, block_hitbox);
+
+        if (intersects(p->hitbox, block_hitbox))
+        {
+            if (moving_y && p->hitbox[1][1] > block_hitbox[0][1])
+            {
+                p->cam->pos[1] -= (p->hitbox[1][1] - block_hitbox[0][1]) + 0.0001f;
+                p->vertical_move = 0.0f;
+                //printf("+Y ");
+                update_hitbox(p);
+                goto CHECK_Z;
+            }
+            else if (!moving_y && p->hitbox[0][1] < block_hitbox[1][1])
+            {
+                p->cam->pos[1] += (block_hitbox[1][1] - p->hitbox[0][1]) + 0.0001f;
+                p->vertical_move = 0.0f;
+                //printf("-Y ");
+                p->on_ground = 1;
+                update_hitbox(p);
+                goto CHECK_Z;
+            }
+        }
+    }
+    
+CHECK_Z:
+
+    p->cam->pos[2] += p->moved_now[2];
+    update_hitbox(p);
+    cam_z = p->cam->pos[2] / BLOCK_SIZE;
+
+    for (int x = -3; x <= 3; x++)
+    for (int y = -3; y <= 3; y++)
+    for (int z = -3; z <= 3; z++)
+    {       
+        int bx = cam_x + x;
+        int by = cam_y + y;
+        int bz = cam_z + z;
+
+        unsigned char block = map_get_block(bx, by, bz);
+        if (!block_is_solid(block) || block_is_plant(block))
+            continue;
+
+        vec3 block_hitbox[2];
+        block_gen_aabb(bx, by, bz, block_hitbox);
+
+        if (intersects(p->hitbox, block_hitbox))
+        {
+            if (moving_z && p->hitbox[1][2] > block_hitbox[0][2])
+            {
+                p->cam->pos[2] -= (p->hitbox[1][2] - block_hitbox[0][2]) + 0.0001f;
+                p->horizontal_move[1] = 0;
+                //printf("+Z ");
+                update_hitbox(p);
+                goto CHECK_X;
+            }
+            else if (!moving_z && p->hitbox[0][2] < block_hitbox[1][2])
+            {
+                p->cam->pos[2] += (block_hitbox[1][2] - p->hitbox[0][2]) + 0.0001f;
+                p->horizontal_move[1] = 0;
+                //printf("-Z ");
+                update_hitbox(p);
+                goto CHECK_X;
+            }
+        }
+    }
+
+     
+CHECK_X:
+
+    p->cam->pos[0] += p->moved_now[0];
+    update_hitbox(p);
+    cam_x = p->cam->pos[0] / BLOCK_SIZE;
+
+    for (int x = -3; x <= 3; x++)
+    for (int y = -3; y <= 3; y++)
+    for (int z = -3; z <= 3; z++)
+    {
+        int bx = cam_x + x;
+        int by = cam_y + y;
+        int bz = cam_z + z;
+
+        unsigned char block = map_get_block(bx, by, bz);
+        if (!block_is_solid(block) || block_is_plant(block))
+            continue;
+
+        vec3 block_hitbox[2];
+        block_gen_aabb(bx, by, bz, block_hitbox);
+
+        if (intersects(p->hitbox, block_hitbox))
+        {            
+            if (moving_x && p->hitbox[1][0] > block_hitbox[0][0])
+            {
+                p->cam->pos[0] -= (p->hitbox[1][0] - block_hitbox[0][0]) + 0.0001f;
+                p->horizontal_move[0] = 0;
+                //printf("+X ");
+                update_hitbox(p);
+            }
+            else if (!moving_x && p->hitbox[0][0] < block_hitbox[1][0])
+            {
+                p->cam->pos[0] += (block_hitbox[1][0] - p->hitbox[0][0]) + 0.0001f;
+                p->horizontal_move[0] = 0;
+                //printf("-X ");
+                update_hitbox(p);
+            }
+        }
+    }
+
+    printf("\n");
+}
+
+void move(Player* p, GLFWwindow* window, double dt)
+{
+    static int key_w, key_s, key_a, key_d, key_shift, 
+        key_ctrl, key_c, key_pageup, key_pagedown, key_space;
+
+    key_w        = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
+    key_s        = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
+    key_a        = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
+    key_d        = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
+    key_shift    = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
+    key_ctrl     = glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
+    key_c        = glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS;
+    key_pageup   = glfwGetKey(window, GLFW_KEY_PAGE_UP) == GLFW_PRESS;
+    key_pagedown = glfwGetKey(window, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS;
+    key_space    = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
+
+    vec3 front, right, up;
+
+    vec2 horizontal_move = {0.0f};
+    float vertical_move = 0.0f;
+    
+    front[0] = cosf(glm_rad(p->cam->yaw)) * cosf(glm_rad(0.0f));
+    front[1] = sinf(glm_rad(0.0f));
+    front[2] = sinf(glm_rad(p->cam->yaw)) * cosf(glm_rad(0.0f));
+    glm_vec3_normalize(front);
+
+    glm_vec3_crossn(front, p->cam->up, right);
+    glm_vec3_copy(p->cam->up, up);
+
+    glm_vec2_scale(p->horizontal_move, 1 / (1 + dt), p->horizontal_move);
+    //p->vertical_move /= (1 + dt);
+
+    if (key_w || key_s)
+    {
+        vec2 move = {front[0], front[2]};
+
+        if (key_s) glm_vec2_negate(move);
+        glm_vec2_add(horizontal_move, move, horizontal_move);
+    }
+
+    if (key_a || key_d)
+    {
+        vec2 move = {right[0], right[2]};
+        
+        if (key_a) glm_vec2_negate(move);
+        glm_vec2_add(horizontal_move, move, horizontal_move);
+    }
+
+    if (key_shift || key_ctrl)
+    {
+        float move = 5.0f;
+        
+        if (key_ctrl) move = -move;
+        vertical_move += move;
+    }
+
+    //if (p->on_ground)
+        //printf("GROUND!\n");
+    if (key_space && p->on_ground)
+    {
+        p->vertical_move = 9.0f;
+        vertical_move = 0.0f;
+        p->on_ground = 0;
+    }
+
+    glm_vec2_normalize(horizontal_move);
+    glm_vec2_scale(horizontal_move, dt * 12.0f, horizontal_move);
+    vertical_move -= 2.5f;
+    vertical_move *= dt * 12.0f;
+    
+    glm_vec2_add(p->horizontal_move, horizontal_move, p->horizontal_move);
+    float hor_speed = glm_vec2_norm(p->horizontal_move);
+    if (hor_speed > p->max_speed)
+    {
+        glm_vec2_scale(p->horizontal_move, p->max_speed / hor_speed, p->horizontal_move);
+    }
+
+    p->vertical_move += vertical_move;
+
+    vec3 move = {p->horizontal_move[0], p->vertical_move, p->horizontal_move[1]};
+    glm_vec3_scale(move, dt, move);
+
+    glm_vec3_copy(p->cam->pos, p->cam->prev_pos);
+    //glm_vec3_add(p->cam->pos, move, p->cam->pos);
+    glm_vec3_copy(move, p->moved_now);
+
+    collide_with_map(p);
+}
+
 void player_update(Player* p, GLFWwindow* window, double dt)
 {
-    camera_update(p->cam, window, dt);
+    camera_update_view_dir(p->cam, window);
+    move(p, window, dt);
     update_block_pointing_at(p);
+    camera_update_matrices(p->cam);
 }
 
 void player_handle_left_mouse_click(Player* p)

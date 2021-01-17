@@ -33,7 +33,7 @@ vec3 depth_of_field(vec3 rgb)
 {
     float factor = dof_get_factor();
     
-    vec2 dofblur = vec2(clamp(factor * u_aperture, -u_max_blur, u_max_blur));
+    vec2 dofblur = vec2(clamp(factor * u_aperture, -u_max_blur, u_max_blur / 2.0));
     vec2 dofblur9 = dofblur * 0.9;
     vec2 dofblur7 = dofblur * 0.7;
     vec2 dofblur4 = dofblur * 0.4;

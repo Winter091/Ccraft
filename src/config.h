@@ -10,12 +10,12 @@
 #define ANISOTROPIC_FILTERING_LEVEL 16
 
 // Motion blur effect
-#define MOTION_BLUR_ENABLED 1
+#define MOTION_BLUR_ENABLED 0
 #define MOTION_BLUR_STRENGTH 0.001f
 #define MOTION_BLUR_SAMPLES 7
 
 // Depth of field effect
-#define DOF_ENABLED 1
+#define DOF_ENABLED 0
 #define DOF_SMOOTH 1  // Smooth DoF is very expensive but looks good
 #define DOF_MAX_BLUR 0.023f
 #define DOF_APERTURE 0.3505f
@@ -34,7 +34,7 @@
 
 // ============= Gameplay settings ==============
 #define CURRENT_MAP "maps/test_map.db"
-#define USE_DATABASE 1
+#define USE_DATABASE 0
 
 #define DISABLE_TIME_FLOW 0
 
@@ -63,7 +63,7 @@
 // Changing height will also break world generation
 #define CHUNK_HEIGHT 256
 
-#define BLOCK_SIZE 0.5f
+#define BLOCK_SIZE 1.0f
 #define CHUNK_SIZE (float)(CHUNK_WIDTH * BLOCK_SIZE)
 
 #define BLOCK_BREAK_RADIUS 6

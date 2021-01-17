@@ -9,6 +9,7 @@
 #include "utils.h"
 #include "math.h"
 #include "db.h"
+#include "block.h"
 
 LINKEDLIST_DEFINITION(Chunk*, chunks);
 HASHMAP_DEFINITION(Chunk*, chunks);
@@ -383,8 +384,8 @@ void map_render_chunks(Camera* cam)
 unsigned char map_get_block(int x, int y, int z)
 {
     Chunk* c = map_get_chunk(chunked(x), chunked(z));
-    if (!c || !c->is_loaded) 
-        return 0;
+    if (!c || !c->is_loaded || y >= CHUNK_HEIGHT || y < 0) 
+        return BLOCK_AIR;
 
     return c->blocks[XYZ(blocked(x), y, blocked(z))];
 }

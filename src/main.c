@@ -162,8 +162,8 @@ static float get_current_dof_depth(float dt)
 
 void update(GLFWwindow* window, GameObjects* game, float dt)
 {
-    player_update(game->player, window, dt);
     map_update(game->player->cam);
+    player_update(game->player, window, dt);
 }
 
 void render_game(GameObjects* game)

@@ -147,6 +147,53 @@ static void update_keyboard(Camera* cam, GLFWwindow* window, double dt)
     }
 }
 
+void camera_update_view_dir(Camera* cam, GLFWwindow* window)
+{
+    double mouse_x, mouse_y;
+    glfwGetCursorPos(window, &mouse_x, &mouse_y);
+
+    if (!cam->active)
+    {
+        cam->active = 1;
+        cam->mouse_last_x = mouse_x;
+        cam->mouse_last_y = mouse_y;
+        return;
+    }
+
+    double dx = mouse_x - cam->mouse_last_x;
+    double dy = mouse_y - cam->mouse_last_y;
+
+    cam->mouse_last_x = mouse_x;
+    cam->mouse_last_y = mouse_y;
+
+    cam->yaw += dx * cam->sens;
+    cam->pitch -= dy * cam->sens;
+
+    if (cam->pitch < -89.9f)
+        cam->pitch = -89.9f;
+    else if (cam->pitch > 89.9f)
+        cam->pitch = 89.9f;
+
+    if (cam->yaw >= 360.0f) cam->yaw -= 360.0f;
+    if (cam->yaw <= 0.0f) cam->yaw += 360.0f;
+
+    cam->front[0] = cosf(glm_rad(cam->yaw)) * cosf(glm_rad(cam->pitch));
+    cam->front[1] = sinf(glm_rad(cam->pitch));
+    cam->front[2] = sinf(glm_rad(cam->yaw)) * cosf(glm_rad(cam->pitch));
+    glm_vec3_normalize(cam->front);
+}
+
+void camera_update_matrices(Camera* cam)
+{
+    // update vp matrices
+    glm_mat4_copy(cam->view_matrix, cam->prev_view_matrix);
+    glm_look(cam->pos, cam->front, cam->up, cam->view_matrix);
+    glm_mat4_mul(cam->proj_matrix, cam->view_matrix, cam->vp_matrix);
+
+    // update frustum planes
+    glm_frustum_planes(cam->vp_matrix, cam->frustum_planes);
+}
+
 void camera_update(Camera* cam, GLFWwindow* window, double dt)
 {
     int focused = glfwGetInputMode(window, GLFW_CURSOR) == GLFW_CURSOR_DISABLED;

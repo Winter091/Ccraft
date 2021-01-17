@@ -62,6 +62,8 @@ void gen_plant_vertices(
     int block_type, float block_size
 );
 
+void block_gen_aabb(int x, int y, int z, vec3 aabb[2]);
+
 int block_is_solid(unsigned char block);
 int block_is_transparent(unsigned char block);
 int block_is_plant(unsigned char block);
