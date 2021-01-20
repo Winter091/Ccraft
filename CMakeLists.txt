@@ -5,29 +5,31 @@ project(Ccraft)
 
 file(GLOB SOURCE_FILES src/*.c)
 add_executable(
-    Ccraft 
-    ${SOURCE_FILES} 
+    Ccraft
+    ${SOURCE_FILES}
     deps/glad-0.1.34/src/glad.c
     deps/stb_image-2.26/src/stb_image.c
     deps/sqlite-3.34.0/src/sqlite3.c
+    deps/fastnoise-1.0.1/src/fastnoiselite.c
 )
 
 target_compile_options(Ccraft PRIVATE -Wall -std=c99)
 
-# add deps to the build process
+# Add other CMake projects to build tree
 add_subdirectory(deps/glfw-3.3.2)
 add_subdirectory(deps/cglm-0.7.8)
 
-# specify include directories
+# link static libs
+target_link_libraries(Ccraft glfw ${GLFW_LIBRARIES})
+target_link_libraries(Ccraft cglm)
+
+# Add include directories
 target_include_directories(Ccraft PRIVATE deps/glfw-3.3.2/include)
 target_include_directories(Ccraft PRIVATE deps/glad-0.1.34/include)
 target_include_directories(Ccraft PRIVATE deps/cglm-0.7.8/include)
 target_include_directories(Ccraft PRIVATE deps/stb_image-2.26/include)
 target_include_directories(Ccraft PRIVATE deps/sqlite-3.34.0/include)
-
-# link static libs
-target_link_libraries(Ccraft glfw ${GLFW_LIBRARIES})
-target_link_libraries(Ccraft cglm)
+target_include_directories(Ccraft PRIVATE deps/fastnoise-1.0.1/include)
 
 # copy shaders dir to build folder
 add_custom_command(
