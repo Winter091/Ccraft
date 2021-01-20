@@ -36,7 +36,7 @@ Chunk* chunk_create(int chunk_x, int chunk_z)
     return c;
 }
 
-void chunk_update_buffer(Chunk* c, Chunk* neighs[8])
+void chunk_rebuild_buffer(Chunk* c, Chunk* neighs[8])
 {
     if (c->is_loaded)
     {
@@ -66,7 +66,8 @@ void chunk_update_buffer(Chunk* c, Chunk* neighs[8])
         for (int y = 0; y < CHUNK_HEIGHT; y++)
             for (int z = 0; z < CHUNK_WIDTH; z++)
             {
-                if (c->blocks[XYZ(x, y, z)] == BLOCK_AIR)
+                unsigned char block = c->blocks[XYZ(x, y, z)];
+                if (block == BLOCK_AIR)
                     continue;
 
                 int faces[6];
@@ -90,9 +91,16 @@ void chunk_update_buffer(Chunk* c, Chunk* neighs[8])
 
                 if (c->blocks[XYZ(x, y, z)] == BLOCK_WATER)
                 {
+                    unsigned char block_above = BLOCK_AIR;
+                    if (y + 1 < CHUNK_HEIGHT)
+                        block_above = c->blocks[XYZ(x, y + 1, z)];
+                    
+                    // Water should be shorter only if there's air above
+                    int make_shorter = block_above == BLOCK_AIR ? 1 : 0;
+                    
                     gen_cube_vertices(
                         vertices_water, &curr_vertex_water_count, block_x, block_y, block_z,
-                        c->blocks[XYZ(x, y, z)], BLOCK_SIZE, faces, ao
+                        c->blocks[XYZ(x, y, z)], BLOCK_SIZE, make_shorter, faces, ao
                     );
                 }
                 else
@@ -108,7 +116,7 @@ void chunk_update_buffer(Chunk* c, Chunk* neighs[8])
                     {
                         gen_cube_vertices(
                             vertices_land, &curr_vertex_land_count, block_x, block_y, block_z,
-                            c->blocks[XYZ(x, y, z)], BLOCK_SIZE, faces, ao
+                            c->blocks[XYZ(x, y, z)], BLOCK_SIZE, 0, faces, ao
                         );
                     }
                 }

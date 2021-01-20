@@ -14,14 +14,9 @@ typedef struct
     ivec3 block_pointed_at;
 
     vec3 hitbox[2];
-    vec2 horizontal_move;
-    float vertical_move;
-    vec3 moved_now;
 
     int on_ground;
-    
-    float move_speed;
-    float max_speed;
+    int in_water;
 
     GLuint VAO_item;
     GLuint VBO_item;

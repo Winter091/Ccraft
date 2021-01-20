@@ -3,19 +3,18 @@
 #define OPENGL_VERSION_MINOR_REQUIRED 3
 
 // ================== Graphics ==================
-
 #define CHUNK_RENDER_RADIUS 16
 
 // Anisotropic filtering. Accepted values: 1 2 4 8 16
 #define ANISOTROPIC_FILTERING_LEVEL 16
 
 // Motion blur effect
-#define MOTION_BLUR_ENABLED 0
-#define MOTION_BLUR_STRENGTH 0.001f
+#define MOTION_BLUR_ENABLED 1
+#define MOTION_BLUR_STRENGTH 0.0005f
 #define MOTION_BLUR_SAMPLES 7
 
 // Depth of field effect
-#define DOF_ENABLED 0
+#define DOF_ENABLED 1
 #define DOF_SMOOTH 1  // Smooth DoF is very expensive but looks good
 #define DOF_MAX_BLUR 0.023f
 #define DOF_APERTURE 0.3505f
@@ -34,7 +33,7 @@
 
 // ============= Gameplay settings ==============
 #define CURRENT_MAP "maps/test_map.db"
-#define USE_DATABASE 0
+#define USE_DATABASE 1
 
 #define DISABLE_TIME_FLOW 0
 
@@ -54,6 +53,17 @@
 #define FOV 65
 #define FOV_ZOOM 20
 
+// ============== Player Physics ================
+#define MAX_MOVE_SPEED 5.6f
+#define MAX_MOVE_SPEED_SNEAK 1.3f
+#define MAX_FLY_SPEED 25.0f
+#define MAX_FALL_SPEED 100.0f
+#define ACCELERATION_HORIZONTAL 40.0f
+#define DECELERATION_HORIZONTAL 50.0f
+#define ACCELERATION_VERTICAL 12.0f
+#define JUMP_POWER 9.0f
+#define GRAVITY 2.5f
+
 // ============ Core game settings ==============
 
 // Chunk width should be a multiple of 8, otherwise
@@ -66,6 +76,6 @@
 #define BLOCK_SIZE 1.0f
 #define CHUNK_SIZE (float)(CHUNK_WIDTH * BLOCK_SIZE)
 
-#define BLOCK_BREAK_RADIUS 6
+#define BLOCK_BREAK_RADIUS 5
 #define CHUNK_LOAD_RADIUS (CHUNK_RENDER_RADIUS + 2)
 #define CHUNK_UNLOAD_RADIUS (CHUNK_RENDER_RADIUS + 5)

@@ -34,7 +34,7 @@ typedef struct
 Chunk;
 
 Chunk* chunk_create(int chunk_x, int chunk_z);
-void chunk_update_buffer(Chunk* c, Chunk* neighs[8]);
+void chunk_rebuild_buffer(Chunk* c, Chunk* neighs[8]);
 
 int chunk_is_visible(int chunk_x, int chunk_z, vec4 planes[6]);
 

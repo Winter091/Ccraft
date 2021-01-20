@@ -26,7 +26,7 @@ static void regenerate_item_buffer(Player* p)
     {
         gen_plant_vertices(
             vertices, &curr_vertex_count, 0, 0, 0,
-            p->build_block, 1
+            p->build_block, 1.0f
         );
     }
     else
@@ -34,7 +34,7 @@ static void regenerate_item_buffer(Player* p)
         gen_cube_vertices(
             vertices, &curr_vertex_count, 0, 0, 0,
             p->build_block ? p->build_block : BLOCK_PLAYER_HAND,
-            1, faces, ao
+            1.0f, 0, faces, ao
         );
     }
 
@@ -81,14 +81,9 @@ Player* player_create()
     p->block_pointed_at[2] = 0;
 
     update_hitbox(p);
-    p->move_speed = 0.0f;
-    p->max_speed = 5.612f * BLOCK_SIZE;
-    p->horizontal_move[0] = 0.0f;
-    p->horizontal_move[1] = 0.0f;
-    p->vertical_move = 0.0f;
-    glm_vec3_fill(p->moved_now, 0.0f);
 
     p->on_ground = 0;
+    p->in_water = 0;
 
     p->VAO_item = 0;
     p->VBO_item = 0;
@@ -99,23 +94,28 @@ Player* player_create()
 
 static void update_block_pointing_at(Player* p)
 {
-    // position of camera in blocks
-    int cam_x = p->cam->pos[0] / BLOCK_SIZE;
-    int cam_y = p->cam->pos[1] / BLOCK_SIZE;
-    int cam_z = p->cam->pos[2] / BLOCK_SIZE;
+    // Position of camera in blocks
+    float cam_x = p->cam->pos[0] / BLOCK_SIZE;
+    float cam_y = p->cam->pos[1] / BLOCK_SIZE;
+    float cam_z = p->cam->pos[2] / BLOCK_SIZE;
+    int icam_x = (int)cam_x;
+    int icam_y = (int)cam_y;
+    int icam_z = (int)cam_z;
 
-    // best_* will store the block,
+    // Best_* will store the block,
     // if it's found
-    int best_x, best_y, best_z;
-    int best_dist = INT_MAX;
+    int best_x = 0, best_y = 0, best_z = 0;
 
-    // iterate over each block around player
-    for (int y = cam_y - BLOCK_BREAK_RADIUS; y <= cam_y + BLOCK_BREAK_RADIUS; y++)
+    // Set unreachable distance
+    float best_dist = BLOCK_BREAK_RADIUS * BLOCK_BREAK_RADIUS * 2;
+
+    // Iterate over each block around player
+    for (int y = icam_y - BLOCK_BREAK_RADIUS; y <= icam_y + BLOCK_BREAK_RADIUS; y++)
     {
         if (y < 0 || y >= CHUNK_HEIGHT) continue;
 
-        for (int x = cam_x - BLOCK_BREAK_RADIUS; x <= cam_x + BLOCK_BREAK_RADIUS; x++)
-            for (int z = cam_z - BLOCK_BREAK_RADIUS; z <= cam_z + BLOCK_BREAK_RADIUS; z++)
+        for (int x = icam_x - BLOCK_BREAK_RADIUS; x <= icam_x + BLOCK_BREAK_RADIUS; x++)
+            for (int z = icam_z - BLOCK_BREAK_RADIUS; z <= icam_z + BLOCK_BREAK_RADIUS; z++)
             {
                 if (block_player_dist2(x, y, z, cam_x, cam_y, cam_z) > BLOCK_BREAK_RADIUS * BLOCK_BREAK_RADIUS)
                     continue;
@@ -127,7 +127,7 @@ static void update_block_pointing_at(Player* p)
                 if (camera_looks_at_block(p->cam, x, y, z, block))
                 {
                     // we need closest block that camera is pointing to
-                    int distance = block_player_dist2(cam_x, cam_y, cam_z, x, y, z);
+                    float distance = block_player_dist2(x, y, z, cam_x, cam_y, cam_z);
                     if (distance < best_dist)
                     {
                         best_dist = distance;
@@ -139,7 +139,8 @@ static void update_block_pointing_at(Player* p)
             }
     }
     
-    if (best_dist == INT_MAX)
+    // Haven't found the block, distance is still unreachable
+    if (best_dist > BLOCK_BREAK_RADIUS * BLOCK_BREAK_RADIUS)
     {
         p->pointing_at_block = 0;
         return;
@@ -169,26 +170,32 @@ void player_set_build_block(Player* p, int new_block)
     regenerate_item_buffer(p);
 }
 
-int intersects(vec3 box[2], vec3 other[2]) {
+// Almost like glm_aabb_aabb(), but >= and <= are replaced with > and <
+static inline int aabb_collide(vec3 box[2], vec3 other[2]) {
   return (box[0][0] < other[1][0] && box[1][0] > other[0][0])
       && (box[0][1] < other[1][1] && box[1][1] > other[0][1])
       && (box[0][2] < other[1][2] && box[1][2] > other[0][2]);
 }
 
+// Add components of frame_motion to camera's position one 
+// by one for each of 3 coordinates and check for collision 
+// with map, move player if there's a collision.
 void collide_with_map(Player* p)
 {
-    int moving_x = p->horizontal_move[0] >= 0;
-    int moving_y = p->vertical_move >= 0;
-    int moving_z = p->horizontal_move[1] >= 0;
+    // true if we move towards +coord
+    int moving_towards_x = p->cam->motion_horizontal[0] >= 0;
+    int moving_towards_y = p->cam->motion_vertical >= 0;
+    int moving_towards_z = p->cam->motion_horizontal[1] >= 0;
     
-    p->cam->pos[1] += p->moved_now[1];
-    update_hitbox(p);
-    p->on_ground = 0;
-
     // position of camera in blocks
     int cam_x = p->cam->pos[0] / BLOCK_SIZE;
     int cam_y = p->cam->pos[1] / BLOCK_SIZE;
     int cam_z = p->cam->pos[2] / BLOCK_SIZE;
+
+    // Handle Y collision
+    p->cam->pos[1] += p->cam->frame_motion[1];
+    update_hitbox(p);
+    p->on_ground = 0;
 
     for (int x = -3; x <= 3; x++)
     for (int y = -3; y <= 3; y++)
@@ -205,74 +212,26 @@ void collide_with_map(Player* p)
         vec3 block_hitbox[2];
         block_gen_aabb(bx, by, bz, block_hitbox);
 
-        if (intersects(p->hitbox, block_hitbox))
+        if (aabb_collide(p->hitbox, block_hitbox))
         {
-            if (moving_y && p->hitbox[1][1] > block_hitbox[0][1])
-            {
+            if (moving_towards_y)
                 p->cam->pos[1] -= (p->hitbox[1][1] - block_hitbox[0][1]) + 0.0001f;
-                p->vertical_move = 0.0f;
-                //printf("+Y ");
-                update_hitbox(p);
-                goto CHECK_Z;
-            }
-            else if (!moving_y && p->hitbox[0][1] < block_hitbox[1][1])
+            else
             {
                 p->cam->pos[1] += (block_hitbox[1][1] - p->hitbox[0][1]) + 0.0001f;
-                p->vertical_move = 0.0f;
-                //printf("-Y ");
                 p->on_ground = 1;
-                update_hitbox(p);
-                goto CHECK_Z;
             }
-        }
-    }
-    
-CHECK_Z:
 
-    p->cam->pos[2] += p->moved_now[2];
-    update_hitbox(p);
-    cam_z = p->cam->pos[2] / BLOCK_SIZE;
+            p->cam->motion_vertical = 0.0f;
+            update_hitbox(p);
 
-    for (int x = -3; x <= 3; x++)
-    for (int y = -3; y <= 3; y++)
-    for (int z = -3; z <= 3; z++)
-    {       
-        int bx = cam_x + x;
-        int by = cam_y + y;
-        int bz = cam_z + z;
-
-        unsigned char block = map_get_block(bx, by, bz);
-        if (!block_is_solid(block) || block_is_plant(block))
-            continue;
-
-        vec3 block_hitbox[2];
-        block_gen_aabb(bx, by, bz, block_hitbox);
-
-        if (intersects(p->hitbox, block_hitbox))
-        {
-            if (moving_z && p->hitbox[1][2] > block_hitbox[0][2])
-            {
-                p->cam->pos[2] -= (p->hitbox[1][2] - block_hitbox[0][2]) + 0.0001f;
-                p->horizontal_move[1] = 0;
-                //printf("+Z ");
-                update_hitbox(p);
-                goto CHECK_X;
-            }
-            else if (!moving_z && p->hitbox[0][2] < block_hitbox[1][2])
-            {
-                p->cam->pos[2] += (block_hitbox[1][2] - p->hitbox[0][2]) + 0.0001f;
-                p->horizontal_move[1] = 0;
-                //printf("-Z ");
-                update_hitbox(p);
-                goto CHECK_X;
-            }
+            // leave 3 loops with ease!
+            goto CHECK_X;
         }
     }
 
-     
 CHECK_X:
-
-    p->cam->pos[0] += p->moved_now[0];
+    p->cam->pos[0] += p->cam->frame_motion[0];
     update_hitbox(p);
     cam_x = p->cam->pos[0] / BLOCK_SIZE;
 
@@ -291,121 +250,281 @@ CHECK_X:
         vec3 block_hitbox[2];
         block_gen_aabb(bx, by, bz, block_hitbox);
 
-        if (intersects(p->hitbox, block_hitbox))
+        if (aabb_collide(p->hitbox, block_hitbox))
         {            
-            if (moving_x && p->hitbox[1][0] > block_hitbox[0][0])
-            {
+            if (moving_towards_x)
                 p->cam->pos[0] -= (p->hitbox[1][0] - block_hitbox[0][0]) + 0.0001f;
-                p->horizontal_move[0] = 0;
-                //printf("+X ");
-                update_hitbox(p);
-            }
-            else if (!moving_x && p->hitbox[0][0] < block_hitbox[1][0])
-            {
+            else
                 p->cam->pos[0] += (block_hitbox[1][0] - p->hitbox[0][0]) + 0.0001f;
-                p->horizontal_move[0] = 0;
-                //printf("-X ");
-                update_hitbox(p);
-            }
+            
+            p->cam->motion_horizontal[0] = 0;
+            update_hitbox(p);
+            goto CHECK_Z;
         }
     }
 
-    printf("\n");
+CHECK_Z:
+    p->cam->pos[2] += p->cam->frame_motion[2];
+    update_hitbox(p);
+    cam_z = p->cam->pos[2] / BLOCK_SIZE;
+
+    for (int x = -3; x <= 3; x++)
+    for (int y = -3; y <= 3; y++)
+    for (int z = -3; z <= 3; z++)
+    {       
+        int bx = cam_x + x;
+        int by = cam_y + y;
+        int bz = cam_z + z;
+
+        unsigned char block = map_get_block(bx, by, bz);
+        if (!block_is_solid(block) || block_is_plant(block))
+            continue;
+
+        vec3 block_hitbox[2];
+        block_gen_aabb(bx, by, bz, block_hitbox);
+
+        if (aabb_collide(p->hitbox, block_hitbox))
+        {
+            if (moving_towards_z)
+                p->cam->pos[2] -= (p->hitbox[1][2] - block_hitbox[0][2]) + 0.0001f;
+            else
+                p->cam->pos[2] += (block_hitbox[1][2] - p->hitbox[0][2]) + 0.0001f;
+
+            p->cam->motion_horizontal[1] = 0;
+            update_hitbox(p);
+            return;
+        }
+    }
 }
 
-void move(Player* p, GLFWwindow* window, double dt)
-{
-    static int key_w, key_s, key_a, key_d, key_shift, 
-        key_ctrl, key_c, key_pageup, key_pagedown, key_space;
-
-    key_w        = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
-    key_s        = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
-    key_a        = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
-    key_d        = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
-    key_shift    = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
-    key_ctrl     = glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
-    key_c        = glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS;
-    key_pageup   = glfwGetKey(window, GLFW_KEY_PAGE_UP) == GLFW_PRESS;
-    key_pagedown = glfwGetKey(window, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS;
-    key_space    = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
+void gen_motion_vector_walk(Player* p, GLFWwindow* window, double dt)
+{    
+    int key_w     = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
+    int key_s     = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
+    int key_a     = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
+    int key_d     = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
+    int key_space = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
+    int key_shift = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
 
     vec3 front, right, up;
 
-    vec2 horizontal_move = {0.0f};
-    float vertical_move = 0.0f;
-    
-    front[0] = cosf(glm_rad(p->cam->yaw)) * cosf(glm_rad(0.0f));
-    front[1] = sinf(glm_rad(0.0f));
-    front[2] = sinf(glm_rad(p->cam->yaw)) * cosf(glm_rad(0.0f));
+    // generate front, right, up vectors
+    front[0] = cosf(glm_rad(p->cam->yaw));
+    front[1] = 0.0f;
+    front[2] = sinf(glm_rad(p->cam->yaw));
     glm_vec3_normalize(front);
-
     glm_vec3_crossn(front, p->cam->up, right);
     glm_vec3_copy(p->cam->up, up);
 
-    glm_vec2_scale(p->horizontal_move, 1 / (1 + dt), p->horizontal_move);
-    //p->vertical_move /= (1 + dt);
+    vec2 horizontal_move = {0.0f, 0.0f};
+    float vertical_move = 0.0f;
 
-    if (key_w || key_s)
+    if (key_w || key_s || key_a || key_d)
     {
-        vec2 move = {front[0], front[2]};
+        if (key_w || key_s)
+        {
+            vec2 move = {front[0], front[2]};
+            if (key_s) glm_vec2_negate(move);
 
-        if (key_s) glm_vec2_negate(move);
-        glm_vec2_add(horizontal_move, move, horizontal_move);
+            glm_vec2_add(horizontal_move, move, horizontal_move);
+        }
+
+        if (key_a || key_d)
+        {
+            vec2 move = {right[0], right[2]};
+            if (key_a) glm_vec2_negate(move);
+            
+            glm_vec2_add(horizontal_move, move, horizontal_move);
+        }
+    }
+    // No motion keys are pressed at this frame, decelerate
+    else
+    {
+        if (p->on_ground || p->in_water)
+        {
+            float speed = glm_vec2_norm(p->cam->motion_horizontal);
+            // Remove div by zero error
+            speed += 0.00001f;
+
+            glm_vec2_scale(
+                p->cam->motion_horizontal, 
+                1.0f / (1.0f + (dt * DECELERATION_HORIZONTAL / speed)), 
+                p->cam->motion_horizontal
+            );
+        }
     }
 
-    if (key_a || key_d)
+    // Jump / emerge from water
+    if (key_space)
     {
-        vec2 move = {right[0], right[2]};
-        
-        if (key_a) glm_vec2_negate(move);
-        glm_vec2_add(horizontal_move, move, horizontal_move);
+        if (p->on_ground)
+            p->cam->motion_vertical = JUMP_POWER;
+        else if (p->in_water)
+        {
+            p->cam->motion_vertical += JUMP_POWER * dt * 3.0f;
+            if (p->cam->motion_vertical > JUMP_POWER)
+                p->cam->motion_vertical = JUMP_POWER;
+        }
+
+        p->cam->frame_motion[1] = p->cam->motion_vertical * dt;
     }
 
-    if (key_shift || key_ctrl)
+    // Smooth transition from run speed to sneak speed
+    float horizontal_speed = glm_vec2_norm(p->cam->motion_horizontal);
+    if (key_shift && horizontal_speed > MAX_MOVE_SPEED_SNEAK && p->on_ground)
     {
-        float move = 5.0f;
-        
-        if (key_ctrl) move = -move;
-        vertical_move += move;
-    }
-
-    //if (p->on_ground)
-        //printf("GROUND!\n");
-    if (key_space && p->on_ground)
-    {
-        p->vertical_move = 9.0f;
-        vertical_move = 0.0f;
-        p->on_ground = 0;
-    }
-
-    glm_vec2_normalize(horizontal_move);
-    glm_vec2_scale(horizontal_move, dt * 12.0f, horizontal_move);
-    vertical_move -= 2.5f;
-    vertical_move *= dt * 12.0f;
+        // Main goal is to decelerate, so don't mind
+        // wasd key presses until we're slowed
+        glm_vec2_fill(horizontal_move, 0.0f);
     
-    glm_vec2_add(p->horizontal_move, horizontal_move, p->horizontal_move);
-    float hor_speed = glm_vec2_norm(p->horizontal_move);
-    if (hor_speed > p->max_speed)
-    {
-        glm_vec2_scale(p->horizontal_move, p->max_speed / hor_speed, p->horizontal_move);
+        // Remove div by zero error
+        horizontal_speed += 0.00001f;
+
+        glm_vec2_scale(
+            p->cam->motion_horizontal, 
+            1.0f / (1.0f + (dt * DECELERATION_HORIZONTAL / horizontal_speed)), 
+            p->cam->motion_horizontal
+        );
     }
 
-    p->vertical_move += vertical_move;
+    if (p->in_water)
+        vertical_move -= GRAVITY / 3.0f;
+    else
+        vertical_move -= GRAVITY;
 
-    vec3 move = {p->horizontal_move[0], p->vertical_move, p->horizontal_move[1]};
-    glm_vec3_scale(move, dt, move);
 
-    glm_vec3_copy(p->cam->pos, p->cam->prev_pos);
-    //glm_vec3_add(p->cam->pos, move, p->cam->pos);
-    glm_vec3_copy(move, p->moved_now);
+    // Scale motion values using dt
+    glm_vec2_scale(horizontal_move, dt * ACCELERATION_HORIZONTAL, horizontal_move);
+    vertical_move *= dt * ACCELERATION_VERTICAL;
+    
+    // Apply generated horizontal motion
+    glm_vec2_add(
+        p->cam->motion_horizontal, 
+        horizontal_move, 
+        p->cam->motion_horizontal
+    );
+    
+    // Clamp horizontal motion vector
+    horizontal_speed = glm_vec2_norm(p->cam->motion_horizontal);
+    if (horizontal_speed > MAX_MOVE_SPEED)
+    {
+        glm_vec2_scale(
+            p->cam->motion_horizontal, 
+            MAX_MOVE_SPEED / horizontal_speed, 
+            p->cam->motion_horizontal
+        );
+    }
+    else if (horizontal_speed < 0.001f)
+    {
+        glm_vec2_fill(p->cam->motion_horizontal, 0.0f);
+    }
 
-    collide_with_map(p);
+    // Apply generated vertical motion and clamp it
+    p->cam->motion_vertical += vertical_move;
+    if (p->cam->motion_vertical < -MAX_FALL_SPEED)
+    {
+        p->cam->motion_vertical = -MAX_FALL_SPEED;
+    }
+
+    // Don't move player yet, just save values we need to move with
+    p->cam->frame_motion[0] = p->cam->motion_horizontal[0];
+    p->cam->frame_motion[1] = p->cam->motion_vertical;
+    p->cam->frame_motion[2] = p->cam->motion_horizontal[1];
+    glm_vec3_scale(p->cam->frame_motion, dt, p->cam->frame_motion);
+}
+
+void gen_motion_vector_fly(Player* p, GLFWwindow* window, double dt)
+{   
+    int key_w     = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
+    int key_s     = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
+    int key_a     = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
+    int key_d     = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
+    int key_shift = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
+    int key_ctrl  = glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
+
+    vec3 front, right, up;
+
+    // generate front, right, up vectors
+    glm_vec3_copy(p->cam->front, front);
+    glm_vec3_crossn(front, p->cam->up, right);
+    glm_vec3_copy(p->cam->up, up);
+
+    vec3 total_move = {0.0f};
+
+    if (key_w)
+        glm_vec3_add(total_move, front, total_move);
+    if (key_s)
+        glm_vec3_sub(total_move, front, total_move);
+
+    if (key_d)
+        glm_vec3_add(total_move, right, total_move);
+    if (key_a)
+        glm_vec3_sub(total_move, right, total_move);
+
+    if (key_shift)
+        glm_vec3_add(total_move, up, total_move);
+    if (key_ctrl)
+        glm_vec3_sub(total_move, up, total_move);
+    
+    p->cam->motion_horizontal[0] = total_move[0];
+    p->cam->motion_vertical = total_move[1];
+    p->cam->motion_horizontal[1] = total_move[2];
+
+    glm_vec3_copy(total_move, p->cam->frame_motion);
+    glm_vec3_scale(p->cam->frame_motion, dt * MAX_FLY_SPEED, p->cam->frame_motion);
+}
+
+void check_if_in_water(Player* p)
+{
+    int cam_x = p->cam->pos[0] / BLOCK_SIZE;
+    int cam_y = p->cam->pos[1] / BLOCK_SIZE;
+    int cam_z = p->cam->pos[2] / BLOCK_SIZE;
+
+    for (int x = -1; x <= 1; x++)
+    for (int y = -1; y <= 1; y++)
+    for (int z = -1; z <= 1; z++)
+    {
+        int bx = cam_x + x;
+        int by = cam_y + y;
+        int bz = cam_z + z;
+        
+        unsigned char block = map_get_block(bx, by, bz);
+        if (block != BLOCK_WATER)
+            continue;
+
+        vec3 block_hitbox[2];
+        block_gen_aabb(bx, by, bz, block_hitbox);
+
+        if (aabb_collide(p->hitbox, block_hitbox))
+        {
+            p->in_water = 1;
+            return;
+        }
+    }
+
+    p->in_water = 0;
 }
 
 void player_update(Player* p, GLFWwindow* window, double dt)
 {
+    if (!p->cam->active)
+        return;
+    
     camera_update_view_dir(p->cam, window);
-    move(p, window, dt);
+    camera_update_parameters(p->cam, window, dt);
+    check_if_in_water(p);
+    
+    if (p->cam->fly_mode)
+    {
+        gen_motion_vector_fly(p, window, dt);
+        glm_vec3_add(p->cam->pos, p->cam->frame_motion, p->cam->pos);
+    }
+    else
+    {
+        gen_motion_vector_walk(p, window, dt);
+        collide_with_map(p);
+    }
+    
     update_block_pointing_at(p);
     camera_update_matrices(p->cam);
 }
@@ -435,17 +554,17 @@ void player_handle_left_mouse_click(Player* p)
 
 static void find_best_spot_to_place_block(
     Camera* cam, int x, int y, int z, 
-    int* best_x, int* best_y, int* best_z, int* best_dist
+    int* best_x, int* best_y, int* best_z, float* best_dist
 )
 {
     // position of camera in blocks
-    int cam_x = cam->pos[0] / BLOCK_SIZE;
-    int cam_y = cam->pos[1] / BLOCK_SIZE;
-    int cam_z = cam->pos[2] / BLOCK_SIZE;
+    float cam_x = cam->pos[0] / BLOCK_SIZE;
+    float cam_y = cam->pos[1] / BLOCK_SIZE;
+    float cam_z = cam->pos[2] / BLOCK_SIZE;
     
     if (camera_looks_at_block(cam, x, y, z, 0) && !block_is_solid(map_get_block(x, y, z)))
     {
-        int dist = block_player_dist2(cam_x, cam_y, cam_z, x, y, z);
+        float dist = block_player_dist2(x, y, z, cam_x, cam_y, cam_z);
         if (dist < *best_dist)
         {
             *best_dist = dist;
@@ -466,7 +585,7 @@ void player_handle_right_mouse_click(Player* p)
     int z = p->block_pointed_at[2];
 
     int best_x = 0, best_y = 0, best_z = 0;
-    int best_dist = INT_MAX;
+    float best_dist = BLOCK_BREAK_RADIUS * BLOCK_BREAK_RADIUS * 2;
 
     // 6 potential spots around active block
     find_best_spot_to_place_block(p->cam, x - 1, y, z, &best_x, &best_y, &best_z, &best_dist);
@@ -476,9 +595,14 @@ void player_handle_right_mouse_click(Player* p)
     find_best_spot_to_place_block(p->cam, x, y, z - 1, &best_x, &best_y, &best_z, &best_dist);
     find_best_spot_to_place_block(p->cam, x, y, z + 1, &best_x, &best_y, &best_z, &best_dist);
 
-    if (best_dist == INT_MAX)
+    if (best_dist > BLOCK_BREAK_RADIUS * BLOCK_BREAK_RADIUS)
         return;
     else if (best_y < 0 || best_y >= CHUNK_HEIGHT)
+        return;
+
+    vec3 block_hitbox[2];
+    block_gen_aabb(best_x, best_y, best_z, block_hitbox);
+    if (aabb_collide(p->hitbox, block_hitbox))
         return;
 
     map_set_block(best_x, best_y, best_z, p->build_block);

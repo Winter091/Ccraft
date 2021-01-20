@@ -32,7 +32,7 @@ static inline int chunk_player_dist2(int cx, int cz, int px, int pz)
     return (cx - px) * (cx - px) + (cz - pz) * (cz - pz);
 }
 
-static inline int block_player_dist2(int bx, int by, int bz, int px, int py, int pz)
+static inline float block_player_dist2(int bx, int by, int bz, float px, float py, float pz)
 {
     return (bx - px) * (bx - px) + (by - py) * (by - py) + (bz - pz) * (bz - pz);
 }

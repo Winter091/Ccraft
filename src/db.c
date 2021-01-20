@@ -72,7 +72,7 @@ static void db_insert_default_player_info()
     sqlite3_stmt* stmt = db_compile_statement(
         "INSERT INTO "
         "player_info (pos_x, pos_y, pos_z, pitch, yaw, build_block) "
-        "VALUES (0.0, 50.0, 0.0, 0.0, -90.0, 0)"
+        "VALUES (0.0, 256.0, 0.0, 0.0, -90.0, 0)"
     );
 
     sqlite3_step(stmt);

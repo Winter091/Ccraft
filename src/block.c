@@ -49,7 +49,7 @@ ao:      ao level for each vertex of each face
 */
 void gen_cube_vertices(
     Vertex* vertices, int* curr_vertex_count, int x, int y, int z,
-    int block_type, float block_size, int faces[6], float ao[6][4]
+    int block_type, float block_size, int is_short, int faces[6], float ao[6][4]
 )
 {
     // row = face (6 faces), each face has 4 points forming a square
@@ -117,7 +117,7 @@ void gen_cube_vertices(
 
             int vert_index = (*curr_vertex_count)++;
 
-            // cactus is a bit smaller that other blocks
+            // cactus is a bit thinner than other blocks
             if (block_type == BLOCK_CACTUS)
             {
                 vertices[vert_index].pos[0] = (positions_cactus[f][index][0] + x) * block_size;
@@ -131,8 +131,7 @@ void gen_cube_vertices(
                 vertices[vert_index].pos[2] = (positions[f][index][2] + z) * block_size;
             }
 
-            // make water block shorter
-            if (block_type == BLOCK_WATER && positions[f][index][1] > 0)
+            if (is_short && positions[f][index][1] > 0)
             {
                 vertices[vert_index].pos[1] -= 0.125f * block_size;
             }

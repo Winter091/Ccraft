@@ -54,7 +54,7 @@ extern unsigned char block_textures[][6];
 
 void gen_cube_vertices(
     Vertex* vertices, int* curr_vertex_count, int x, int y, int z,
-    int block_type, float block_size, int faces[6], float ao[6][4]
+    int block_type, float block_size, int is_short, int faces[6], float ao[6][4]
 );
 
 void gen_plant_vertices(

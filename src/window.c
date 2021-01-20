@@ -30,9 +30,12 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     if (action == GLFW_RELEASE)
         return;
 
+    GameObjects* game = glfwGetWindowUserPointer(window);
+
     switch (key)
     {
         case GLFW_KEY_ESCAPE:
+            game->player->cam->active = 0;
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             break;
     };
@@ -46,7 +49,14 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
     GameObjects* game = glfwGetWindowUserPointer(window);
     if (!game->player->cam->active)
     {
+        game->player->cam->active = 1;
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+        double x, y;
+        glfwGetCursorPos(window, &x, &y);
+        game->player->cam->mouse_last_x = x;
+        game->player->cam->mouse_last_y = y;
+
         return;
     }
 
