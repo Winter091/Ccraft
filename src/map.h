@@ -11,13 +11,16 @@
 void map_init();
 
 void map_update(Camera* cam);
+
 void map_render_sun_moon(Camera* cam);
 void map_render_sky(Camera* cam);
 void map_render_chunks(Camera* cam);
-unsigned char map_get_block(int x, int y, int z);
+
 void map_set_block(int x, int y, int z, unsigned char block);
 void map_set_seed(int new_seed);
 void map_set_time(double new_time);
+
+unsigned char map_get_block(int x, int y, int z);
 double map_get_time();
 int map_get_seed();
 int map_get_highest_block(int x, int z);

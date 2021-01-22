@@ -17,6 +17,7 @@ typedef struct
 }
 UI;
 
+// Keep static object for simplicity
 static UI* ui;
 
 void ui_init(float aspect_ratio)
@@ -46,6 +47,7 @@ void ui_init(float aspect_ratio)
     float bs = BLOCK_SIZE;
 
     float offset = 0.001f * BLOCK_SIZE;
+    // That's beatiful
     float vertices_wireframe[] = {
         x - offset, y - offset, z - offset,
         x + bs + offset, y - offset, z - offset,
@@ -59,8 +61,6 @@ void ui_init(float aspect_ratio)
         x - offset, y + bs + offset, z - offset,
         x - offset, y - offset, z - offset,
 
-
-
         x - offset, y - offset, z + bs + offset,
         x + bs + offset, y - offset, z + bs + offset,
 
@@ -72,8 +72,6 @@ void ui_init(float aspect_ratio)
 
         x - offset, y + bs + offset, z + bs + offset,
         x - offset, y - offset, z + bs + offset,
-
-
 
         x - offset, y - offset, z + bs + offset,
         x - offset, y - offset, z - offset,

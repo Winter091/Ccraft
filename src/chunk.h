@@ -6,6 +6,7 @@
 #include "stdlib.h"
 #include "glad/glad.h"
 
+// Access block by 3 coords from 1-dimensional array
 #define XYZ(x, y, z) ((x) * CHUNK_WIDTH * CHUNK_HEIGHT) + ((y) * CHUNK_WIDTH) + (z)
 
 // Chunk neighbours order
@@ -34,10 +35,14 @@ typedef struct
 Chunk;
 
 Chunk* chunk_create(int chunk_x, int chunk_z);
+
+// Create VAOs and VBOs, send them to GPU
 void chunk_rebuild_buffer(Chunk* c, Chunk* neighs[8]);
 
+// Used during frustum culling
 int chunk_is_visible(int chunk_x, int chunk_z, vec4 planes[6]);
 
+// Hash functions used in chunk hashmap
 static inline uint32_t chunk_hash_func(Chunk* c)
 {
     return (c->x + c->z) * (c->x + c->z + 1) / 2 + c->z;

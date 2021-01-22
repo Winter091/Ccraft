@@ -48,11 +48,11 @@ ao:      ao level for each vertex of each face
 
 */
 void gen_cube_vertices(
-    Vertex* vertices, int* curr_vertex_count, int x, int y, int z,
-    int block_type, float block_size, int is_short, int faces[6], float ao[6][4]
+        Vertex* vertices, int* curr_vertex_count, int x, int y, int z,
+        int block_type, float block_size, int is_short, int faces[6], float ao[6][4]
 )
 {
-    // row = face (6 faces), each face has 4 points forming a square
+    // 6 faces, each face has 4 points forming a square
     static const float positions[6][4][3] = 
     {
         { {0, 0, 0}, {0, 0, 1}, {0, 1, 0}, {0, 1, 1} }, // left
@@ -63,7 +63,8 @@ void gen_cube_vertices(
         { {0, 0, 1}, {0, 1, 1}, {1, 0, 1}, {1, 1, 1} }  // front
     };
 
-    static const float a = 0.0625f, b = 1.0f - 0.0625f;
+    // Cactus is a bit smaller than other blocks
+    static const float a = 0.0625f, b = 1.0f - a;
     static const float positions_cactus[6][4][3] = 
     {
         { {a, 0, 0}, {a, 0, 1}, {a, 1, 0}, {a, 1, 1} }, // left
@@ -95,12 +96,12 @@ void gen_cube_vertices(
 
     static const float uvs[6][4][2] = 
     {
-        {{0, 0}, {1, 0}, {0, 1}, {1, 1}},
-        {{1, 0}, {0, 0}, {1, 1}, {0, 1}},
-        {{0, 1}, {0, 0}, {1, 1}, {1, 0}},
-        {{0, 0}, {0, 1}, {1, 0}, {1, 1}},
-        {{0, 0}, {0, 1}, {1, 0}, {1, 1}},
-        {{1, 0}, {1, 1}, {0, 0}, {0, 1}}
+        { {0, 0}, {1, 0}, {0, 1}, {1, 1} },
+        { {1, 0}, {0, 0}, {1, 1}, {0, 1} },
+        { {0, 1}, {0, 0}, {1, 1}, {1, 0} },
+        { {0, 0}, {0, 1}, {1, 0}, {1, 1} },
+        { {0, 0}, {0, 1}, {1, 0}, {1, 1} },
+        { {1, 0}, {1, 1}, {0, 0}, {0, 1} }
     };
 
     // for each face
@@ -111,37 +112,36 @@ void gen_cube_vertices(
         // for each vertex
         for (int v = 0; v < 6; v++)
         {
-            int index = ao[f][0] + ao[f][3] > ao[f][1] + ao[f][2] ? 
-                indices_flipped[f][v] :
-                indices[f][v];
+            // Flip some quads to eliminate ao unevenness
+            int index = ao[f][0] + ao[f][3] > ao[f][1] + ao[f][2] ?
+                indices_flipped[f][v] : indices[f][v];
 
-            int vert_index = (*curr_vertex_count)++;
+            int i = (*curr_vertex_count)++;
 
             // cactus is a bit thinner than other blocks
             if (block_type == BLOCK_CACTUS)
             {
-                vertices[vert_index].pos[0] = (positions_cactus[f][index][0] + x) * block_size;
-                vertices[vert_index].pos[1] = (positions_cactus[f][index][1] + y) * block_size;
-                vertices[vert_index].pos[2] = (positions_cactus[f][index][2] + z) * block_size;
+                vertices[i].pos[0] = (positions_cactus[f][index][0] + (float)x) * block_size;
+                vertices[i].pos[1] = (positions_cactus[f][index][1] + (float)y) * block_size;
+                vertices[i].pos[2] = (positions_cactus[f][index][2] + (float)z) * block_size;
             }
             else
             {
-                vertices[vert_index].pos[0] = (positions[f][index][0] + x) * block_size;
-                vertices[vert_index].pos[1] = (positions[f][index][1] + y) * block_size;
-                vertices[vert_index].pos[2] = (positions[f][index][2] + z) * block_size;
+                vertices[i].pos[0] = (positions[f][index][0] + (float)x) * block_size;
+                vertices[i].pos[1] = (positions[f][index][1] + (float)y) * block_size;
+                vertices[i].pos[2] = (positions[f][index][2] + (float)z) * block_size;
             }
 
+            // Shorten only a top of a block
             if (is_short && positions[f][index][1] > 0)
             {
-                vertices[vert_index].pos[1] -= 0.125f * block_size;
+                vertices[i].pos[1] -= 0.125f * block_size;
             }
 
-            vertices[vert_index].tex_coord[0] = uvs[f][index][0];
-            vertices[vert_index].tex_coord[1] = uvs[f][index][1];
-
-            vertices[vert_index].ao = ao[f][index];
-
-            vertices[vert_index].tile = block_textures[block_type][f];
+            vertices[i].tex_coord[0] = uvs[f][index][0];
+            vertices[i].tex_coord[1] = uvs[f][index][1];
+            vertices[i].ao = ao[f][index];
+            vertices[i].tile = block_textures[block_type][f];
         }
     }
 }
@@ -151,7 +151,8 @@ void gen_plant_vertices(
     int block_type, float block_size
 )
 {
-    static const float positions[2][4][3] = 
+    // A cross made up of 2 faces
+    static const float positions[2][4][3] =
     {
         { {0.5f, 0.0f, 0.0f}, {0.5f, 0.0f, 1.0f}, {0.5f, 1.0f, 1.0f}, {0.5f, 1.0f, 0.0f} },
         { {0.0f, 0.0f, 0.5f}, {1.0f, 0.0f, 0.5f}, {1.0f, 1.0f, 0.5f}, {0.0f, 1.0f, 0.5f} }
@@ -175,27 +176,25 @@ void gen_plant_vertices(
         for (int v = 0; v < 6; v++)
         {
             int index = indices[f % 2][v];
-            int vert_index = (*curr_vertex_count)++;
+            int i = (*curr_vertex_count)++;
 
-            vertices[vert_index].pos[0] = (positions[f / 2][index][0] + x) * block_size;
-            vertices[vert_index].pos[1] = (positions[f / 2][index][1] + y) * block_size;
-            vertices[vert_index].pos[2] = (positions[f / 2][index][2] + z) * block_size;
+            vertices[i].pos[0] = (positions[f / 2][index][0] + (float)x) * block_size;
+            vertices[i].pos[1] = (positions[f / 2][index][1] + (float)y) * block_size;
+            vertices[i].pos[2] = (positions[f / 2][index][2] + (float)z) * block_size;
 
-            vertices[vert_index].tex_coord[0] = uvs[index][0];
-            vertices[vert_index].tex_coord[1] = uvs[index][1];
-
-            vertices[vert_index].ao = 0.0f;
-
-            vertices[vert_index].tile = block_textures[block_type][f];
+            vertices[i].tex_coord[0] = uvs[index][0];
+            vertices[i].tex_coord[1] = uvs[index][1];
+            vertices[i].ao = 0.0f;
+            vertices[i].tile = block_textures[block_type][f];
         }
     }
 }
 
 void block_gen_aabb(int x, int y, int z, vec3 aabb[2])
 {
-    aabb[0][0] = x * BLOCK_SIZE;
-    aabb[0][1] = y * BLOCK_SIZE;
-    aabb[0][2] = z * BLOCK_SIZE;
+    aabb[0][0] = (float)x * BLOCK_SIZE;
+    aabb[0][1] = (float)y * BLOCK_SIZE;
+    aabb[0][2] = (float)z * BLOCK_SIZE;
     aabb[1][0] = aabb[0][0] + BLOCK_SIZE;
     aabb[1][1] = aabb[0][1] + BLOCK_SIZE;
     aabb[1][2] = aabb[0][2] + BLOCK_SIZE;
@@ -250,7 +249,8 @@ int block_is_plant(unsigned char block)
     }
 }
 
-static int get_block_from_chunk(Chunk* c, int bx, int by, int bz)
+// Helper function for block_get_neighs()
+static inline int get_block_from_chunk(Chunk* c, int bx, int by, int bz)
 {
     if (!c) return BLOCK_AIR;
     return c->blocks[XYZ(bx, by, bz)];
@@ -258,7 +258,7 @@ static int get_block_from_chunk(Chunk* c, int bx, int by, int bz)
 
 /*
 
-Neighs array layout (-Y view direction): 
+Neighs array layout (view from top):
 
 ----> +X
 |
@@ -282,54 +282,56 @@ Bottom layer (blocks below):
 */
 void block_get_neighs(Chunk* c, Chunk* neighs[8], int x, int y, int z, unsigned char b_neighs[27])
 {
+    static const int last = CHUNK_WIDTH - 1;
     int index = 0;
-    const int last = CHUNK_WIDTH - 1;
-    
+
     for (int dy = -1; dy <= 1; dy++)
     for (int dx = -1; dx <= 1; dx++)
-    for (int dz = -1; dz <= 1; dz++)
+    for (int dz = -1; dz <= 1; dz++, index++)
     {
         int bx = x + dx;
         int by = y + dy;
         int bz = z + dz;
 
-        // too high or too low
         if (by < 0 || by >= CHUNK_HEIGHT)
-            b_neighs[index++] = BLOCK_AIR;
+            b_neighs[index] = BLOCK_AIR;
 
-        // completely in bounds
-        else if (bx >= 0 && bx < CHUNK_WIDTH && by >= 0 && by < CHUNK_HEIGHT && bz >= 0 && bz < CHUNK_WIDTH)
-            b_neighs[index++] = get_block_from_chunk(c, bx, by, bz);
+        // In bounds of current chunk
+        else if (bx >= 0 && bx <= last && by >= 0 && by < CHUNK_HEIGHT && bz >= 0 && bz <= last)
+            b_neighs[index] = get_block_from_chunk(c, bx, by, bz);
 
         else if (bx < 0)
         {
             if (bz < 0)
-                b_neighs[index++] = get_block_from_chunk(neighs[CHUNK_NEIGH_BL], last, by, last);
+                b_neighs[index] = get_block_from_chunk(neighs[CHUNK_NEIGH_BL], last, by, last);
             else if (bz >= CHUNK_WIDTH)
-                b_neighs[index++] = get_block_from_chunk(neighs[CHUNK_NEIGH_FL], last, by, 0);
+                b_neighs[index] = get_block_from_chunk(neighs[CHUNK_NEIGH_FL], last, by, 0);
             else
-                b_neighs[index++] = get_block_from_chunk(neighs[CHUNK_NEIGH_L], last, by, bz);
+                b_neighs[index] = get_block_from_chunk(neighs[CHUNK_NEIGH_L], last, by, bz);
         }
 
         else if (bx >= CHUNK_WIDTH)
         {
             if (bz < 0)
-                b_neighs[index++] = get_block_from_chunk(neighs[CHUNK_NEIGH_BR], 0, by, last);
+                b_neighs[index] = get_block_from_chunk(neighs[CHUNK_NEIGH_BR], 0, by, last);
             else if (bz >= CHUNK_WIDTH)
-                b_neighs[index++] = get_block_from_chunk(neighs[CHUNK_NEIGH_FR], 0, by, 0);
+                b_neighs[index] = get_block_from_chunk(neighs[CHUNK_NEIGH_FR], 0, by, 0);
             else
-                b_neighs[index++] = get_block_from_chunk(neighs[CHUNK_NEIGH_R], 0, by, bz);
+                b_neighs[index] = get_block_from_chunk(neighs[CHUNK_NEIGH_R], 0, by, bz);
         }
 
         else if (bz < 0)
-            b_neighs[index++] = get_block_from_chunk(neighs[CHUNK_NEIGH_B], bx, by, last);
+            b_neighs[index] = get_block_from_chunk(neighs[CHUNK_NEIGH_B], bx, by, last);
         
-        else if (bz >= CHUNK_WIDTH)
-            b_neighs[index++] = get_block_from_chunk(neighs[CHUNK_NEIGH_F], bx, by, 0);
+        else // bz >= CHUNK_WIDTH
+            b_neighs[index] = get_block_from_chunk(neighs[CHUNK_NEIGH_F], bx, by, 0);
     }
 }
 
-static int should_be_visible(unsigned char block_type, Chunk* c, int neigh_x, int neigh_y, int neigh_z)
+// Helper function for block_set_visible_faces()
+static inline int should_be_visible(
+    unsigned char block_type, Chunk* c, int neigh_x, int neigh_y, int neigh_z
+)
 {
     if (!c) return 1;
 
@@ -339,11 +341,12 @@ static int should_be_visible(unsigned char block_type, Chunk* c, int neigh_x, in
 
 int block_set_visible_faces(Chunk* c, int x, int y, int z, Chunk* neighs[8], int faces[6])
 {
+    static const int last = CHUNK_WIDTH - 1;
     unsigned char block_type = c->blocks[XYZ(x, y, z)];
     
     // left
     if (x == 0)
-        faces[0] = should_be_visible(block_type, neighs[CHUNK_NEIGH_L], CHUNK_WIDTH - 1, y, z);
+        faces[0] = should_be_visible(block_type, neighs[CHUNK_NEIGH_L], last, y, z);
     else
         faces[0] = should_be_visible(block_type, c, x - 1, y, z);
 
@@ -367,7 +370,7 @@ int block_set_visible_faces(Chunk* c, int x, int y, int z, Chunk* neighs[8], int
 
     // back
     if (z == 0)
-        faces[4] = should_be_visible(block_type, neighs[CHUNK_NEIGH_B], x, y, CHUNK_WIDTH - 1);
+        faces[4] = should_be_visible(block_type, neighs[CHUNK_NEIGH_B], x, y, last);
     else
         faces[4] = should_be_visible(block_type, c, x, y, z - 1);
 
@@ -377,7 +380,7 @@ int block_set_visible_faces(Chunk* c, int x, int y, int z, Chunk* neighs[8], int
     else
         faces[5] = should_be_visible(block_type, c, x, y, z + 1);
 
-    // return amount of visible faces
+    // Return amount of visible faces
     int sum = 0;
     for (int i = 0; i < 6; i++)
         sum += faces[i];
@@ -386,7 +389,7 @@ int block_set_visible_faces(Chunk* c, int x, int y, int z, Chunk* neighs[8], int
 
 void block_set_ao(unsigned char neighs[27], float ao[6][4])
 {       
-    // neighbours indices for each vertex for each face
+    // Neighbours indices for each vertex for each face
     static const unsigned char lookup[6][4][3] = 
     {
         { { 0,  1,  9}, { 2,  1, 11}, {18,  9, 19}, {20, 19, 11} }, // left

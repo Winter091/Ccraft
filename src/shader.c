@@ -4,6 +4,7 @@
 #include "shader.h"
 #include "texture.h"
 
+// Global variables for ease-of-access from other files
 GLuint shader_block = 0;
 GLuint shader_line = 0;
 GLuint shader_skybox = 0;

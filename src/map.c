@@ -11,12 +11,14 @@
 #include "db.h"
 #include "block.h"
 
+// Define data structures for chunks
 LINKEDLIST_DEFINITION(Chunk*, chunks);
 HASHMAP_DEFINITION(Chunk*, chunks);
 
 LINKEDLIST_IMPLEMENTATION(Chunk*, chunks);
 HASHMAP_IMPLEMENTATION(Chunk*, chunks, chunk_hash_func);
 
+// Useful defines that simplify iteration over chunks
 #define MAP_FOREACH_ACTIVE_CHUNK_BEGIN(CHUNK_NAME)\
 for (int i = 0; i < map->chunks_active->array_size; i++)\
 {\
@@ -37,7 +39,7 @@ for ( ; node; node = node->ptr_next)\
 
 typedef struct
 {
-    HashMap_chunks*    chunks_active;
+    HashMap_chunks* chunks_active;
     LinkedList_chunks* chunks_to_render;
 
     GLuint VAO_skybox;
@@ -48,8 +50,10 @@ typedef struct
 }
 Map;
 
+// Keep static object for simplicity
 static Map* map;
 
+// NULL if chunk is not found
 static Chunk* map_get_chunk(int chunk_x, int chunk_z)
 {
     uint32_t index = chunk_hash_func2(chunk_x, chunk_z) % map->chunks_active->array_size;
@@ -63,9 +67,9 @@ static Chunk* map_get_chunk(int chunk_x, int chunk_z)
     return node ? node->data : NULL;
 }
 
-static void map_update_chunk_buffer(Chunk* c, int update_neighbours)
+static void map_rebuild_chunk_buffer(Chunk* c, int rebuild_neighbours)
 {
-    if (!c)
+    if (!c) 
         return;
     
     Chunk* neighs[8] = 
@@ -82,10 +86,12 @@ static void map_update_chunk_buffer(Chunk* c, int update_neighbours)
 
     chunk_rebuild_buffer(c, neighs);
     
-    if (update_neighbours)
+    if (rebuild_neighbours)
     {
+        // Don't rebuild corner neighbours because
+        // there's no need to do it
         for (int i = 0; i < 4; i++)
-            map_update_chunk_buffer(neighs[i], 0);
+            map_rebuild_chunk_buffer(neighs[i], 0);
     }
 }
 
@@ -93,7 +99,7 @@ static void map_load_chunk(int chunk_x, int chunk_z)
 {
     Chunk* c = chunk_create(chunk_x, chunk_z);
     hashmap_chunks_insert(map->chunks_active, c);
-    map_update_chunk_buffer(c, 1);
+    map_rebuild_chunk_buffer(c, 1);
 }
 
 static void map_delete_chunk(int chunk_x, int chunk_z)
@@ -103,6 +109,9 @@ static void map_delete_chunk(int chunk_x, int chunk_z)
     {
         hashmap_chunks_remove(map->chunks_active, c);
         chunk_delete(c);
+
+        // Should rebuild neighbours but as long as all deleted
+        // chunks are on edge of view, it's not nessessary
     }
 }
 
@@ -115,8 +124,13 @@ static void map_unload_far_chunks(Camera* cam)
 
     MAP_FOREACH_ACTIVE_CHUNK_BEGIN(c)
     {
-        if (chunk_player_dist2(c->x, c->z, cam_chunk_x, cam_chunk_z) > CHUNK_UNLOAD_RADIUS * CHUNK_UNLOAD_RADIUS)
+        if (
+            chunk_player_dist2(c->x, c->z, cam_chunk_x, cam_chunk_z) 
+            > CHUNK_UNLOAD_RADIUS * CHUNK_UNLOAD_RADIUS
+        )
+        {
             list_chunks_push_front(chunks_to_delete, c);
+        }
     }
     MAP_FOREACH_ACTIVE_CHUNK_END()
 
@@ -129,51 +143,49 @@ static void map_unload_far_chunks(Camera* cam)
     list_chunks_delete(chunks_to_delete);
 }
 
-static void map_load_chunks(Camera* cam)
+static void map_load_update_chunks(Camera* cam)
 {
     int cam_chunk_x = cam->pos[0] / CHUNK_SIZE;
     int cam_chunk_z = cam->pos[2] / CHUNK_SIZE;
     
-    // load one best chunk for now
-    // best == closest visible chunk
+    // load one best chunk;
+    // best is closest visible chunk
     int best_score = INT_MIN;
     int best_chunk_x = 0, best_chunk_z = 0;
 
     for (int x = cam_chunk_x - CHUNK_LOAD_RADIUS; x <= cam_chunk_x + CHUNK_LOAD_RADIUS; x++)
+    for (int z = cam_chunk_z - CHUNK_LOAD_RADIUS; z <= cam_chunk_z + CHUNK_LOAD_RADIUS; z++)
     {
-        for (int z = cam_chunk_z - CHUNK_LOAD_RADIUS; z <= cam_chunk_z + CHUNK_LOAD_RADIUS; z++)
+        if (chunk_player_dist2(x, z, cam_chunk_x, cam_chunk_z) 
+            > CHUNK_LOAD_RADIUS * CHUNK_LOAD_RADIUS
+        )
         {
-            if (chunk_player_dist2(x, z, cam_chunk_x, cam_chunk_z) > CHUNK_LOAD_RADIUS * CHUNK_LOAD_RADIUS)
-                continue;
-            
-            Chunk* c = map_get_chunk(x, z);
-
-            // add all visible loaded chunks to render list,
-            // that list is being cleared every frame
-            if (c)
+            continue;
+        }
+        
+        Chunk* c = map_get_chunk(x, z);
+        // add all visible loaded chunks to render list,
+        // that list is being cleared every frame
+        if (c)
+        {
+            if (chunk_is_visible(x, z, cam->frustum_planes))
+                list_chunks_push_front(map->chunks_to_render, c);
+        }
+        // find the closest visible chunk that is not loaded yet
+        else
+        {
+            int visible = chunk_is_visible(x, z, cam->frustum_planes);
+            int dist = chunk_player_dist2(x, z, cam_chunk_x, cam_chunk_z);
+            int curr_score = visible ? (1 << 30) : 0;
+            curr_score -= dist;
+            if (curr_score >= best_score)
             {
-                if (chunk_is_visible(x, z, cam->frustum_planes))
-                    list_chunks_push_front(map->chunks_to_render, c);
+                best_chunk_x = x;
+                best_chunk_z = z;
+                best_score = curr_score;
             }
-
-            // find the closest visible chunk that is not loaded yet
-            else
-            {
-                int visible = chunk_is_visible(x, z, cam->frustum_planes);
-                int dist = chunk_player_dist2(x, z, cam_chunk_x, cam_chunk_z);
-
-                int curr_score = visible ? (1 << 30) : 0;
-                curr_score -= dist;
-
-                if (curr_score >= best_score)
-                {
-                    best_chunk_x = x;
-                    best_chunk_z = z;
-                    best_score = curr_score;
-                }
-            }
-        }   
-    }
+        }
+    }   
 
     if (best_score != INT_MIN)
         map_load_chunk(best_chunk_x, best_chunk_z);
@@ -199,7 +211,8 @@ void map_init()
     db_get_map_info();
 #endif
 
-    // Load one chunk in which player spawns
+    // Load one chunk in which player spawns when
+    // world is created
     map_load_chunk(0, 0);
 }
 
@@ -228,9 +241,9 @@ static float map_get_blocks_light()
 static void map_get_fog_color(float* r, float* g, float* b)
 {    
     double time = map_get_time();
-    static vec3 day_color = {0.5f, 0.6f, 0.7f}; 
+    static vec3 day_color     = {0.5f, 0.6f, 0.7f}; 
     static vec3 evening_color = {1.0f, 0.9f, 0.7f}; 
-    static vec3 night_color = {0.2f, 0.2f, 0.2f}; 
+    static vec3 night_color   = {0.2f, 0.2f, 0.2f}; 
     vec3 color;
 
     if (time < EVN_TO_NIGHT_START)
@@ -348,6 +361,7 @@ void map_render_chunks(Camera* cam)
     map_get_fog_color(&r, &g, &b);
     shader_set_float3(shader_block, "fog_color", (vec3){r, g, b});
 
+    // Everything except water doesn't need blending
     glDepthFunc(GL_LESS);
     glDisable(GL_BLEND);
     LIST_FOREACH_CHUNK_BEGIN(map->chunks_to_render, c)
@@ -357,6 +371,8 @@ void map_render_chunks(Camera* cam)
     }
     LIST_FOREACH_CHUNK_END()
 
+    // Water does need blending to be transparent, also
+    // to see water from underneath we have to disable face culling
     glDepthMask(GL_FALSE);
     glEnable(GL_BLEND);
     glDisable(GL_CULL_FACE);
@@ -393,67 +409,63 @@ void map_set_block(int x, int y, int z, unsigned char block)
     int block_z = to_chunk_block(z);
 
     c->blocks[XYZ(block_x, y, block_z)] = block;
-    map_update_chunk_buffer(c, 0);
+    map_rebuild_chunk_buffer(c, 0);
     
     // update neighbour if changed block was
     // on the edge of chunk
     if (block_x == 0)
     {
         Chunk* left = map_get_chunk(chunk_x - 1, chunk_z);
-        map_update_chunk_buffer(left, 0);
+        map_rebuild_chunk_buffer(left, 0);
 
         if (block_z == 0)
         {
             Chunk* backleft = map_get_chunk(chunk_x - 1, chunk_z - 1);
-            map_update_chunk_buffer(backleft, 0);
+            map_rebuild_chunk_buffer(backleft, 0);
         }
 
         else if (block_z == CHUNK_WIDTH - 1)
         {
             Chunk* frontleft = map_get_chunk(chunk_x - 1, chunk_z + 1);
-            map_update_chunk_buffer(frontleft, 0);
+            map_rebuild_chunk_buffer(frontleft, 0);
         }
     }
 
     else if (block_x == CHUNK_WIDTH - 1)
     {
         Chunk* right = map_get_chunk(chunk_x + 1, chunk_z);
-        map_update_chunk_buffer(right, 0);
+        map_rebuild_chunk_buffer(right, 0);
 
         if (block_z == 0)
         {
             Chunk* backright = map_get_chunk(chunk_x + 1, chunk_z - 1);
-            map_update_chunk_buffer(backright, 0);
+            map_rebuild_chunk_buffer(backright, 0);
         }
 
         else if (block_z == CHUNK_WIDTH - 1)
         {
             Chunk* frontright = map_get_chunk(chunk_x + 1, chunk_z + 1);
-            map_update_chunk_buffer(frontright, 0);
+            map_rebuild_chunk_buffer(frontright, 0);
         }
     }
 
     if (block_z == 0)
     {
         Chunk* back = map_get_chunk(chunk_x, chunk_z - 1);
-        map_update_chunk_buffer(back, 0);
+        map_rebuild_chunk_buffer(back, 0);
     }
     
     else if (block_z == CHUNK_WIDTH - 1)
     {
         Chunk* front = map_get_chunk(chunk_x, chunk_z + 1);
-        map_update_chunk_buffer(front, 0);
+        map_rebuild_chunk_buffer(front, 0);
     }
 }
 
 void map_update(Camera* cam)
 {
-    //float curr_time = glfwGetTime();
-    
     map_unload_far_chunks(cam);
-    map_load_chunks(cam);
-
-    //printf("%.6f\n", glfwGetTime() - curr_time);
+    map_load_update_chunks(cam);
 }
 
 void map_set_seed(int new_seed)

@@ -12,8 +12,12 @@ extern GLuint FBO_game_texture_color_ui;
 extern GLuint FBO_game_texture_color_pass_1;
 extern GLuint FBO_game_texture_depth;
 
-void framebuffer_create(int window_w, int window_h);
-void framebuffer_rebuild(int window_w, int window_h);
+void framebuffer_create(int curr_window_w, int curr_window_h);
+
+// We need to rebuild framebuffer each time
+// when window size changes
+void framebuffer_rebuild(int curr_window_w, int curr_window_h);
+
 void framebuffer_bind(GLuint framebuffer);
 
 #endif

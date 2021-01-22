@@ -7,6 +7,7 @@
 #include "map.h"
 #include "string.h"
 
+// Keep global database object for simplicity
 sqlite3* db;
 
 static sqlite3_stmt* db_compile_statement(const char* statement)
@@ -137,20 +138,18 @@ void db_init()
 
 void db_insert_block(int chunk_x, int chunk_z, int x, int y, int z, int block)
 {
-    static const char* query = 
-        "INSERT OR REPLACE INTO "
-        "blocks (chunk_x, chunk_z, x, y, z, block) "
-        "VALUES (?, ?, ?, ?, ?, ?)";
-
     static sqlite3_stmt* stmt = NULL;
     if (stmt == NULL)
     {
-        stmt = db_compile_statement(query);
+        stmt = db_compile_statement(
+            "INSERT OR REPLACE INTO "
+            "blocks (chunk_x, chunk_z, x, y, z, block) "
+            "VALUES (?, ?, ?, ?, ?, ?)"
+        );
     }
 
     sqlite3_reset(stmt);
 
-    // pass variables
     sqlite3_bind_int(stmt, 1, chunk_x);
     sqlite3_bind_int(stmt, 2, chunk_z);
     sqlite3_bind_int(stmt, 3, x);
@@ -158,21 +157,19 @@ void db_insert_block(int chunk_x, int chunk_z, int x, int y, int z, int block)
     sqlite3_bind_int(stmt, 5, z);
     sqlite3_bind_int(stmt, 6, block);
 
-    // execute command
     sqlite3_step(stmt);
 }
 
 void db_get_blocks_for_chunk(Chunk* c)
 {
-    static const char* query = 
-        "SELECT x, y, z, block "
-        "FROM blocks "
-        "WHERE chunk_x = ? AND chunk_z = ?";
-    
     static sqlite3_stmt* stmt = NULL;
     if (stmt == NULL)
     {
-        stmt = db_compile_statement(query);
+        stmt = db_compile_statement(
+            "SELECT x, y, z, block "
+            "FROM blocks "
+            "WHERE chunk_x = ? AND chunk_z = ?"
+        );
     }
 
     sqlite3_reset(stmt);
@@ -187,6 +184,9 @@ void db_get_blocks_for_chunk(Chunk* c)
         int z = sqlite3_column_int(stmt, 2);
         int block = sqlite3_column_int(stmt, 3);
 
+        // If map was created and played at certain chunk width
+        // and then chunk width was reduced, there may be 
+        // possible out-of-bounds writes
         if (x < CHUNK_WIDTH && y < CHUNK_HEIGHT && z < CHUNK_WIDTH)
             c->blocks[XYZ(x, y, z)] = block;
     }

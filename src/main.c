@@ -108,6 +108,7 @@ void debug_callback(
             id, _type, _severity, _source, message);
 }
 
+// Show fps in window title bar
 static void print_fps(GLFWwindow* window)
 {
     static double last_time = -1.0;
@@ -130,6 +131,7 @@ static void print_fps(GLFWwindow* window)
     }
 }
 
+// Get time between current and last frame
 static double get_dt()
 {
     static double last_time = -1.0;
@@ -147,14 +149,14 @@ static double get_dt()
 
 static float get_current_dof_depth(float dt)
 {
-    // Very slow function, on i5-3470 and r9 280 it takes about 2ms
+    // Very slow function, on i5-3470 and r9 280 it takes 1-2ms
     
     static float curr_depth = 1.0f;
 
     // Read depth in the center of the screen 
     // and gradually move towards it
     float desired_depth;
-    glReadPixels(window_w / 2, window_h / 2, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &desired_depth);
+    glReadPixels(curr_window_w / 2, curr_window_h / 2, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &desired_depth);
     curr_depth = glm_lerp(curr_depth, desired_depth, dt * DOF_SPEED);
     
     return curr_depth;
@@ -181,7 +183,7 @@ void render_game(GameObjects* game)
 
     // Render ui to the color texture for ui;
     // Clear with alpha 0.0f to blend ui with
-    // main game image in the final shader pass
+    // main game image later
     glDrawBuffer(GL_COLOR_ATTACHMENT1);
     glClearBufferfv(GL_COLOR, 0, (const GLfloat[]){0.0f, 1.0f, 0.0f, 0.0f});
 
@@ -206,13 +208,13 @@ void render_first_pass(GameObjects* game, float dt)
     shader_set_int1(shader_deferred1, "u_dof_smooth", DOF_SMOOTH);
     shader_set_float1(shader_deferred1, "u_max_blur", DOF_MAX_BLUR);
     shader_set_float1(shader_deferred1, "u_aperture", DOF_APERTURE);
-    shader_set_float1(shader_deferred1, "u_aspect_ratio", (float)window_w / window_h);
+    shader_set_float1(shader_deferred1, "u_aspect_ratio", (float)curr_window_w / curr_window_h);
     shader_set_float1(shader_deferred1, "u_depth", curr_depth);
 #else
     shader_set_int1(shader_deferred1, "u_dof_enabled", 0);
 #endif
 
-    // Render to color texture for the first pass
+    // Render to color texture for the first pass (FBO_game_texture_color_pass_1)
     glDrawBuffer(GL_COLOR_ATTACHMENT2);
     glClearBufferfv(GL_COLOR, 0, (const GLfloat[]){1.0f, 0.0f, 1.0f, 1.0f});
     glDepthFunc(GL_ALWAYS);
@@ -225,6 +227,7 @@ void render_second_pass(GameObjects* game, float dt)
 {
     glUseProgram(shader_deferred2);
 
+    // Use texture with applied depth of field effect
     shader_set_texture_2d(shader_deferred2, "texture_color", FBO_game_texture_color_pass_1, 0);
     shader_set_texture_2d(shader_deferred2, "texture_ui",    FBO_game_texture_color_ui, 1);
     shader_set_texture_2d(shader_deferred2, "texture_depth", FBO_game_texture_depth, 2);
@@ -258,7 +261,7 @@ void render_second_pass(GameObjects* game, float dt)
     shader_set_float1(shader_deferred2, "u_gamma", GAMMA_CORRECTION);
     shader_set_float1(shader_deferred2, "u_saturation", SATURATION);
 
-    // It's final pass, render to default frame buffer
+    // It's final pass, render to screem frame buffer
     framebuffer_bind(FBO_screen);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -296,6 +299,7 @@ int main()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
+    // Set up debug context if it's available
     GLint context_flags;
     glGetIntegerv(GL_CONTEXT_FLAGS, &context_flags);
     if (context_flags & GLFW_OPENGL_DEBUG_CONTEXT)
@@ -314,9 +318,6 @@ int main()
 #if USE_DATABASE
     db_init();
 #endif
-
-    // Start at the beginning of day
-    glfwSetTime(DAY_LENGTH / 2.0f);
 
     shaders_load();
     textures_load();

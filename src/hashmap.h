@@ -1,3 +1,10 @@
+/*
+
+    My simple hashmap implementation using 
+    a lot of preprocessor shit
+
+*/
+
 #ifndef HASH_MAP_H_
 #define HASH_MAP_H_
 

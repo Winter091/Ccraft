@@ -24,10 +24,14 @@ typedef struct
 Player;
 
 Player* player_create();
+
 void player_set_build_block(Player* p, int new_block);
 void player_update(Player* p, GLFWwindow* window, double dt);
 
+// Destroy block
 void player_handle_left_mouse_click(Player* p);
+
+// Place block
 void player_handle_right_mouse_click(Player* p);
 
 void player_render_item(Player* p);

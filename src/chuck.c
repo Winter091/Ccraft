@@ -1,11 +1,9 @@
 #include "chunk.h"
 
-#include "glad/glad.h"
 #include "stdlib.h"
 #include "block.h"
 #include "utils.h"
 #include "db.h"
-#include "string.h"
 #include "worldgen.h"
 
 Chunk* chunk_create(int chunk_x, int chunk_z)
@@ -50,7 +48,7 @@ void chunk_rebuild_buffer(Chunk* c, Chunk* neighs[8])
     static Vertex* vertices_water = NULL;
     if (!vertices_land && !vertices_water)
     {
-        // space for all vertices in a chunk
+        // space for all vertices in a chunk, a slight overkill
         vertices_land = malloc(
             CHUNK_WIDTH * CHUNK_WIDTH * CHUNK_HEIGHT * 36 * sizeof(Vertex)
         );
@@ -63,65 +61,62 @@ void chunk_rebuild_buffer(Chunk* c, Chunk* neighs[8])
     int curr_vertex_water_count = 0;
     
     for (int x = 0; x < CHUNK_WIDTH; x++)
-        for (int y = 0; y < CHUNK_HEIGHT; y++)
-            for (int z = 0; z < CHUNK_WIDTH; z++)
+    for (int y = 0; y < CHUNK_HEIGHT; y++)
+    for (int z = 0; z < CHUNK_WIDTH; z++)
+    {
+        unsigned char block = c->blocks[XYZ(x, y, z)];
+        if (block == BLOCK_AIR)
+            continue;
+
+        int faces[6];
+        int faces_visible = block_set_visible_faces(c, x, y, z, neighs, faces);
+
+        // No faces are visible -> block is invisible!
+        if (faces_visible == 0)
+            continue;
+
+        unsigned char b_neighs[27];
+        block_get_neighs(c, neighs, x, y, z, b_neighs);
+
+        float ao[6][4];
+        block_set_ao(b_neighs, ao);
+
+        int block_x = x + c->x * CHUNK_WIDTH;
+        int block_y = y;
+        int block_z = z + c->z * CHUNK_WIDTH;
+
+        if (c->blocks[XYZ(x, y, z)] == BLOCK_WATER)
+        {
+            unsigned char block_above = BLOCK_AIR;
+            if (y + 1 < CHUNK_HEIGHT)
+                block_above = c->blocks[XYZ(x, y + 1, z)];
+
+            // Water should be shorter only if there's air above
+            int make_shorter = block_above == BLOCK_AIR ? 1 : 0;
+            gen_cube_vertices(
+                vertices_water, &curr_vertex_water_count, block_x, block_y, block_z,
+                c->blocks[XYZ(x, y, z)], BLOCK_SIZE, make_shorter, faces, ao
+            );
+        }
+        else
+        {
+            if (block_is_plant(c->blocks[XYZ(x, y, z)]))
             {
-                unsigned char block = c->blocks[XYZ(x, y, z)];
-                if (block == BLOCK_AIR)
-                    continue;
-
-                int faces[6];
-                int faces_visible = block_set_visible_faces(
-                    c, x, y, z, neighs, faces
+                gen_plant_vertices(
+                    vertices_land, &curr_vertex_land_count, block_x, block_y, block_z,
+                    c->blocks[XYZ(x, y, z)], BLOCK_SIZE
                 );
-
-                // block is not visible? Then don't draw it
-                if (faces_visible == 0)
-                    continue;
-
-                unsigned char b_neighs[27];
-                block_get_neighs(c, neighs, x, y, z, b_neighs);
-
-                float ao[6][4];
-                block_set_ao(b_neighs, ao);
-
-                int block_x = x + c->x * CHUNK_WIDTH;
-                int block_y = y;
-                int block_z = z + c->z * CHUNK_WIDTH;
-
-                if (c->blocks[XYZ(x, y, z)] == BLOCK_WATER)
-                {
-                    unsigned char block_above = BLOCK_AIR;
-                    if (y + 1 < CHUNK_HEIGHT)
-                        block_above = c->blocks[XYZ(x, y + 1, z)];
-                    
-                    // Water should be shorter only if there's air above
-                    int make_shorter = block_above == BLOCK_AIR ? 1 : 0;
-                    
-                    gen_cube_vertices(
-                        vertices_water, &curr_vertex_water_count, block_x, block_y, block_z,
-                        c->blocks[XYZ(x, y, z)], BLOCK_SIZE, make_shorter, faces, ao
-                    );
-                }
-                else
-                {
-                    if (block_is_plant(c->blocks[XYZ(x, y, z)]))
-                    {
-                        gen_plant_vertices(
-                            vertices_land, &curr_vertex_land_count, block_x, block_y, block_z,
-                            c->blocks[XYZ(x, y, z)], BLOCK_SIZE
-                        );
-                    }
-                    else
-                    {
-                        gen_cube_vertices(
-                            vertices_land, &curr_vertex_land_count, block_x, block_y, block_z,
-                            c->blocks[XYZ(x, y, z)], BLOCK_SIZE, 0, faces, ao
-                        );
-                    }
-                }
-                
             }
+            else
+            {
+                gen_cube_vertices(
+                    vertices_land, &curr_vertex_land_count, block_x, block_y, block_z,
+                    c->blocks[XYZ(x, y, z)], BLOCK_SIZE, 0, faces, ao
+                );
+            }
+        }
+
+    }
 
     // Generate VAOs and VBOs
     c->VAO_land = opengl_create_vao();
@@ -145,7 +140,7 @@ void chunk_rebuild_buffer(Chunk* c, Chunk* neighs[8])
 
 int chunk_is_visible(int chunk_x, int chunk_z, vec4 planes[6])
 {
-    // construct chunk box
+    // Construct chunk aabb
     vec3 aabb[2];
     aabb[0][0] = chunk_x * CHUNK_SIZE;
     aabb[0][1] = 0.0f;
@@ -154,8 +149,8 @@ int chunk_is_visible(int chunk_x, int chunk_z, vec4 planes[6])
     aabb[1][1] = CHUNK_HEIGHT * BLOCK_SIZE;
     aabb[1][2] = aabb[0][2] + CHUNK_SIZE;
 
-    // and use this nice function to determine 
-    // whether the box is visible to camera or not
+    // And use this nice function to determine 
+    // whether the aabb is visible to camera or not
     return glm_aabb_frustum(aabb, planes);
 }
 

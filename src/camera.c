@@ -12,15 +12,15 @@ Camera* camera_create()
     cam->active = 1;
     cam->fly_mode = 0;
 
-    cam->pos[0] = 0.0f;
-    cam->pos[1] = CHUNK_HEIGHT * BLOCK_SIZE;
-    cam->pos[2] = 0.0f;
-    glm_vec3_copy(cam->pos, cam->prev_pos);
+    // Position will be set later, using database or
+    // moving player to ground level
+    glm_vec3_fill(cam->pos, 0.0f);
+    glm_vec3_fill(cam->prev_pos, 0.0f);
 
     glm_vec3_fill(cam->frame_motion, 0.0f);
-    glm_vec2_fill(cam->motion_horizontal, 0.0f);
-    cam->motion_vertical = 0.0f;
-    
+    glm_vec2_fill(cam->speed_horizontal, 0.0f);
+    cam->speed_vertical = 0.0f;
+
     cam->front[0] = 0.0f;
     cam->front[1] = 0.0f;
     cam->front[2] = -1.0f;
@@ -33,7 +33,7 @@ Camera* camera_create()
     cam->yaw = 270.0f;
 
     cam->fov = FOV;
-    cam->sens = 0.1f;
+    cam->sens = MOUSE_SENS;
     cam->fly_speed = 20.0f * BLOCK_SIZE;
 
     cam->first_frame = 1;
@@ -43,18 +43,18 @@ Camera* camera_create()
     cam->aspect_ratio = (float)WINDOW_WIDTH / WINDOW_HEIGHT;
 
     cam->clip_near = BLOCK_SIZE / 10.0f;
-    // at least 512 blocks
+    // At least 512 blocks
     cam->clip_far = MAX((CHUNK_RENDER_RADIUS * 1.2f) * CHUNK_SIZE, 512 * BLOCK_SIZE);
 
-    // generate view, proj and vp matrices
+    // Generate matrices
     glm_look(cam->pos, cam->front, cam->up, cam->view_matrix);
     glm_perspective(
-        glm_rad(FOV), (float)WINDOW_WIDTH / WINDOW_HEIGHT, 
+        glm_rad(cam->fov), (float)WINDOW_WIDTH / WINDOW_HEIGHT,
         cam->clip_near, cam->clip_far, cam->proj_matrix
     );
     glm_mat4_mul(cam->proj_matrix, cam->view_matrix, cam->vp_matrix);
     glm_mat4_copy(cam->view_matrix, cam->prev_view_matrix);
-
+    
     return cam;
 }
 
@@ -71,8 +71,8 @@ void camera_update_view_dir(Camera* cam, GLFWwindow* window)
         return;
     }
 
-    double dx = mouse_x - cam->mouse_last_x;
-    double dy = mouse_y - cam->mouse_last_y;
+    float dx = mouse_x - cam->mouse_last_x;
+    float dy = mouse_y - cam->mouse_last_y;
 
     cam->mouse_last_x = mouse_x;
     cam->mouse_last_y = mouse_y;
@@ -80,10 +80,10 @@ void camera_update_view_dir(Camera* cam, GLFWwindow* window)
     cam->yaw += dx * cam->sens;
     cam->pitch -= dy * cam->sens;
 
-    if (cam->pitch < -89.9f)
-        cam->pitch = -89.9f;
-    else if (cam->pitch > 89.9f)
-        cam->pitch = 89.9f;
+    if (cam->pitch < -89.99f)
+        cam->pitch = -89.99f;
+    else if (cam->pitch > 89.99f)
+        cam->pitch = 89.99f;
 
     if (cam->yaw > 360.0f) cam->yaw -= 360.0f;
     if (cam->yaw < 0.0f) cam->yaw += 360.0f;
@@ -94,7 +94,7 @@ void camera_update_view_dir(Camera* cam, GLFWwindow* window)
     glm_vec3_normalize(cam->front);
 }
 
-void camera_update_parameters(Camera* cam, GLFWwindow* window, double dt)
+void camera_update_parameters(Camera* cam, GLFWwindow* window, float dt)
 {
     glm_vec3_copy(cam->pos, cam->prev_pos);
 
@@ -119,8 +119,8 @@ void camera_update_parameters(Camera* cam, GLFWwindow* window, double dt)
     else if (!key_c && cam->fov == FOV_ZOOM)
         camera_set_fov(cam, FOV);
     
-    // Little hack to prevent fly/walk move every frame
-    // when tab is pressed
+    // Little hack to prevent changing fly/walk move
+    // every frame when tab is pressed
     if (!key_tab && tab_already_pressed)
         tab_already_pressed = 0;
 

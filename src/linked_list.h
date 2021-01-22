@@ -1,3 +1,10 @@
+/*
+
+    My simple linked list implementation using 
+    a lot of preprocessor shit
+
+*/
+
 #ifndef LINKED_LIST_H_
 #define LINKED_LIST_H_
 

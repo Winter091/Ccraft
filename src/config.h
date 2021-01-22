@@ -35,10 +35,9 @@
 #define CURRENT_MAP "maps/test_map.db"
 #define USE_DATABASE 1
 
-#define DISABLE_TIME_FLOW 0
-
 // full day length in seconds
 #define DAY_LENGTH 1200
+#define DISABLE_TIME_FLOW 0
 
 // full day range is [0.0 - 1.0)
 #define DAY_TO_EVN_START 0.3f
@@ -52,6 +51,8 @@
 
 #define FOV 65
 #define FOV_ZOOM 20
+
+#define MOUSE_SENS 0.1f
 
 // ============ Core game settings ==============
 

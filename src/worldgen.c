@@ -220,6 +220,7 @@ static void gen_ocean(Chunk* c, int x, int z, int h)
         c->blocks[XYZ(x, y, z)] = BLOCK_WATER;
 }
 
+// Biome noise settings
 static int get_height(Biome biome, int bx, int bz)
 {
     int v;
@@ -261,11 +262,15 @@ static int get_height(Biome biome, int bx, int bz)
     }
 }
 
+// Bilinear interpolation
 static float blerp(float h11, float h12, float h21, float h22, float x, float y)
 {
     return h11 * (1 - x) * (1 - y) + h21 * x * (1 - y) + h12 * (1 - x) * y + h22 * x * y;
 }
 
+// Generate height only for some blocks (for every 8th block
+// in a grid: (0, 0), (0, 8), (8, 0) etc), then interpolate
+// these heights in order to get all remaining heights.
 void worldgen_generate_chunk(Chunk* c)
 {
     // Set seed for rand() in order to always get the
@@ -275,12 +280,8 @@ void worldgen_generate_chunk(Chunk* c)
     seed = ((seed >> 16) ^ c->z) * 0x45d9f3b;
     seed = (seed >> 16) ^ seed;
     srand(seed);
-    
-    /*
-    Generate height only for some blocks (for every 8th block
-    in a grid: (0, 0), (0, 8), (8, 0) etc), then interpolate
-    these heights in order to get all remaining heights.
-    */
+
+    // We need last index to be CHUNK_WIDTH
     Biome biomes[CHUNK_WIDTH + 1][CHUNK_WIDTH + 1];
     int heightmap[CHUNK_WIDTH + 1][CHUNK_WIDTH + 1];
     
@@ -293,9 +294,10 @@ void worldgen_generate_chunk(Chunk* c)
         int bx = chunk_x_start + x;
         int bz = chunk_z_start + z;
 
+        // Generate biome for each block
         biomes[x][z] = get_biome(bx, bz);
 
-        // Generate height using noise only for some blocks
+        // Generate height only for some blocks
         if (x % 8 == 0 && z % 8 == 0)
             heightmap[x][z] = get_height(biomes[x][z], bx, bz);
     }
@@ -323,13 +325,6 @@ void worldgen_generate_chunk(Chunk* c)
             case BIOME_MOUNTAINS:     gen_mountains(c, x, z, heightmap[x][z]); break;
             case BIOME_DESERT:        gen_desert(c, x, z, heightmap[x][z]); break;
             case BIOME_OCEAN:         gen_ocean(c, x, z, heightmap[x][z]); break; 
-
-            //case BIOME_PLAINS:        c->blocks[XYZ(x, 2, z)] = BLOCK_GRASS; break;
-            //case BIOME_FOREST:        c->blocks[XYZ(x, 2, z)] = BLOCK_WOOD; break;
-            //case BIOME_FLOWER_FOREST: c->blocks[XYZ(x, 2, z)] = BLOCK_FLOWER_ROSE; break;
-            //case BIOME_MOUNTAINS:     c->blocks[XYZ(x, 2, z)] = BLOCK_STONE; break;
-            //case BIOME_DESERT:        c->blocks[XYZ(x, 2, z)] = BLOCK_SANDSTONE; break;
-            //case BIOME_OCEAN:         c->blocks[XYZ(x, 2, z)] = BLOCK_WATER; break; 
         }
     }
 }

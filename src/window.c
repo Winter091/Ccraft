@@ -8,8 +8,8 @@
 #include "config.h"
 #include "framebuffer.h"
 
-int window_w = WINDOW_WIDTH;
-int window_h = WINDOW_HEIGHT;
+int curr_window_w = WINDOW_WIDTH;
+int curr_window_h = WINDOW_HEIGHT;
 
 static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -19,8 +19,8 @@ static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     ui_update_aspect_ratio((float)width / height);
     framebuffer_rebuild(width, height);
 
-    window_w = width;
-    window_h = height;
+    curr_window_w = width;
+    curr_window_h = height;
 
     glViewport(0, 0, width, height);
 }
@@ -88,7 +88,7 @@ GLFWwindow* window_create()
         exit(EXIT_FAILURE);
     }
 
-    // require to use particular version of OpenGL
+    // Require to use particular version of OpenGL
     glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, OPENGL_VERSION_MAJOR_REQUIRED);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, OPENGL_VERSION_MINOR_REQUIRED);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -96,7 +96,7 @@ GLFWwindow* window_create()
 
     GLFWmonitor* monitor = FULLSCREEN ? glfwGetPrimaryMonitor() : NULL;
 
-    // setup windowed full screen mode
+    // Setup windowed full screen mode
     if (monitor)
     {
         const GLFWvidmode* mode = glfwGetVideoMode(monitor);
@@ -107,7 +107,7 @@ GLFWwindow* window_create()
         glfwWindowHint(GLFW_CENTER_CURSOR, GLFW_TRUE);
     }
 
-    // will fail if OpenGL version is not supported
+    // Will fail if OpenGL version is not supported
     GLFWwindow* window = glfwCreateWindow(
         WINDOW_WIDTH, WINDOW_HEIGHT, 
         WINDOW_TITLE, monitor, NULL
@@ -130,7 +130,7 @@ GLFWwindow* window_create()
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSwapInterval(VSYNC);
 
-    // set callbacks
+    // Set callbacks
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetKeyCallback(window, key_callback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);

@@ -13,7 +13,9 @@ GLuint texture_skybox_night;
 GLuint texture_sun;
 GLuint texture_moon;
 
-void exit_if_not_loaded_or_wrong_channels(const char* path, unsigned char* data, int channels, int channels_required)
+void exit_if_not_loaded_or_wrong_channels(
+    const char* path, unsigned char* data, int channels, int channels_required
+)
 {
     if (!data)
     {
@@ -98,7 +100,7 @@ GLuint texture_array_create(const char* path)
     {
         for (int x = 0; x < 16; x++)
         {
-            // extract tile data from texture atlas
+            // Extract tile data from texture atlas
             for (int row = 0; row < tile_h; row++)
             {
                 memcpy(
