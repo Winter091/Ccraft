@@ -25,6 +25,7 @@ typedef struct
 
     int fov;
     float sens;
+    float fly_speed;
 
     int first_frame;
     float mouse_last_x;

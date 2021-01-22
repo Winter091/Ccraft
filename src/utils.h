@@ -20,11 +20,16 @@ static inline int chunked(int coord)
     return (coord + 1) / CHUNK_WIDTH - 1;
 }
 
-static inline int blocked(int coord)
+static inline int to_chunk_block(int coord)
 {
     int block = coord % CHUNK_WIDTH;
     if (block < 0) block += CHUNK_WIDTH;
     return block;
+}
+
+static inline float blocked(float coord)
+{
+    return coord / BLOCK_SIZE;
 }
 
 static inline int chunk_player_dist2(int cx, int cz, int px, int pz)

@@ -53,17 +53,6 @@
 #define FOV 65
 #define FOV_ZOOM 20
 
-// ============== Player Physics ================
-#define MAX_MOVE_SPEED 5.6f
-#define MAX_MOVE_SPEED_SNEAK 1.3f
-#define MAX_FLY_SPEED 25.0f
-#define MAX_FALL_SPEED 100.0f
-#define ACCELERATION_HORIZONTAL 40.0f
-#define DECELERATION_HORIZONTAL 50.0f
-#define ACCELERATION_VERTICAL 12.0f
-#define JUMP_POWER 9.0f
-#define GRAVITY 2.5f
-
 // ============ Core game settings ==============
 
 // Chunk width should be a multiple of 8, otherwise
@@ -73,9 +62,22 @@
 // Changing height will also break world generation
 #define CHUNK_HEIGHT 256
 
-#define BLOCK_SIZE 1.0f
+#define BLOCK_SIZE 0.1f
 #define CHUNK_SIZE (float)(CHUNK_WIDTH * BLOCK_SIZE)
 
 #define BLOCK_BREAK_RADIUS 5
 #define CHUNK_LOAD_RADIUS (CHUNK_RENDER_RADIUS + 2)
 #define CHUNK_UNLOAD_RADIUS (CHUNK_RENDER_RADIUS + 5)
+
+// ============== Player Physics ================
+#define MAX_MOVE_SPEED            5.6f * BLOCK_SIZE
+#define MAX_MOVE_SPEED_SNEAK      1.3f * BLOCK_SIZE
+#define MAX_MOVE_SPEED_WATER      3.0f * BLOCK_SIZE
+#define MAX_FALL_SPEED          100.0f * BLOCK_SIZE
+#define MAX_DIVE_SPEED_WATER      4.0f * BLOCK_SIZE
+#define MAX_EMEGRE_SPEED_WATER    6.0f * BLOCK_SIZE
+#define ACCELERATION_HORIZONTAL  40.0f * BLOCK_SIZE
+#define DECELERATION_HORIZONTAL  50.0f * BLOCK_SIZE
+#define DECELERATION_VERTICAL    10.0f * BLOCK_SIZE
+#define JUMP_POWER                8.2f * BLOCK_SIZE
+#define GRAVITY                   2.7f

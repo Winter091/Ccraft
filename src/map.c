@@ -381,7 +381,7 @@ unsigned char map_get_block(int x, int y, int z)
     if (!c || !c->is_loaded || y >= CHUNK_HEIGHT || y < 0) 
         return BLOCK_AIR;
 
-    return c->blocks[XYZ(blocked(x), y, blocked(z))];
+    return c->blocks[XYZ(to_chunk_block(x), y, to_chunk_block(z))];
 }
 
 void map_set_block(int x, int y, int z, unsigned char block)
@@ -392,8 +392,8 @@ void map_set_block(int x, int y, int z, unsigned char block)
     Chunk* c = map_get_chunk(chunk_x, chunk_z);
     if (!c) return;
 
-    int block_x = blocked(x);
-    int block_z = blocked(z);
+    int block_x = to_chunk_block(x);
+    int block_z = to_chunk_block(z);
 
     c->blocks[XYZ(block_x, y, block_z)] = block;
     map_update_chunk_buffer(c, 0);

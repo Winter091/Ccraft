@@ -34,6 +34,7 @@ Camera* camera_create()
 
     cam->fov = FOV;
     cam->sens = 0.1f;
+    cam->fly_speed = 20.0f * BLOCK_SIZE;
 
     cam->first_frame = 1;
     cam->mouse_last_x = 0;
@@ -84,8 +85,8 @@ void camera_update_view_dir(Camera* cam, GLFWwindow* window)
     else if (cam->pitch > 89.9f)
         cam->pitch = 89.9f;
 
-    if (cam->yaw >= 360.0f) cam->yaw -= 360.0f;
-    if (cam->yaw <= 0.0f) cam->yaw += 360.0f;
+    if (cam->yaw > 360.0f) cam->yaw -= 360.0f;
+    if (cam->yaw < 0.0f) cam->yaw += 360.0f;
 
     cam->front[0] = cosf(glm_rad(cam->yaw)) * cosf(glm_rad(cam->pitch));
     cam->front[1] = sinf(glm_rad(cam->pitch));
@@ -100,9 +101,17 @@ void camera_update_parameters(Camera* cam, GLFWwindow* window, double dt)
     if (!cam->active)
         return;
 
-    int key_c   = glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS;
-    int key_tab = glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS;
+    int key_c        = glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS;
+    int key_pageup   = glfwGetKey(window, GLFW_KEY_PAGE_UP) == GLFW_PRESS;
+    int key_pagedown = glfwGetKey(window, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS;
+    int key_tab      = glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS;
     static int tab_already_pressed = 0;
+
+    // Handle fly speed
+    if (key_pageup)
+        cam->fly_speed *= (1.0f + dt);
+    else if (key_pagedown)
+        cam->fly_speed /= (1.0f + dt);
 
     // Handle zoom mode
     if (key_c && cam->fov == FOV)
@@ -110,13 +119,12 @@ void camera_update_parameters(Camera* cam, GLFWwindow* window, double dt)
     else if (!key_c && cam->fov == FOV_ZOOM)
         camera_set_fov(cam, FOV);
     
-    // Handle fly/walk mode
-
-    // Little hack to prevent changing move every frame
+    // Little hack to prevent fly/walk move every frame
     // when tab is pressed
     if (!key_tab && tab_already_pressed)
         tab_already_pressed = 0;
 
+    // Handle fly/walk mode
     if (key_tab && !tab_already_pressed)
     {
         if (cam->fly_mode == 1)
