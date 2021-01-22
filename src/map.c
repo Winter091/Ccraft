@@ -38,9 +38,6 @@ for ( ; node; node = node->ptr_next)\
 typedef struct
 {
     HashMap_chunks*    chunks_active;
-    //LinkedList_chunks* chunks_to_load;
-    //LinkedList_chunks* chunks_to_unload;
-    //LinkedList_chunks* chunks_to_rebuild;
     LinkedList_chunks* chunks_to_render;
 
     GLuint VAO_skybox;
@@ -187,9 +184,6 @@ void map_init()
     map = malloc(sizeof(Map));
 
     map->chunks_active     = hashmap_chunks_create(CHUNK_RENDER_RADIUS * CHUNK_RENDER_RADIUS * 1.2f);
-    //map->chunks_to_load    = list_chunks_create();
-    //map->chunks_to_unload  = list_chunks_create();
-    //map->chunks_to_rebuild = list_chunks_create();
     map->chunks_to_render  = list_chunks_create();
 
     map->VAO_skybox = opengl_create_vao();
@@ -204,6 +198,9 @@ void map_init()
 #if USE_DATABASE
     db_get_map_info();
 #endif
+
+    // Load one chunk in which player spawns
+    map_load_chunk(0, 0);
 }
 
 // [0.0 - 1.0)
@@ -473,6 +470,24 @@ void map_set_time(double new_time)
 int map_get_seed()
 {
     return noise_get_seed();
+}
+
+int map_get_highest_block(int x, int z)
+{
+    Chunk* c = map_get_chunk(chunked(x), chunked(z));
+    if (!c) return CHUNK_HEIGHT;
+
+    int bx = to_chunk_block(x);
+    int bz = to_chunk_block(z);
+
+    int max_height = 0;
+    for (int y = 0; y < CHUNK_HEIGHT; y++)
+    {
+        if (block_is_solid(c->blocks[XYZ(bx, y, bz)]))
+            max_height = y;
+    }
+
+    return max_height;
 }
 
 void map_save()

@@ -20,6 +20,7 @@ void map_set_seed(int new_seed);
 void map_set_time(double new_time);
 double map_get_time();
 int map_get_seed();
+int map_get_highest_block(int x, int z);
 
 void map_save();
 

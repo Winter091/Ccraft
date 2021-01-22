@@ -80,6 +80,18 @@ Player* player_create()
     p->block_pointed_at[1] = 0;
     p->block_pointed_at[2] = 0;
 
+    // Either it's newly created world or we don't use
+    // map save; Spawn the player at ground level
+    if (p->cam->pos[1] < 0 || !USE_DATABASE)
+    {
+        int bx = CHUNK_WIDTH / 2;
+        int bz = CHUNK_WIDTH / 2;
+        int by = map_get_highest_block(bx, bz);
+        p->cam->pos[0] = bx * BLOCK_SIZE + BLOCK_SIZE / 2;
+        p->cam->pos[1] = by * BLOCK_SIZE + BLOCK_SIZE * 3;
+        p->cam->pos[2] = bz * BLOCK_SIZE + BLOCK_SIZE / 2;
+    }
+
     update_hitbox(p);
 
     p->on_ground = 0;
