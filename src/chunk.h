@@ -1,10 +1,11 @@
 #ifndef CHUNK_H_
 #define CHUNK_H_
 
-#include "cglm/cglm.h"
-#include "config.h"
 #include "stdlib.h"
+
+#include "cglm/cglm.h"
 #include "glad/glad.h"
+#include "config.h"
 
 // Access block by 3 coords from 1-dimensional array
 #define XYZ(x, y, z) ((x) * CHUNK_WIDTH * CHUNK_HEIGHT) + ((y) * CHUNK_WIDTH) + (z)

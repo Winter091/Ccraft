@@ -1,7 +1,8 @@
 #include "ui.h"
 
-#include "utils.h"
 #include "stdlib.h"
+
+#include "utils.h"
 #include "shader.h"
 #include "config.h"
 #include "block.h"

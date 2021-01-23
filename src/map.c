@@ -1,13 +1,13 @@
-#include "glad/glad.h"
 #include "map.h"
 
 #include "stdlib.h"
 #include "limits.h"
+#include "math.h"
+
 #include "shader.h"
 #include "texture.h"
 #include "fastnoiselite.h"
 #include "utils.h"
-#include "math.h"
 #include "db.h"
 #include "block.h"
 

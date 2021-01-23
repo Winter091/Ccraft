@@ -1,7 +1,8 @@
+#include "shader.h"
+
 #include "stdio.h"
 #include "stdlib.h"
 
-#include "shader.h"
 #include "texture.h"
 
 // Global variables for ease-of-access from other files

@@ -11,8 +11,6 @@
 #include "camera.h"
 #include "window.h"
 #include "texture.h"
-#include "shader.h"
-#include "utils.h"
 #include "framebuffer.h"
 #include "db.h"
 #include "fastnoiselite.h"

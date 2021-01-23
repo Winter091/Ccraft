@@ -1,5 +1,3 @@
-#include "glad/glad.h"
-
 #include "window.h"
 
 #include "stdio.h"

@@ -3,7 +3,6 @@
 #include "block.h"
 #include "utils.h"
 #include "map.h"
-#include "limits.h"
 #include "shader.h"
 #include "texture.h"
 #include "db.h"

@@ -1,9 +1,10 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
+#include "stdlib.h"
+
 #include "glad/glad.h"
 #include "config.h"
-#include "stdlib.h"
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))

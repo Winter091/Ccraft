@@ -1,11 +1,11 @@
 #include "db.h"
 
-#include "sqlite3.h"
-#include "config.h"
 #include "stdio.h"
 #include "time.h"
+
+#include "sqlite3.h"
+#include "config.h"
 #include "map.h"
-#include "string.h"
 
 // Keep global database object for simplicity
 sqlite3* db;

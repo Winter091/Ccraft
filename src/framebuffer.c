@@ -1,8 +1,9 @@
 #include "framebuffer.h"
 
+#include "stdio.h"
+
 #include "utils.h"
 #include "texture.h"
-#include "stdio.h"
 
 // Keep everything in global variables for easier access
 // from different files
