@@ -4,6 +4,7 @@
 #include "block.h"
 #include "stdlib.h"
 #include "fastnoiselite.h"
+#include "assert.h"
 
 static const int water_level = 50;
 
@@ -44,9 +45,13 @@ static Biome get_biome(int bx, int bz)
         return BIOME_DESERT;
 }
 
-// I should rewrite it, it's not effective
+// Doesn't work on the edges of a chunk because
+// some leaves would be in other chunks but we can
+// only plae blocks in current chunk
 static void make_tree(Chunk* c, int x, int y, int z)
 {
+    assert(x >= 2 && x <= CHUNK_WIDTH - 3 && z >= 2 && z <= CHUNK_WIDTH - 3);
+
     for (int i = 1; i <= 5; i++)
         c->blocks[XYZ(x, y + i, z)] = BLOCK_WOOD;
     c->blocks[XYZ(x, y + 7, z)] = BLOCK_LEAVES;
@@ -59,9 +64,7 @@ static void make_tree(Chunk* c, int x, int y, int z)
                 int by = y + dy;
                 int bz = z + dz;
 
-                if (bx < 0 || bx >= CHUNK_WIDTH || by < 0 || by >= CHUNK_HEIGHT || bz < 0 || bz >= CHUNK_WIDTH)
-                    continue;
-                else if (c->blocks[XYZ(bx, by, bz)] != BLOCK_AIR)
+                if (c->blocks[XYZ(bx, by, bz)] != BLOCK_AIR)
                     continue;
                 
                 c->blocks[XYZ(bx, by, bz)] = BLOCK_LEAVES;
@@ -75,9 +78,7 @@ static void make_tree(Chunk* c, int x, int y, int z)
                 int by = y + dy;
                 int bz = z + dz;
 
-                if (bx < 0 || bx >= CHUNK_WIDTH || by < 0 || by >= CHUNK_HEIGHT || bz < 0 || bz >= CHUNK_WIDTH)
-                    continue;
-                else if (c->blocks[XYZ(bx, by, bz)] != BLOCK_AIR)
+                if (c->blocks[XYZ(bx, by, bz)] != BLOCK_AIR)
                     continue;
                 
                 c->blocks[XYZ(bx, by, bz)] = BLOCK_LEAVES;
@@ -91,9 +92,7 @@ static void make_tree(Chunk* c, int x, int y, int z)
                 int by = y + dy;
                 int bz = z + dz;
 
-                if (bx < 0 || bx >= CHUNK_WIDTH || by < 0 || by >= CHUNK_HEIGHT || bz < 0 || bz >= CHUNK_WIDTH)
-                    continue;
-                else if (c->blocks[XYZ(bx, by, bz)] != BLOCK_AIR)
+                if (c->blocks[XYZ(bx, by, bz)] != BLOCK_AIR)
                     continue;
                 
                 c->blocks[XYZ(bx, by, bz)] = BLOCK_LEAVES;
@@ -106,6 +105,13 @@ static void gen_plains(Chunk* c, int x, int z, int h)
         c->blocks[XYZ(x, y, z)] = BLOCK_DIRT;
     c->blocks[XYZ(x, h, z)] = BLOCK_GRASS;
 
+    for (int y = h + 1; y <= water_level; y++)
+        c->blocks[XYZ(x, y, z)] = BLOCK_WATER;
+
+    // Generate grass and flowers only if there's no water
+    if (c->blocks[XYZ(x, h + 1, z)] == BLOCK_WATER)
+        return;
+
     if (rand() % 10 >= 7)
         c->blocks[XYZ(x, h + 1, z)] = BLOCK_GRASS_PLANT;
     else if (rand() % 100 > 97)
@@ -115,9 +121,6 @@ static void gen_plains(Chunk* c, int x, int z, int h)
         else
             c->blocks[XYZ(x, h + 1, z)] = BLOCK_FLOWER_ROSE;
     }
-
-    for (int y = h + 1; y <= water_level; y++)
-        c->blocks[XYZ(x, y, z)] = BLOCK_WATER;
 }
 
 static void gen_forest(Chunk* c, int x, int z, int h)
@@ -125,6 +128,12 @@ static void gen_forest(Chunk* c, int x, int z, int h)
     for (int y = 0; y < h; y++)
         c->blocks[XYZ(x, y, z)] = BLOCK_DIRT;
     c->blocks[XYZ(x, h, z)] = BLOCK_GRASS;
+
+    for (int y = h + 1; y <= water_level; y++)
+        c->blocks[XYZ(x, y, z)] = BLOCK_WATER;
+    
+    if (c->blocks[XYZ(x, h + 1, z)] == BLOCK_WATER)
+        return;
 
     if (rand() % 1000 > 975 && x >= 2 && z >= 2 && x <= CHUNK_WIDTH - 3 && z <= CHUNK_WIDTH - 3)
         make_tree(c, x, h, z);
@@ -139,9 +148,6 @@ static void gen_forest(Chunk* c, int x, int z, int h)
         else
             c->blocks[XYZ(x, h + 1, z)] = BLOCK_FLOWER_ROSE;
     }
-
-    for (int y = h + 1; y <= water_level; y++)
-        c->blocks[XYZ(x, y, z)] = BLOCK_WATER;
 }
 
 static void gen_flower_forest(Chunk* c, int x, int z, int h)
@@ -150,6 +156,12 @@ static void gen_flower_forest(Chunk* c, int x, int z, int h)
         c->blocks[XYZ(x, y, z)] = BLOCK_DIRT;
     c->blocks[XYZ(x, h, z)] = BLOCK_GRASS;
 
+    for (int y = h + 1; y <= water_level; y++)
+        c->blocks[XYZ(x, y, z)] = BLOCK_WATER;
+    
+    if (c->blocks[XYZ(x, h + 1, z)] == BLOCK_WATER)
+        return;
+    
     if (rand() % 1000 > 975 && x >= 2 && z >= 2 && x <= CHUNK_WIDTH - 3 && z <= CHUNK_WIDTH - 3)
         make_tree(c, x, h, z);
 
@@ -164,8 +176,6 @@ static void gen_flower_forest(Chunk* c, int x, int z, int h)
             c->blocks[XYZ(x, h + 1, z)] = BLOCK_FLOWER_ROSE;
     }
 
-    for (int y = h + 1; y <= water_level; y++)
-        c->blocks[XYZ(x, y, z)] = BLOCK_WATER;
 }
 
 static void gen_mountains(Chunk* c, int x, int z, int h)
@@ -193,6 +203,12 @@ static void gen_desert(Chunk* c, int x, int z, int h)
         c->blocks[XYZ(x, y, z)] = BLOCK_SANDSTONE;
     c->blocks[XYZ(x, h, z)] = BLOCK_SAND;
 
+    for (int y = h + 1; y <= water_level; y++)
+        c->blocks[XYZ(x, y, z)] = BLOCK_WATER;
+    
+    if (c->blocks[XYZ(x, h + 1, z)] == BLOCK_WATER)
+        return;
+
     if (rand() % 1000 > 995)
     {
         int cactus_height = rand() % 6;
@@ -201,9 +217,6 @@ static void gen_desert(Chunk* c, int x, int z, int h)
     }
     else if (rand() % 1000 > 995)
         c->blocks[XYZ(x, h + 1, z)] = BLOCK_DEAD_PLANT;
-
-    for (int y = h + 1; y <= water_level; y++)
-        c->blocks[XYZ(x, y, z)] = BLOCK_WATER;
 }
 
 static void gen_ocean(Chunk* c, int x, int z, int h)
@@ -220,7 +233,7 @@ static void gen_ocean(Chunk* c, int x, int z, int h)
         c->blocks[XYZ(x, y, z)] = BLOCK_WATER;
 }
 
-// Biome noise settings
+// Biomes' noise settings
 static int get_height(Biome biome, int bx, int bz)
 {
     int v;
