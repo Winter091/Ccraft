@@ -68,10 +68,11 @@ Player* player_create()
     p->cam = camera_create();
     p->build_block = BLOCK_STONE;
 
-#if USE_DATABASE
-    // overwrite some parameters
-    db_get_player_info(p);
-#endif
+    if (USE_MAP)
+    {
+        // overwrite some parameters
+        db_get_player_info(p);    
+    }
 
     p->pointing_at_block = 0;
     p->block_pointed_at[0] = 0;
@@ -80,7 +81,7 @@ Player* player_create()
 
     // Either it's newly created world or we don't use
     // map saving; Spawn the player at ground level
-    if (p->cam->pos[1] < 0 || !USE_DATABASE)
+    if (p->cam->pos[1] < 0 || !USE_MAP)
     {
         int bx = CHUNK_WIDTH / 2;
         int bz = CHUNK_WIDTH / 2;
@@ -389,7 +390,7 @@ void gen_motion_vector_walk(Player* p, GLFWwindow* window, double dt)
 
     float max_hor_speed;
     if (p->in_water)
-        max_hor_speed = MAX_MOVE_SPEED_WATER;
+        max_hor_speed = MAX_SWIM_SPEED;
     else
         max_hor_speed = MAX_MOVE_SPEED;
 
@@ -410,10 +411,10 @@ void gen_motion_vector_walk(Player* p, GLFWwindow* window, double dt)
     p->cam->speed_vertical += frame_speed_vertical;
     if (p->in_water)
     {
-        if (p->cam->speed_vertical > MAX_EMEGRE_SPEED_WATER)
-            p->cam->speed_vertical = MAX_EMEGRE_SPEED_WATER;
-        else if (p->cam->speed_vertical < -MAX_DIVE_SPEED_WATER)
-            p->cam->speed_vertical = -MAX_DIVE_SPEED_WATER;
+        if (p->cam->speed_vertical > MAX_EMEGRE_SPEED)
+            p->cam->speed_vertical = MAX_EMEGRE_SPEED;
+        else if (p->cam->speed_vertical < -MAX_DIVE_SPEED)
+            p->cam->speed_vertical = -MAX_DIVE_SPEED;
     }
     else
     {
@@ -539,14 +540,15 @@ void player_handle_left_mouse_click(Player* p)
     map_set_block(x, y, z, BLOCK_AIR);
     p->pointing_at_block = 0;
 
-#if USE_DATABASE
-    // Store block change in database
-    db_insert_block(
-        chunked(x), chunked(z),
-        to_chunk_block(x), y, to_chunk_block(z),
-        BLOCK_AIR
-    );
-#endif
+    if (USE_MAP)
+    {
+        // Store block change in database
+        db_insert_block(
+            chunked(x), chunked(z),
+            to_chunk_block(x), y, to_chunk_block(z),
+            BLOCK_AIR
+        );
+    }
 }
 
 // Helper function for player_handle_right_mouse_click()
@@ -607,14 +609,15 @@ void player_handle_right_mouse_click(Player* p)
 
     map_set_block(best_x, best_y, best_z, p->build_block);
 
-#if USE_DATABASE
-    // store block change in database
-    db_insert_block(
-        chunked(best_x), chunked(best_z),
-        to_chunk_block(best_x), best_y, to_chunk_block(best_z),
-        p->build_block
-    );
-#endif
+    if (USE_MAP)
+    {
+        // store block change in database
+        db_insert_block(
+            chunked(best_x), chunked(best_z),
+            to_chunk_block(best_x), best_y, to_chunk_block(best_z),
+            p->build_block
+        );
+    }
 }
 
 void player_render_item(Player* p)

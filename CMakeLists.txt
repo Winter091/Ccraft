@@ -11,6 +11,7 @@ add_executable(
     deps/stb_image-2.26/src/stb_image.c
     deps/sqlite-3.34.0/src/sqlite3.c
     deps/fastnoise-1.0.1/src/fastnoiselite.c
+    deps/ini-0.1.1/src/ini.c
 )
 
 target_compile_options(Ccraft PRIVATE -Wall -std=c99)
@@ -30,6 +31,7 @@ target_include_directories(Ccraft PRIVATE deps/cglm-0.7.8/include)
 target_include_directories(Ccraft PRIVATE deps/stb_image-2.26/include)
 target_include_directories(Ccraft PRIVATE deps/sqlite-3.34.0/include)
 target_include_directories(Ccraft PRIVATE deps/fastnoise-1.0.1/include)
+target_include_directories(Ccraft PRIVATE deps/ini-0.1.1/include)
 
 # copy shaders dir to build folder
 add_custom_command(
@@ -50,4 +52,11 @@ add_custom_command(
     TARGET Ccraft POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_SOURCE_DIR}/maps $<TARGET_FILE_DIR:Ccraft>/maps
+)
+
+# copy config.ini file to build folder
+add_custom_command(
+    TARGET Ccraft POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    ${CMAKE_SOURCE_DIR}/config.ini $<TARGET_FILE_DIR:Ccraft>/config.ini
 )

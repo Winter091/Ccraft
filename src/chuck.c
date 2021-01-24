@@ -27,10 +27,11 @@ Chunk* chunk_create(int chunk_x, int chunk_z)
     c->blocks = calloc(CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH, 1);
     worldgen_generate_chunk(c);
 
-#if USE_DATABASE
-    // load block differences from database
-    db_get_blocks_for_chunk(c);
-#endif
+    if (USE_MAP)
+    {
+        // load block differences from database
+        db_get_blocks_for_chunk(c);
+    }
 
     return c;
 }

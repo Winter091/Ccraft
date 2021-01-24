@@ -207,9 +207,14 @@ void map_init()
     opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
     opengl_vbo_layout(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 3 * sizeof(float));
 
-#if USE_DATABASE
-    db_get_map_info();
-#endif
+    if (USE_MAP)
+    {
+        db_get_map_info();
+    }
+    else
+    {
+        printf("Map is not enabled, using default seed\n");
+    }
 
     // Load one chunk in which player spawns when
     // world is created
@@ -219,11 +224,10 @@ void map_init()
 // [0.0 - 1.0)
 double map_get_time()
 {
-#if DISABLE_TIME_FLOW
-    return 0.0;
-#else
-    return 0.5 + remainder(glfwGetTime(), DAY_LENGTH) / (double)DAY_LENGTH;
-#endif
+    if (DISABLE_TIME_FLOW)
+        return 0.1;
+    else
+        return 0.5 + remainder(glfwGetTime(), DAY_LENGTH) / (double)DAY_LENGTH;
 }
 
 static float map_get_blocks_light()

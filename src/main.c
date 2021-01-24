@@ -199,18 +199,25 @@ void render_first_pass(GameObjects* game, float dt)
     shader_set_texture_2d(shader_deferred1, "texture_color", FBO_game_texture_color, 0);
     shader_set_texture_2d(shader_deferred1, "texture_depth", FBO_game_texture_depth, 1);
 
-#if DOF_ENABLED
-    float curr_depth = get_current_dof_depth(dt);
+    if (!DOF_ENABLED)
+    {
+        shader_set_int1(shader_deferred1, "u_dof_enabled", 0);
+    }
+    else
+    {
+        float curr_depth; 
+        if (DOF_SMOOTH)
+            curr_depth = get_current_dof_depth(dt);
+        else
+            curr_depth = 0.0f;
 
-    shader_set_int1(shader_deferred1, "u_dof_enabled", 1);
-    shader_set_int1(shader_deferred1, "u_dof_smooth", DOF_SMOOTH);
-    shader_set_float1(shader_deferred1, "u_max_blur", DOF_MAX_BLUR);
-    shader_set_float1(shader_deferred1, "u_aperture", DOF_APERTURE);
-    shader_set_float1(shader_deferred1, "u_aspect_ratio", (float)curr_window_w / curr_window_h);
-    shader_set_float1(shader_deferred1, "u_depth", curr_depth);
-#else
-    shader_set_int1(shader_deferred1, "u_dof_enabled", 0);
-#endif
+        shader_set_int1(shader_deferred1, "u_dof_enabled", 1);
+        shader_set_int1(shader_deferred1, "u_dof_smooth", DOF_SMOOTH);
+        shader_set_float1(shader_deferred1, "u_max_blur", DOF_MAX_BLUR);
+        shader_set_float1(shader_deferred1, "u_aperture", DOF_APERTURE);
+        shader_set_float1(shader_deferred1, "u_aspect_ratio", (float)curr_window_w / curr_window_h);
+        shader_set_float1(shader_deferred1, "u_depth", curr_depth);
+    }
 
     // Render to color texture for the first pass (FBO_game_texture_color_pass_1)
     glDrawBuffer(GL_COLOR_ATTACHMENT2);
@@ -230,33 +237,36 @@ void render_second_pass(GameObjects* game, float dt)
     shader_set_texture_2d(shader_deferred2, "texture_ui",    FBO_game_texture_color_ui, 1);
     shader_set_texture_2d(shader_deferred2, "texture_depth", FBO_game_texture_depth, 2);
 
-#if MOTION_BLUR_ENABLED
-    shader_set_int1(shader_deferred2, "u_motion_blur_enabled", 1);
-    
-    mat4 matrix;
-    glm_mat4_inv(game->player->cam->proj_matrix, matrix);
-    shader_set_mat4(shader_deferred2, "u_projection_inv_matrix", matrix);
+    if (!MOTION_BLUR_ENABLED)
+    {
+        shader_set_int1(shader_deferred2, "u_motion_blur_enabled", 0);
+    }
+    else
+    {
+        shader_set_int1(shader_deferred2, "u_motion_blur_enabled", 1);
+        
+        mat4 matrix;
+        glm_mat4_inv(game->player->cam->proj_matrix, matrix);
+        shader_set_mat4(shader_deferred2, "u_projection_inv_matrix", matrix);
 
-    glm_mat4_inv(game->player->cam->view_matrix, matrix);
-    shader_set_mat4(shader_deferred2, "u_view_inv_matrix", matrix);
+        glm_mat4_inv(game->player->cam->view_matrix, matrix);
+        shader_set_mat4(shader_deferred2, "u_view_inv_matrix", matrix);
 
-    glm_mat4_copy(game->player->cam->prev_view_matrix, matrix);
-    shader_set_mat4(shader_deferred2, "u_prev_view_matrix", matrix);
+        glm_mat4_copy(game->player->cam->prev_view_matrix, matrix);
+        shader_set_mat4(shader_deferred2, "u_prev_view_matrix", matrix);
 
-    glm_mat4_copy(game->player->cam->proj_matrix, matrix);
-    shader_set_mat4(shader_deferred2, "u_projection_matrix", matrix);
+        glm_mat4_copy(game->player->cam->proj_matrix, matrix);
+        shader_set_mat4(shader_deferred2, "u_projection_matrix", matrix);
 
-    shader_set_float3(shader_deferred2, "u_cam_pos", game->player->cam->pos);
-    shader_set_float3(shader_deferred2, "u_prev_cam_pos", game->player->cam->prev_pos);
+        shader_set_float3(shader_deferred2, "u_cam_pos", game->player->cam->pos);
+        shader_set_float3(shader_deferred2, "u_prev_cam_pos", game->player->cam->prev_pos);
 
-    shader_set_float1(shader_deferred2, "u_strength", MOTION_BLUR_STRENGTH);
-    shader_set_int1(shader_deferred2, "u_samples", MOTION_BLUR_SAMPLES);
-    shader_set_float1(shader_deferred2, "u_dt", dt);
-#else
-    shader_set_int1(shader_deferred2, "u_motion_blur_enabled", 0);
-#endif
+        shader_set_float1(shader_deferred2, "u_strength", MOTION_BLUR_STRENGTH);
+        shader_set_int1(shader_deferred2, "u_samples", MOTION_BLUR_SAMPLES);
+        shader_set_float1(shader_deferred2, "u_dt", dt);
+    }
 
-    shader_set_float1(shader_deferred2, "u_gamma", GAMMA_CORRECTION);
+    shader_set_float1(shader_deferred2, "u_gamma", GAMMA);
     shader_set_float1(shader_deferred2, "u_saturation", SATURATION);
 
     // It's final pass, render to screem frame buffer
@@ -278,6 +288,8 @@ void render(GameObjects* game, float dt)
 
 int main()
 {    
+    config_load();
+    
     GLFWwindow* window = window_create();
     
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -307,15 +319,19 @@ int main()
     }
 
     const GLubyte* version = glGetString(GL_VERSION);
-    fprintf(stdout, "Using OpenGL %s\n", version);
+    fprintf(stdout, "\nUsing OpenGL %s\n", version);
 
     const GLubyte* vendor = glGetString(GL_VENDOR);
     const GLubyte* renderer = glGetString(GL_RENDERER);
     fprintf(stdout, "Renderer: %s (%s)\n\n", vendor, renderer);
 
-#if USE_DATABASE
-    db_init();
-#endif
+    // Start at the beginning of day
+    glfwSetTime(DAY_LENGTH / 2.0);
+
+    if (USE_MAP)
+    {
+        db_init();
+    }
 
     shaders_load();
     textures_load();
@@ -344,11 +360,12 @@ int main()
         glfwPollEvents();
     }
 
-#if USE_DATABASE
-    map_save();
-    player_save(game->player);
-    db_close();
-#endif
+    if (USE_MAP)
+    {
+        map_save();
+        player_save(game->player);
+        db_close();
+    }
 
     glfwDestroyWindow(window);
     glfwTerminate();

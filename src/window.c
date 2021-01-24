@@ -6,8 +6,8 @@
 #include "config.h"
 #include "framebuffer.h"
 
-int curr_window_w = WINDOW_WIDTH;
-int curr_window_h = WINDOW_HEIGHT;
+int curr_window_w;
+int curr_window_h;
 
 static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -110,6 +110,9 @@ GLFWwindow* window_create()
         WINDOW_WIDTH, WINDOW_HEIGHT, 
         WINDOW_TITLE, monitor, NULL
     );
+
+    curr_window_w = WINDOW_WIDTH;
+    curr_window_h = WINDOW_HEIGHT;
 
     if (!window)
     {

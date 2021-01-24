@@ -82,10 +82,10 @@ void camera_update_view_dir(Camera* cam, GLFWwindow* window)
     cam->yaw += dx * cam->sens;
     cam->pitch -= dy * cam->sens;
 
-    if (cam->pitch < -89.99f)
-        cam->pitch = -89.99f;
-    else if (cam->pitch > 89.99f)
-        cam->pitch = 89.99f;
+    if (cam->pitch < -89.5f)
+        cam->pitch = -89.5f;
+    else if (cam->pitch > 89.5f)
+        cam->pitch = 89.5f;
 
     if (cam->yaw > 360.0f) cam->yaw -= 360.0f;
     if (cam->yaw < 0.0f) cam->yaw += 360.0f;

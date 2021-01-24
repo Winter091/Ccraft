@@ -282,7 +282,7 @@ Bottom layer (blocks below):
 */
 void block_get_neighs(Chunk* c, Chunk* neighs[8], int x, int y, int z, unsigned char b_neighs[27])
 {
-    static const int last = CHUNK_WIDTH - 1;
+    int last = CHUNK_WIDTH - 1;
     int index = 0;
 
     for (int dy = -1; dy <= 1; dy++)
@@ -341,7 +341,7 @@ static inline int should_be_visible(
 
 int block_set_visible_faces(Chunk* c, int x, int y, int z, Chunk* neighs[8], int faces[6])
 {
-    static const int last = CHUNK_WIDTH - 1;
+    int last = CHUNK_WIDTH - 1;
     unsigned char block_type = c->blocks[XYZ(x, y, z)];
     
     // left

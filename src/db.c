@@ -2,6 +2,7 @@
 
 #include "stdio.h"
 #include "time.h"
+#include "string.h"
 
 #include "sqlite3.h"
 #include "config.h"
@@ -61,7 +62,7 @@ static void db_insert_default_map_info()
     seed = ((seed >> 16) ^ seed) * 0x45d9f3b;
     seed = ((seed >> 16) ^ seed) * 0x45d9f3b;
     seed = (seed >> 16) ^ seed;
-    printf("Generated world seed: %d\n", seed);
+    printf("Created new map with seed: %d\n", seed);
 
     sqlite3_bind_int(stmt, 1, seed);
     sqlite3_step(stmt);
@@ -126,7 +127,10 @@ static void db_create_tables()
 
 void db_init()
 {
-    sqlite3_open(CURRENT_MAP, &db);
+    char db_path[256];
+    sprintf(db_path, "maps/%s", MAP_NAME);
+    
+    sqlite3_open(db_path, &db);
 
     db_create_tables();
 
