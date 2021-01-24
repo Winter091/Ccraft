@@ -80,7 +80,10 @@ static void create_default_cfg_file()
     }
 
     const char* content = 
-    "; Configuration file for Ccraft\n\n"
+    "; Configuration file for Ccraft\n"
+    "; If you've messed something up, you can\n"
+    "; delete this file and launch the game.\n"
+    "; Default config file will be created.\n\n"
 
     "[WINDOW]\n"
     "title      = SND Corp - Ccraft\n"
