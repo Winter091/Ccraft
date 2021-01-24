@@ -2,7 +2,7 @@
 
 It's a minecraft-inspired game written in C using modern OpenGL.
 
-There are not a lot of features, currently featuring:
+There are not a lot of features, currently there is:
 
 * Infinite world generation
 * Biomes, each with unique heightmap
