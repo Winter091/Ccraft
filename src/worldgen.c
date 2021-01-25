@@ -277,7 +277,7 @@ static int get_height(Biome biome, int bx, int bz)
 }
 
 // Bilinear interpolation
-static float blerp(float h11, float h12, float h21, float h22, float x, float y)
+static int blerp(int h11, int h12, int h21, int h22, float x, float y)
 {
     return h11 * (1 - x) * (1 - y) + h21 * x * (1 - y) + h12 * (1 - x) * y + h22 * x * y;
 }
@@ -295,9 +295,21 @@ void worldgen_generate_chunk(Chunk* c)
     seed = (seed >> 16) ^ seed;
     srand(seed);
 
-    // We need last index to be CHUNK_WIDTH
-    Biome biomes[CHUNK_WIDTH + 1][CHUNK_WIDTH + 1];
-    int heightmap[CHUNK_WIDTH + 1][CHUNK_WIDTH + 1];
+    // Keep static buffers to increase performance
+    static Biome** biomes = NULL;
+    static int** heightmap = NULL;
+    if (biomes == NULL)
+    {
+        // We need last index to be CHUNK_WIDTH
+        biomes = malloc((CHUNK_WIDTH + 1) * sizeof(Biome*));
+        heightmap = malloc((CHUNK_WIDTH + 1) * sizeof(int*));
+
+        for (int i = 0; i < CHUNK_WIDTH + 1; i++)
+        {
+            biomes[i] = malloc((CHUNK_WIDTH + 1) * sizeof(Biome));
+            heightmap[i] = malloc((CHUNK_WIDTH + 1) * sizeof(int));
+        }
+    }
     
     int chunk_x_start = c->x * CHUNK_WIDTH;
     int chunk_z_start = c->z * CHUNK_WIDTH;
