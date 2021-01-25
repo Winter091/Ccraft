@@ -1,24 +1,19 @@
 cmake_minimum_required(VERSION 3.8.2)
 project(cglm VERSION 0.7.8 LANGUAGES C)
 
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED YES)
 set(DEFAULT_BUILD_TYPE "Release")
 
 set(CGLM_BUILD)
-option(CGLM_SHARED "Shared build" OFF)
-option(CGLM_STATIC "Static build" ON)
-option(CGLM_USE_C99 "" ON)
+option(CGLM_SHARED "Shared build" ON)
+option(CGLM_STATIC "Static build" OFF)
 option(CGLM_USE_TEST "Enable Tests" OFF)
 
 if(NOT CGLM_STATIC AND CGLM_SHARED)
   set(CGLM_BUILD SHARED)
 else(CGLM_STATIC)
   set(CGLM_BUILD STATIC)
-endif()
-
-if(CGLM_USE_C99)
-  set(C_STANDARD 99)
 endif()
 
 if(MSVC)
@@ -119,4 +114,3 @@ export(TARGETS ${PROJECT_NAME}
 install(EXPORT      ${PROJECT_NAME}
         NAMESPACE   ${PROJECT_NAME}::
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}/cmake)
-
