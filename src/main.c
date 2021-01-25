@@ -15,7 +15,8 @@
 #include "db.h"
 #include "fastnoiselite.h"
 
-void debug_callback(
+// Print OpenGL warnings and errors
+void opengl_debug_callback(
     GLenum source, GLenum type, GLuint id, GLenum severity, 
     GLsizei length, const GLchar* message, const void* userParam
 )
@@ -309,14 +310,17 @@ int main()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
+#ifdef DEBUG
     // Set up debug context if it's available
     GLint context_flags;
     glGetIntegerv(GL_CONTEXT_FLAGS, &context_flags);
     if (context_flags & GLFW_OPENGL_DEBUG_CONTEXT)
     {
+        printf("Using debug OpenGL context\n");
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
-        glDebugMessageCallbackARB((GLDEBUGPROCARB)debug_callback, NULL);
+        glDebugMessageCallbackARB((GLDEBUGPROCARB)opengl_debug_callback, NULL);
     }
+#endif
 
     const GLubyte* version = glGetString(GL_VERSION);
     fprintf(stdout, "\nUsing OpenGL %s\n", version);

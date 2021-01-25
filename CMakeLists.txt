@@ -33,6 +33,10 @@ add_executable(
     ${CMAKE_SOURCE_DIR}/deps/ini-0.1.1/src/ini.c
 )
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_definitions(Ccraft PRIVATE DEBUG)
+endif()
+
 # Enable warnings
 if (MSVC)
     target_compile_options(Ccraft PRIVATE /W3)
