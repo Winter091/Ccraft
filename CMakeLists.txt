@@ -37,7 +37,7 @@ add_executable(
 if (MSVC)
     target_compile_options(Ccraft PRIVATE /W3)
 else()
-    target_compile_options(Ccraft PRIVATE -Wall)
+    target_compile_options(Ccraft PRIVATE -Wall -Wno-unused-result)
 endif()
 
 # Link static libs
