@@ -96,6 +96,9 @@ Then in the project root folder run following commands:
 
 I got inspired by fogleman's [Craft](https://github.com/fogleman/Craft), but my development process bent over visual features, not gameplay ones.
 
+Ccraft doesn't support multiplayer and multithreading, but features depth of field, motion blur, texture filtering, cubemap textures, array textures,
+loading setting from file rather than storing them as #defines, and different biomes.
+
 #### Rendering and graphics
 
 A couple of rendering optimizations are implemented, such as rendering only exposed faces, using face culling not to draw back faces of triangles,
