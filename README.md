@@ -2,6 +2,8 @@
 
 It's a minecraft-inspired game written in C using modern OpenGL.
 
+Gameplay video - [Youtube](https://www.youtube.com/watch?v=BgpsSmIqFEc)
+
 There are not a lot of features, currently there is:
 
 * Infinite world generation
