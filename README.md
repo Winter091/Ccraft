@@ -96,8 +96,8 @@ Then in the project root folder run following commands:
 
 I got inspired by fogleman's [Craft](https://github.com/fogleman/Craft), but my development process bent over visual features, not gameplay ones.
 
-Ccraft doesn't support multiplayer and multithreading, but features depth of field, motion blur, texture filtering, cubemap textures, array textures,
-loading setting from file rather than storing them as #defines, and different biomes.
+Ccraft doesn't support multiplayer and multithreading, but features rendering to textures, depth of field, motion blur, texture filtering, 
+cubemap textures, array textures, loading setting from file rather than storing them as #defines, and different biomes.
 
 #### Rendering and graphics
 
@@ -110,7 +110,7 @@ rendering order, so everything will be seen through transparent blocks.
 Water has actual transparency, but there's also alpha testing (binary transparency). In shader the alpha value of fragment is checked, and if it's less than 0.5, 
 the fragment is discarded. Alpha testing allows to draw transparent glass, flowers, grass and tree leaves.
 
-When block in some chunk is changed, the chunk buffers are being completely rebuilt.
+When block in chunk is changed, the chunk buffers are being completely rebuilt.
 
 To implement post-processing visual effects, such as depth of field, motion blur, gamma correction and saturation tweak, 
 separate framebuffer had to be used. So, the game is being rendered on a texture, then it's being rendered on yet another texture
@@ -119,7 +119,7 @@ sees. I really like the result, DoF and motion blur both look very good.
 
 There's ambient occlusion effect, it's implemented as described on [this](https://0fps.net/2013/07/03/ambient-occlusion-for-minecraft-like-worlds/) page.
 
-Anisotropic texture filtering is used for tilemap, if supported by hardware. Otherwise, the usual texture filtering is used.
+Anisotropic texture filtering is used for tilemap, if anisotropy is supported by hardware. Otherwise, the usual texture filtering is used.
 
 Array texture is used for storing all 256 tiles, it's much better than using plain 2D texture and sample block textures from it. Array texture allows to use
 texture filtering without artifact when adjacent tiles are blended during downsampling.
@@ -139,7 +139,7 @@ Height and biome can be obtained for every block using noise functions. For biom
 
 Biomes with different noise settings introduce huge "cliffs" where they meet. To smooth out the bounds, 2d linear interpolation is used. At first, only some 
 terrain heights are generated, specifically each 8th block gets height. All remaining heights are obtained using interpolation between four "corner" heights
-that were generated in the first step. It helps not only to smooth out biome edges, but also improves performance, because noise function is used only for 
+that were generated in the first step. It helps not only to smooth out biome edges, but also to improve performance, because noise function is used only for 
 every 16th block in a chunk.
 
 #### Saving world and player state
@@ -156,7 +156,7 @@ hand is also just a block, but you can't access it in game.
 #### Collision testing
 
 Collision testing is implemented using axis-aligned bounding boxes (aabb). Every frame motion vector is generated (how much in each direction player should move),
-and then for each of 3 coordinates the motion vectors' component is added to player's position and collisiong with all surrounding blocks is checked. If there's 
+and then for each of 3 coordinates the motion vectors' component is added to player's position and collision with all surrounding blocks is checked. If there's 
 a collision, just pull out player from the block player collides with.
 
 
