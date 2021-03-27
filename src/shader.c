@@ -98,7 +98,7 @@ GLuint create_shader_program(const char* vs_path, const char* fs_path)
 void shaders_load()
 {
     shader_block = create_shader_program(
-        "shaders/block_vertex.glsl",
+        "shaders/block_warp_vertex.glsl",
         "shaders/block_fragment.glsl"
     );
 

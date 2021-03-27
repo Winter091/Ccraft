@@ -361,6 +361,8 @@ void map_render_chunks(Camera* cam)
     shader_set_float3(shader_block, "cam_pos", cam->pos);
     shader_set_float1(shader_block, "fog_dist", CHUNK_RENDER_RADIUS * CHUNK_SIZE * 0.95f);
 
+    shader_set_float1(shader_block, "time", glfwGetTime());
+
     float r, g, b;
     map_get_fog_color(&r, &g, &b);
     shader_set_float3(shader_block, "fog_color", (vec3){r, g, b});
