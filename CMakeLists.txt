@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.3)
 project(Ccraft LANGUAGES C)
 
 set(CMAKE_C_STANDARD 99)
-set(CMAKE_C_STANDARD_REQUIRED YES)
+set(CMAKE_C_STANDARD_REQUIRED ON)
 
 if (NOT CMAKE_BUILD_TYPE)
     message(STATUS "No build type was specified, building Release")
@@ -31,6 +31,7 @@ add_executable(
     ${CMAKE_SOURCE_DIR}/deps/sqlite-3.34.0/src/sqlite3.c
     ${CMAKE_SOURCE_DIR}/deps/fastnoise-1.0.1/src/fastnoiselite.c
     ${CMAKE_SOURCE_DIR}/deps/ini-0.1.1/src/ini.c
+    ${CMAKE_SOURCE_DIR}/deps/tinycthread-1.2/src/tinycthread.c
 )
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -57,6 +58,7 @@ target_include_directories(
     ${CMAKE_SOURCE_DIR}/deps/sqlite-3.34.0/include
     ${CMAKE_SOURCE_DIR}/deps/fastnoise-1.0.1/include
     ${CMAKE_SOURCE_DIR}/deps/ini-0.1.1/include
+    ${CMAKE_SOURCE_DIR}/deps/tinycthread-1.2/include
 )
 
 # Copy shaders folder to build folder

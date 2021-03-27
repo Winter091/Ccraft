@@ -10,6 +10,7 @@
 #include "utils.h"
 #include "db.h"
 #include "block.h"
+#include "tinycthread.h"
 
 // Define data structures for chunks
 LINKEDLIST_DEFINITION(Chunk*, chunks);
@@ -39,6 +40,23 @@ for ( ; node; node = node->ptr_next)\
 
 typedef struct
 {
+    thrd_t thread;
+    mtx_t mutex;
+    cnd_t cnd;
+    Chunk* chunk;
+    int index;
+    enum condition 
+    {
+        WORKER_IDLE = 0,
+        WORKER_BUSY,
+        WORKER_DONE
+    } 
+    state;
+}
+worker_data;
+
+typedef struct
+{
     HashMap_chunks* chunks_active;
     LinkedList_chunks* chunks_to_render;
 
@@ -47,6 +65,9 @@ typedef struct
 
     GLuint VAO_sun_moon;
     GLuint VBO_sun_moon;
+
+    worker_data* workers;
+    int num_workers;
 }
 Map;
 
@@ -69,7 +90,7 @@ static Chunk* map_get_chunk(int chunk_x, int chunk_z)
 
 static void map_rebuild_chunk_buffer(Chunk* c, int rebuild_neighbours)
 {
-    if (!c) 
+    if (!c || !c->is_loaded) 
         return;
     
     Chunk* neighs[8] = 
@@ -84,6 +105,10 @@ static void map_rebuild_chunk_buffer(Chunk* c, int rebuild_neighbours)
         map_get_chunk(c->x - 1, c->z + 1)
     };
 
+    for (int i = 0; i < 8; i++)
+        if (neighs[i] && !neighs[i]->is_loaded)
+            neighs[i] = NULL;
+
     chunk_rebuild_buffer(c, neighs);
     
     if (rebuild_neighbours)
@@ -97,7 +122,9 @@ static void map_rebuild_chunk_buffer(Chunk* c, int rebuild_neighbours)
 
 static void map_load_chunk(int chunk_x, int chunk_z)
 {
-    Chunk* c = chunk_create(chunk_x, chunk_z);
+    Chunk* c = chunk_init(chunk_x, chunk_z);
+    chunk_generate_terrain(c);
+    c->is_loaded = 1;
     hashmap_chunks_insert(map->chunks_active, c);
     map_rebuild_chunk_buffer(c, 1);
 }
@@ -143,57 +170,62 @@ static void map_unload_far_chunks(Camera* cam)
     list_chunks_delete(chunks_to_delete);
 }
 
-static void map_load_update_chunks(Camera* cam)
+static void map_update_chunks(Camera* cam)
 {
-    int cam_chunk_x = cam->pos[0] / CHUNK_SIZE;
-    int cam_chunk_z = cam->pos[2] / CHUNK_SIZE;
-    
-    // load one best chunk;
-    // best is closest visible chunk
-    int best_score = INT_MIN;
-    int best_chunk_x = 0, best_chunk_z = 0;
-
-    for (int x = cam_chunk_x - CHUNK_LOAD_RADIUS; x <= cam_chunk_x + CHUNK_LOAD_RADIUS; x++)
-    for (int z = cam_chunk_z - CHUNK_LOAD_RADIUS; z <= cam_chunk_z + CHUNK_LOAD_RADIUS; z++)
+    MAP_FOREACH_ACTIVE_CHUNK_BEGIN(c)
     {
-        if (chunk_player_dist2(x, z, cam_chunk_x, cam_chunk_z) 
-            > CHUNK_LOAD_RADIUS * CHUNK_LOAD_RADIUS
-        )
-        {
+        if (!c->is_loaded)
             continue;
-        }
         
-        Chunk* c = map_get_chunk(x, z);
-        // add all visible loaded chunks to render list,
-        // that list is being cleared every frame
-        if (c)
-        {
-            if (chunk_is_visible(x, z, cam->frustum_planes))
-                list_chunks_push_front(map->chunks_to_render, c);
-        }
-        // find the closest visible chunk that is not loaded yet
-        else
-        {
-            int visible = chunk_is_visible(x, z, cam->frustum_planes);
-            int dist = chunk_player_dist2(x, z, cam_chunk_x, cam_chunk_z);
-            int curr_score = visible ? (1 << 30) : 0;
-            curr_score -= dist;
-            if (curr_score >= best_score)
-            {
-                best_chunk_x = x;
-                best_chunk_z = z;
-                best_score = curr_score;
-            }
-        }
-    }   
+        //if (chunk_is_visible(c->x, c->z, cam->frustum_planes))
+        //if (c->x >= 0)
+        //{
+            list_chunks_push_front(map->chunks_to_render, c);
+        //}
+    }
+    MAP_FOREACH_ACTIVE_CHUNK_END();
+}
 
-    if (best_score != INT_MIN)
-        map_load_chunk(best_chunk_x, best_chunk_z);
+int worker_loop(void* arg)
+{
+    worker_data* data = (worker_data*)arg;
+    
+    while (true)
+    {
+        mtx_lock(&data->mutex);
+        while (data->state != WORKER_BUSY)
+            cnd_wait(&data->cnd, &data->mutex);
+        
+        mtx_unlock(&data->mutex);
+        chunk_generate_terrain(data->chunk);
+        mtx_lock(&data->mutex);
+        data->state = WORKER_DONE;
+        mtx_unlock(&data->mutex);
+    }
+
+    return 0;
+}
+
+void map_start_workers()
+{
+    for (int i = 0; i < map->num_workers; i++)
+    {
+        worker_data* worker = &map->workers[i];
+        worker->chunk = NULL;
+        worker->state = WORKER_IDLE;
+        worker->index = i;
+        mtx_init(&worker->mutex, mtx_plain);
+        cnd_init(&worker->cnd);
+        thrd_create(&map->workers[i].thread, worker_loop, worker);
+    }
 }
 
 void map_init()
 {
     map = malloc(sizeof(Map));
+
+    map->num_workers = 3;
+    map->workers = malloc(map->num_workers * sizeof(worker_data));
 
     map->chunks_active     = hashmap_chunks_create(CHUNK_RENDER_RADIUS * CHUNK_RENDER_RADIUS * 1.2f);
     map->chunks_to_render  = list_chunks_create();
@@ -407,7 +439,7 @@ void map_set_block(int x, int y, int z, unsigned char block)
     int chunk_z = chunked(z);
     
     Chunk* c = map_get_chunk(chunk_x, chunk_z);
-    if (!c) return;
+    if (!c || !c->is_loaded) return;
 
     int block_x = to_chunk_block(x);
     int block_z = to_chunk_block(z);
@@ -466,10 +498,101 @@ void map_set_block(int x, int y, int z, unsigned char block)
     }
 }
 
+int map_find_chunk_to_load(Camera* cam, int* cx, int* cz, int worker_index)
+{
+    int cam_chunk_x = cam->pos[0] / CHUNK_SIZE;
+    int cam_chunk_z = cam->pos[2] / CHUNK_SIZE;
+    
+    // best is closest visible chunk
+    int best_score = INT_MIN;
+    int best_chunk_x = 0, best_chunk_z = 0;
+
+    for (int x = cam_chunk_x - CHUNK_LOAD_RADIUS; x <= cam_chunk_x + CHUNK_LOAD_RADIUS; x++)
+    for (int z = cam_chunk_z - CHUNK_LOAD_RADIUS; z <= cam_chunk_z + CHUNK_LOAD_RADIUS; z++)
+    {
+        if (chunk_player_dist2(x, z, cam_chunk_x, cam_chunk_z) 
+            > CHUNK_LOAD_RADIUS * CHUNK_LOAD_RADIUS
+        )
+        //if (abs(x - cam_chunk_x) > CHUNK_LOAD_RADIUS || abs(z - cam_chunk_z) > CHUNK_LOAD_RADIUS)
+        {
+            continue;
+        }
+
+        if ( (abs(x) ^ abs(z)) % map->num_workers != worker_index )
+            continue;
+        
+        Chunk* c = map_get_chunk(x, z);
+        if (!c)
+        {
+            //int visible = chunk_is_visible(x, z, cam->frustum_planes);
+            int visible = 1;
+            int dist = chunk_player_dist2(x, z, cam_chunk_x, cam_chunk_z);
+            int curr_score = visible ? (1 << 30) : 0;
+            curr_score -= dist;
+            if (curr_score >= best_score)
+            {
+                best_chunk_x = x;
+                best_chunk_z = z;
+                best_score = curr_score;
+            }
+        }
+    }   
+
+    if (best_score != INT_MIN)
+    {
+        *cx = best_chunk_x;
+        *cz = best_chunk_z;
+        return 1;
+    }
+    return 0;
+}
+
+void map_update_workers(Camera* cam)
+{
+    for (int i = 0; i < map->num_workers; i++)
+    {
+        worker_data* worker = &map->workers[i];
+        
+        mtx_lock(&worker->mutex);
+        Chunk* to_rebuild = NULL;
+        if (worker->state == WORKER_DONE)
+        {
+            worker->chunk->is_loaded = 1;
+            //double time = glfwGetTime();
+            to_rebuild = worker->chunk;
+            //printf("%f\n", 1.0 / (glfwGetTime() - time));
+            worker->chunk = NULL;
+            worker->state = WORKER_IDLE;
+        }
+
+        if (worker->state == WORKER_IDLE)
+        {
+            int cx, cz;
+            if (map_find_chunk_to_load(cam, &cx, &cz, worker->index))
+            {
+                Chunk* c = chunk_init(cx, cz);
+                hashmap_chunks_insert(map->chunks_active, c);
+                worker->chunk = c;
+                worker->state = WORKER_BUSY;
+                cnd_broadcast(&worker->cnd);
+            }
+        }
+        mtx_unlock(&worker->mutex);
+        if (to_rebuild)
+        {
+            //double time = glfwGetTime();
+            map_rebuild_chunk_buffer(to_rebuild, 1);
+            //printf("%lf\n", 1.0 / (glfwGetTime() - time));
+        }
+    }
+}
+
 void map_update(Camera* cam)
 {
     map_unload_far_chunks(cam);
-    map_load_update_chunks(cam);
+    
+    map_update_workers(cam);
+    map_update_chunks(cam);
 }
 
 void map_set_seed(int new_seed)
@@ -491,7 +614,7 @@ int map_get_seed()
 int map_get_highest_block(int x, int z)
 {
     Chunk* c = map_get_chunk(chunked(x), chunked(z));
-    if (!c) return CHUNK_HEIGHT;
+    if (!c || !c->is_loaded) return CHUNK_HEIGHT;
 
     int bx = to_chunk_block(x);
     int bz = to_chunk_block(z);

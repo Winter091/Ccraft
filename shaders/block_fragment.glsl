@@ -16,7 +16,7 @@ void main()
     vec4 color = texture(texture_sampler, vec3(v_texcoord, v_tile));
     if (color.a < 0.5)
         discard;
-        
+      
     color.rgb -= 0.35 * v_ao;
 
     color = mix(color, vec4(fog_color * block_light, 1.0), v_fog_amount);

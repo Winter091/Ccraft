@@ -351,6 +351,7 @@ int main()
     // functions (using glfwGetWindowUserPointer)
     glfwSetWindowUserPointer(window, game);
 
+    map_start_workers();
     while (!glfwWindowShouldClose(window))
     {
         print_fps(window);

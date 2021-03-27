@@ -7,7 +7,7 @@
 #include "db.h"
 #include "worldgen.h"
 
-Chunk* chunk_create(int chunk_x, int chunk_z)
+Chunk* chunk_init(int chunk_x, int chunk_z)
 {
     Chunk* c = malloc(sizeof(Chunk));
 
@@ -23,17 +23,20 @@ Chunk* chunk_create(int chunk_x, int chunk_z)
     c->vertex_land_count = 0;
     c->vertex_water_count = 0;
 
-    // Generate terrain
-    c->blocks = calloc(CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH, 1);
-    worldgen_generate_chunk(c);
-
-    if (USE_MAP)
-    {
-        // load block differences from database
-        db_get_blocks_for_chunk(c);
-    }
+    c->blocks = NULL;
 
     return c;
+}
+
+void chunk_generate_terrain(Chunk* c)
+{
+    c->blocks = calloc(CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH, 1);
+    worldgen_generate_chunk(c);
+    //if (USE_MAP)
+    //{
+    //    // load block differences from database
+    //    db_get_blocks_for_chunk(c);
+    //}
 }
 
 void chunk_rebuild_buffer(Chunk* c, Chunk* neighs[8])

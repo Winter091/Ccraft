@@ -9,6 +9,7 @@
 #include "glad/glad.h"
 
 void map_init();
+void map_start_workers();
 
 void map_update(Camera* cam);
 

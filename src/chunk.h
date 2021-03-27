@@ -35,7 +35,9 @@ typedef struct
 }
 Chunk;
 
-Chunk* chunk_create(int chunk_x, int chunk_z);
+Chunk* chunk_init(int chunk_x, int chunk_z);
+
+void chunk_generate_terrain(Chunk* c);
 
 // Create VAOs and VBOs, send them to GPU
 void chunk_rebuild_buffer(Chunk* c, Chunk* neighs[8]);
