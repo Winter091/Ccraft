@@ -75,9 +75,7 @@ Player* player_create()
     }
 
     p->pointing_at_block = 0;
-    p->block_pointed_at[0] = 0;
-    p->block_pointed_at[1] = 0;
-    p->block_pointed_at[2] = 0;
+    my_glm_ivec3_set(p->block_pointed_at, 0, 0, 0);
 
     // Either it's newly created world or we don't use
     // map saving; Spawn the player at ground level
@@ -116,7 +114,7 @@ static void update_block_pointing_at(Player* p)
     int best_x = 0, best_y = 0, best_z = 0;
 
     // Set unreachable distance
-    float best_dist = BLOCK_BREAK_RADIUS * BLOCK_BREAK_RADIUS * 2;
+    float best_dist = BLOCK_BREAK_RADIUS2 * 2;
 
     // Iterate over each block around player
     for (int y = icam_y - BLOCK_BREAK_RADIUS; y <= icam_y + BLOCK_BREAK_RADIUS; y++)
@@ -126,9 +124,7 @@ static void update_block_pointing_at(Player* p)
         for (int x = icam_x - BLOCK_BREAK_RADIUS; x <= icam_x + BLOCK_BREAK_RADIUS; x++)
             for (int z = icam_z - BLOCK_BREAK_RADIUS; z <= icam_z + BLOCK_BREAK_RADIUS; z++)
             {
-                if (block_player_dist2(x, y, z, cam_x, cam_y, cam_z) 
-                    > BLOCK_BREAK_RADIUS * BLOCK_BREAK_RADIUS
-                )
+                if (block_player_dist2(x, y, z, cam_x, cam_y, cam_z) > BLOCK_BREAK_RADIUS2)
                 {
                     continue;
                 }
@@ -153,16 +149,14 @@ static void update_block_pointing_at(Player* p)
     }
     
     // Haven't found the block, best distance is still unreachable
-    if (best_dist > BLOCK_BREAK_RADIUS * BLOCK_BREAK_RADIUS)
+    if (best_dist > BLOCK_BREAK_RADIUS2)
     {
         p->pointing_at_block = 0;
         return;
     }
 
     p->pointing_at_block = 1;
-    p->block_pointed_at[0] = best_x;
-    p->block_pointed_at[1] = best_y;
-    p->block_pointed_at[2] = best_z;
+    my_glm_ivec3_set(p->block_pointed_at, best_x, best_y, best_z);
 }
 
 void player_set_build_block(Player* p, int new_block)
@@ -287,12 +281,12 @@ CHECK_Z:
 
 void gen_motion_vector_walk(Player* p, GLFWwindow* window, double dt)
 {
-    int key_w     = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
-    int key_s     = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
-    int key_a     = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
-    int key_d     = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
-    int key_space = glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS;
-    int key_shift = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
+    int key_w     = (glfwGetKey(window, GLFW_KEY_W)          == GLFW_PRESS);
+    int key_s     = (glfwGetKey(window, GLFW_KEY_S)          == GLFW_PRESS);
+    int key_a     = (glfwGetKey(window, GLFW_KEY_A)          == GLFW_PRESS);
+    int key_d     = (glfwGetKey(window, GLFW_KEY_D)          == GLFW_PRESS);
+    int key_space = (glfwGetKey(window, GLFW_KEY_SPACE)      == GLFW_PRESS);
+    int key_shift = (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS);
 
     vec3 front, right, up;
 
@@ -587,7 +581,7 @@ void player_handle_right_mouse_click(Player* p)
     int z = p->block_pointed_at[2];
 
     int best_x = 0, best_y = 0, best_z = 0;
-    float best_dist = BLOCK_BREAK_RADIUS * BLOCK_BREAK_RADIUS * 2;
+    float best_dist = BLOCK_BREAK_RADIUS2 * 2;
 
     // 6 potential spots around active block
     find_best_spot_to_place_block(p->cam, x - 1, y, z, &best_x, &best_y, &best_z, &best_dist);
@@ -597,7 +591,7 @@ void player_handle_right_mouse_click(Player* p)
     find_best_spot_to_place_block(p->cam, x, y, z - 1, &best_x, &best_y, &best_z, &best_dist);
     find_best_spot_to_place_block(p->cam, x, y, z + 1, &best_x, &best_y, &best_z, &best_dist);
 
-    if (best_dist > BLOCK_BREAK_RADIUS * BLOCK_BREAK_RADIUS)
+    if (best_dist > BLOCK_BREAK_RADIUS2)
         return;
     else if (best_y < 0 || best_y >= CHUNK_HEIGHT)
         return;

@@ -62,7 +62,13 @@ extern float NIGHT_START;
 extern float NIGHT_TO_DAY_START;
 extern float CHUNK_SIZE;
 extern int   CHUNK_LOAD_RADIUS;
+extern int   CHUNK_LOAD_RADIUS2;
 extern int   CHUNK_UNLOAD_RADIUS;
+extern int   CHUNK_UNLOAD_RADIUS2;
+extern int   BLOCK_BREAK_RADIUS2;
+extern int   CHUNK_RENDER_RADIUS2;
+
+
 
 void config_load();
 

@@ -124,10 +124,7 @@ static void map_unload_far_chunks(Camera* cam)
 
     MAP_FOREACH_ACTIVE_CHUNK_BEGIN(c)
     {
-        if (
-            chunk_player_dist2(c->x, c->z, cam_chunk_x, cam_chunk_z) 
-            > CHUNK_UNLOAD_RADIUS * CHUNK_UNLOAD_RADIUS
-        )
+        if (chunk_player_dist2(c->x, c->z, cam_chunk_x, cam_chunk_z) > CHUNK_UNLOAD_RADIUS2)
         {
             list_chunks_push_front(chunks_to_delete, c);
         }
@@ -156,9 +153,7 @@ static void map_load_update_chunks(Camera* cam)
     for (int x = cam_chunk_x - CHUNK_LOAD_RADIUS; x <= cam_chunk_x + CHUNK_LOAD_RADIUS; x++)
     for (int z = cam_chunk_z - CHUNK_LOAD_RADIUS; z <= cam_chunk_z + CHUNK_LOAD_RADIUS; z++)
     {
-        if (chunk_player_dist2(x, z, cam_chunk_x, cam_chunk_z) 
-            > CHUNK_LOAD_RADIUS * CHUNK_LOAD_RADIUS
-        )
+        if (chunk_player_dist2(x, z, cam_chunk_x, cam_chunk_z) > CHUNK_LOAD_RADIUS2)
         {
             continue;
         }
@@ -195,7 +190,7 @@ void map_init()
 {
     map = malloc(sizeof(Map));
 
-    map->chunks_active     = hashmap_chunks_create(CHUNK_RENDER_RADIUS * CHUNK_RENDER_RADIUS * 1.2f);
+    map->chunks_active     = hashmap_chunks_create(CHUNK_RENDER_RADIUS2 * 1.2f);
     map->chunks_to_render  = list_chunks_create();
 
     map->VAO_skybox = opengl_create_vao();

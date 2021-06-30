@@ -23,13 +23,8 @@ Camera* camera_create()
     glm_vec2_fill(cam->speed_horizontal, 0.0f);
     cam->speed_vertical = 0.0f;
 
-    cam->front[0] = 0.0f;
-    cam->front[1] = 0.0f;
-    cam->front[2] = -1.0f;
-
-    cam->up[0] = 0.0f;
-    cam->up[1] = 1.0f;
-    cam->up[2] = 0.0f;
+    my_glm_vec3_set(cam->front, 0.0f, 0.0f, -1.0f);
+    my_glm_vec3_set(cam->up,    0.0f, 1.0f,  0.0f);
 
     cam->pitch = 0.0f;
     cam->yaw = 270.0f;

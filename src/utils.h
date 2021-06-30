@@ -3,6 +3,7 @@
 
 #include "stdlib.h"
 
+#include "cglm/cglm.h"
 #include "glad/glad.h"
 #include "config.h"
 
@@ -14,6 +15,20 @@ GLuint opengl_create_vbo(const void* vertices, size_t buf_size);
 GLuint opengl_create_vbo_cube();
 GLuint opengl_create_vbo_quad();
 GLuint opengl_create_fbo();
+
+static inline void my_glm_vec3_set(vec3 vec, float f0, float f1, float f2)
+{
+    vec[0] = f0;
+    vec[1] = f1;
+    vec[2] = f2;
+}
+
+static inline void my_glm_ivec3_set(ivec3 vec, int i0, int i1, int i2)
+{
+    vec[0] = i0;
+    vec[1] = i1;
+    vec[2] = i2;
+}
 
 static inline int chunked(int coord)
 {

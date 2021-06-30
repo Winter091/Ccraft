@@ -66,7 +66,11 @@ float NIGHT_START                   = 0.45f;
 float NIGHT_TO_DAY_START            = 0.85f;
 float CHUNK_SIZE                    = 32 * 0.1f;
 int   CHUNK_LOAD_RADIUS             = 16 + 2;
+int   CHUNK_LOAD_RADIUS2            = (16 + 2) * (16 + 2);
 int   CHUNK_UNLOAD_RADIUS           = 16 + 5;
+int   CHUNK_UNLOAD_RADIUS2          = (16 + 5) * (16 + 5);
+int   BLOCK_BREAK_RADIUS2           = 5 * 5;
+int   CHUNK_RENDER_RADIUS2          = 16 * 16;
 
 ini_t* cfg = NULL;
 
@@ -285,6 +289,11 @@ void config_load()
     CHUNK_SIZE = CHUNK_WIDTH * BLOCK_SIZE;
     CHUNK_LOAD_RADIUS = CHUNK_RENDER_RADIUS + 2;
     CHUNK_UNLOAD_RADIUS = CHUNK_RENDER_RADIUS + 5;
+
+    BLOCK_BREAK_RADIUS2 = BLOCK_BREAK_RADIUS * BLOCK_BREAK_RADIUS;
+    CHUNK_RENDER_RADIUS2 = CHUNK_RENDER_RADIUS * CHUNK_RENDER_RADIUS;
+    CHUNK_LOAD_RADIUS2 = CHUNK_LOAD_RADIUS * CHUNK_LOAD_RADIUS;
+    CHUNK_UNLOAD_RADIUS2 = CHUNK_UNLOAD_RADIUS * CHUNK_UNLOAD_RADIUS;
 
     printf("Loaded everything.\n");
 }
