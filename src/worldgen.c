@@ -295,27 +295,19 @@ void worldgen_generate_chunk(Chunk* c)
     seed = (seed >> 16) ^ seed;
     srand(seed);
 
-    // Keep static buffers to increase performance
-    static Biome** biomes = NULL;
-    static int** heightmap = NULL;
-    if (biomes == NULL)
+    Biome** biomes = malloc(CHUNK_XZ_REAL * sizeof(Biome*));
+    int** heightmap = malloc(CHUNK_XZ_REAL * sizeof(int*));
+    for (int i = 0; i < CHUNK_XZ_REAL; i++)
     {
-        // We need last index to be CHUNK_WIDTH
-        biomes = malloc((CHUNK_WIDTH + 1) * sizeof(Biome*));
-        heightmap = malloc((CHUNK_WIDTH + 1) * sizeof(int*));
-
-        for (int i = 0; i < CHUNK_WIDTH + 1; i++)
-        {
-            biomes[i] = malloc((CHUNK_WIDTH + 1) * sizeof(Biome));
-            heightmap[i] = malloc((CHUNK_WIDTH + 1) * sizeof(int));
-        }
+        biomes[i] = malloc(CHUNK_XZ_REAL * sizeof(Biome));
+        heightmap[i] = malloc(CHUNK_XZ_REAL * sizeof(int));
     }
     
-    int chunk_x_start = c->x * CHUNK_WIDTH;
-    int chunk_z_start = c->z * CHUNK_WIDTH;
+    int chunk_x_start = c->x * CHUNK_WIDTH - 1;
+    int chunk_z_start = c->z * CHUNK_WIDTH - 1;
 
-    for (int x = 0; x <= CHUNK_WIDTH; x++)
-    for (int z = 0; z <= CHUNK_WIDTH; z++)
+    for (int x = 0; x < CHUNK_XZ_REAL; x++)
+    for (int z = 0; z < CHUNK_XZ_REAL; z++)
     {
         int bx = chunk_x_start + x;
         int bz = chunk_z_start + z;
@@ -323,16 +315,18 @@ void worldgen_generate_chunk(Chunk* c)
         // Generate biome for each block
         biomes[x][z] = get_biome(bx, bz);
 
-        // Generate height only for some blocks
-        if (x % 8 == 0 && z % 8 == 0)
+        // Generate 2-width-border precicely
+        if (x < 2 || x >= CHUNK_WIDTH || z < 2 || z >= CHUNK_WIDTH)
+            heightmap[x][z] = get_height(biomes[x][z], bx, bz);
+        else if (x % 8 == 0 && z % 8 == 0)
             heightmap[x][z] = get_height(biomes[x][z], bx, bz);
     }
 
-    for (int x = 0; x < CHUNK_WIDTH; x++)
-    for (int z = 0; z < CHUNK_WIDTH; z++)
+    for (int x = 0; x < CHUNK_XZ_REAL; x++)
+    for (int z = 0; z < CHUNK_XZ_REAL; z++)
     {
-        // Interpolate generated heights over all blocks
-        if (x % 8 || z % 8)
+        if ((x >= 2 && x < CHUNK_WIDTH && z >= 2 && z < CHUNK_WIDTH) 
+            && (x % 8 || z % 8))
         {
             heightmap[x][z] = blerp(
                 heightmap[x - (x % 8)][z - (z % 8)], 
@@ -345,12 +339,20 @@ void worldgen_generate_chunk(Chunk* c)
 
         switch (biomes[x][z])
         {
-            case BIOME_PLAINS:        gen_plains(c, x, z, heightmap[x][z]); break;
-            case BIOME_FOREST:        gen_forest(c, x, z, heightmap[x][z]); break;
-            case BIOME_FLOWER_FOREST: gen_flower_forest(c, x, z, heightmap[x][z]); break;
-            case BIOME_MOUNTAINS:     gen_mountains(c, x, z, heightmap[x][z]); break;
-            case BIOME_DESERT:        gen_desert(c, x, z, heightmap[x][z]); break;
-            case BIOME_OCEAN:         gen_ocean(c, x, z, heightmap[x][z]); break; 
+            case BIOME_PLAINS:        gen_plains(c, x - 1, z - 1, heightmap[x][z]); break;
+            case BIOME_FOREST:        gen_forest(c, x - 1, z - 1, heightmap[x][z]); break;
+            case BIOME_FLOWER_FOREST: gen_flower_forest(c, x - 1, z - 1, heightmap[x][z]); break;
+            case BIOME_MOUNTAINS:     gen_mountains(c, x - 1, z - 1, heightmap[x][z]); break;
+            case BIOME_DESERT:        gen_desert(c, x - 1, z - 1, heightmap[x][z]); break;
+            case BIOME_OCEAN:         gen_ocean(c, x - 1, z - 1, heightmap[x][z]); break; 
         }
     }
+
+    for (int i = 0; i < CHUNK_XZ_REAL; i++)
+    {
+        free(biomes[i]);
+        free(heightmap[i]);
+    }
+    free(biomes);
+    free(heightmap);
 }

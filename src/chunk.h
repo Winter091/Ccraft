@@ -9,7 +9,7 @@
 #include "tinycthread.h"
 
 // Access block by 3 coords from 1-dimensional array
-#define XYZ(x, y, z) ((x) * CHUNK_WIDTH * CHUNK_HEIGHT) + ((y) * CHUNK_WIDTH) + (z)
+#define XYZ(x, y, z) (((x) + 1) * CHUNK_XZ_REAL * CHUNK_XY_REAL) + (((y) + 1) * CHUNK_XZ_REAL) + ((z) + 1)
 
 // Chunk neighbours order
 #define CHUNK_NEIGH_L  0

@@ -71,6 +71,8 @@ int   CHUNK_UNLOAD_RADIUS           = 16 + 5;
 int   CHUNK_UNLOAD_RADIUS2          = (16 + 5) * (16 + 5);
 int   BLOCK_BREAK_RADIUS2           = 5 * 5;
 int   CHUNK_RENDER_RADIUS2          = 16 * 16;
+int   CHUNK_XZ_REAL                 = 32 + 2;
+int   CHUNK_XY_REAL                 = 256 + 2;
 
 ini_t* cfg = NULL;
 

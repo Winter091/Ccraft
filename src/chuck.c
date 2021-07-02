@@ -39,7 +39,7 @@ Chunk* chunk_init(int chunk_x, int chunk_z)
 
 void chunk_generate_terrain(Chunk* c)
 {
-    c->blocks = calloc(CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH, 1);
+    c->blocks = calloc(CHUNK_XZ_REAL * CHUNK_XZ_REAL * CHUNK_XY_REAL, 1);
     worldgen_generate_chunk(c);
 }
 
