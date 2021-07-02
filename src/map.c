@@ -10,6 +10,7 @@
 #include "utils.h"
 #include "db.h"
 #include "block.h"
+#include "thread_worker.h"
 
 // Define data structures for chunks
 LINKEDLIST_DEFINITION(Chunk*, chunks);
@@ -41,12 +42,16 @@ typedef struct
 {
     HashMap_chunks* chunks_active;
     LinkedList_chunks* chunks_to_render;
+    LinkedList_chunks* chunks_to_rebuild;
 
     GLuint VAO_skybox;
     GLuint VBO_skybox;
 
     GLuint VAO_sun_moon;
     GLuint VBO_sun_moon;
+
+    WorkerData* workers;
+    int num_workers;
 }
 Map;
 
@@ -84,20 +89,35 @@ static void map_rebuild_chunk_buffer(Chunk* c, int rebuild_neighbours)
         map_get_chunk(c->x - 1, c->z + 1)
     };
 
-    chunk_rebuild_buffer(c, neighs);
+    int all_neighs_are_here = 1;
+    for (int i = 0; i < 8; i++)
+    {
+        if (!neighs[i] || !neighs[i]->is_terrain_generated) 
+        {
+            all_neighs_are_here = 0;
+            break;
+        }
+    }
+
+    //double time = glfwGetTime();
+    if (all_neighs_are_here)
+    {
+        chunk_rebuild_buffer(c, neighs);
+    }
     
     if (rebuild_neighbours)
     {
-        // Don't rebuild corner neighbours because
-        // there's no need to do it
-        for (int i = 0; i < 4; i++)
+        for (int i = 0; i < 8; i++)
             map_rebuild_chunk_buffer(neighs[i], 0);
     }
+    //printf("%.3f\n", (glfwGetTime() - time) * 1000);
+
 }
 
 static void map_load_chunk(int chunk_x, int chunk_z)
 {
-    Chunk* c = chunk_create(chunk_x, chunk_z);
+    Chunk* c = chunk_init(chunk_x, chunk_z);
+    chunk_generate_terrain(c);
     hashmap_chunks_insert(map->chunks_active, c);
     map_rebuild_chunk_buffer(c, 1);
 }
@@ -163,8 +183,9 @@ static void map_load_update_chunks(Camera* cam)
         // that list is being cleared every frame
         if (c)
         {
-            if (chunk_is_visible(x, z, cam->frustum_planes))
+            if (c->is_mesh_generated && chunk_is_visible(x, z, cam->frustum_planes)) {
                 list_chunks_push_front(map->chunks_to_render, c);
+            }
         }
         // find the closest visible chunk that is not loaded yet
         else
@@ -192,6 +213,7 @@ void map_init()
 
     map->chunks_active     = hashmap_chunks_create(CHUNK_RENDER_RADIUS2 * 1.2f);
     map->chunks_to_render  = list_chunks_create();
+    map->chunks_to_rebuild = list_chunks_create();
 
     map->VAO_skybox = opengl_create_vao();
     map->VBO_skybox = opengl_create_vbo_cube();
@@ -214,6 +236,19 @@ void map_init()
     // Load one chunk in which player spawns when
     // world is created
     map_load_chunk(0, 0);
+
+    map->num_workers = 3;
+    map->workers = malloc(map->num_workers * sizeof(WorkerData));
+
+    for (int i = 0; i < map->num_workers; i++) 
+    {
+        cnd_init(&map->workers[i].cond_var);
+        map->workers[i].state = WORKER_IDLE;
+        mtx_init(&map->workers[i].state_mtx, mtx_plain);
+        map->workers[i].chunk = NULL;
+        
+        thrd_create(&map->workers[i].thread, worker_func, &map->workers[i]);
+    }
 }
 
 // [0.0 - 1.0)
@@ -390,7 +425,7 @@ void map_render_chunks(Camera* cam)
 unsigned char map_get_block(int x, int y, int z)
 {
     Chunk* c = map_get_chunk(chunked(x), chunked(z));
-    if (!c || !c->is_loaded || y >= CHUNK_HEIGHT || y < 0) 
+    if (!c || !c->is_terrain_generated || y >= CHUNK_HEIGHT || y < 0) 
         return BLOCK_AIR;
 
     return c->blocks[XYZ(to_chunk_block(x), y, to_chunk_block(z))];
@@ -461,10 +496,116 @@ void map_set_block(int x, int y, int z, unsigned char block)
     }
 }
 
+static bool get_chunk_to_load(Camera* cam, int* c_x, int* c_z)
+{
+    int cam_chunk_x = cam->pos[0] / CHUNK_SIZE;
+    int cam_chunk_z = cam->pos[2] / CHUNK_SIZE;
+    
+    // find best chunk;
+    // best is closest visible chunk
+    int best_score = INT_MIN;
+    int best_chunk_x = 0, best_chunk_z = 0;
+
+    for (int x = cam_chunk_x - CHUNK_LOAD_RADIUS; x <= cam_chunk_x + CHUNK_LOAD_RADIUS; x++)
+    for (int z = cam_chunk_z - CHUNK_LOAD_RADIUS; z <= cam_chunk_z + CHUNK_LOAD_RADIUS; z++)
+    {
+        if (chunk_player_dist2(x, z, cam_chunk_x, cam_chunk_z) > CHUNK_LOAD_RADIUS2)
+        {
+            continue;
+        }
+        
+        Chunk* c = map_get_chunk(x, z);
+
+        if (c)
+        {
+            continue;
+        }
+
+        int visible = chunk_is_visible(x, z, cam->frustum_planes);
+        int dist = chunk_player_dist2(x, z, cam_chunk_x, cam_chunk_z);
+        int curr_score = visible ? (1 << 30) : 0;
+        curr_score -= dist;
+        if (curr_score >= best_score)
+        {
+            best_chunk_x = x;
+            best_chunk_z = z;
+            best_score = curr_score;
+        }
+    }   
+
+    if (best_score != INT_MIN) {
+        *c_x = best_chunk_x;
+        *c_z = best_chunk_z;
+        return true;
+    }
+    return false;
+}
+
+static void handle_workers(Camera* cam)
+{
+    for (int i = 0; i < map->num_workers; i++)
+    {
+        WorkerData* worker = &map->workers[i];
+        mtx_lock(&worker->state_mtx);
+
+        if (worker->state == WORKER_BUSY)
+        {
+            mtx_unlock(&worker->state_mtx);
+            continue;
+        }
+
+        if (worker->state == WORKER_DONE)
+        {
+            Chunk* c = worker->chunk;
+            worker->chunk = NULL;
+            worker->state = WORKER_IDLE;
+            c->is_terrain_generated = 1;
+            list_chunks_push_back(map->chunks_to_rebuild, c);
+        }
+
+        if (worker->state == WORKER_IDLE)
+        {
+            int c_x, c_z;
+            bool found = get_chunk_to_load(cam, &c_x, &c_z);
+            if (!found)
+            {
+                mtx_unlock(&worker->state_mtx);
+                break;
+            }
+
+            worker->chunk = chunk_init(c_x, c_z);
+            hashmap_chunks_insert(map->chunks_active, worker->chunk);
+            worker->state = WORKER_BUSY;
+        }
+        
+        mtx_unlock(&worker->state_mtx);
+        cnd_signal(&worker->cond_var);
+    }
+}
+
+static void add_chunks_to_render_list(Camera* cam)
+{
+    MAP_FOREACH_ACTIVE_CHUNK_BEGIN(c)
+        if (c->is_mesh_generated && chunk_is_visible(c->x, c->z, cam->frustum_planes))
+            list_chunks_push_front(map->chunks_to_render, c);
+    MAP_FOREACH_ACTIVE_CHUNK_END()
+}
+
 void map_update(Camera* cam)
 {
-    map_unload_far_chunks(cam);
-    map_load_update_chunks(cam);
+    //map_unload_far_chunks(cam);
+    //map_load_update_chunks(cam);
+
+    handle_workers(cam);
+
+    while (map->chunks_to_rebuild->size)
+    {
+        Chunk* c = list_chunks_pop_front(map->chunks_to_rebuild);
+        map_rebuild_chunk_buffer(c, 1);
+    }
+
+    add_chunks_to_render_list(cam);
+
 }
 
 void map_set_seed(int new_seed)

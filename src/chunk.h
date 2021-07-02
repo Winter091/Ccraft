@@ -6,6 +6,7 @@
 #include "cglm/cglm.h"
 #include "glad/glad.h"
 #include "config.h"
+#include "tinycthread.h"
 
 // Access block by 3 coords from 1-dimensional array
 #define XYZ(x, y, z) ((x) * CHUNK_WIDTH * CHUNK_HEIGHT) + ((y) * CHUNK_WIDTH) + (z)
@@ -24,7 +25,8 @@ typedef struct
 {
     unsigned char* blocks;
     int x, z;
-    int is_loaded;
+    int is_terrain_generated;
+    int is_mesh_generated;
 
     GLuint VAO_land;
     GLuint VBO_land;
@@ -35,7 +37,9 @@ typedef struct
 }
 Chunk;
 
-Chunk* chunk_create(int chunk_x, int chunk_z);
+Chunk* chunk_init(int chunk_x, int chunk_z);
+
+void chunk_generate_terrain(Chunk* c);
 
 // Create VAOs and VBOs, send them to GPU
 void chunk_rebuild_buffer(Chunk* c, Chunk* neighs[8]);

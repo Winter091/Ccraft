@@ -7,14 +7,15 @@
 #include "db.h"
 #include "worldgen.h"
 
-Chunk* chunk_create(int chunk_x, int chunk_z)
+Chunk* chunk_init(int chunk_x, int chunk_z)
 {
     Chunk* c = malloc(sizeof(Chunk));
 
     c->blocks = NULL;
     c->x = chunk_x;
     c->z = chunk_z;
-    c->is_loaded = 0;
+    c->is_terrain_generated = 0;
+    c->is_mesh_generated = 0;
 
     c->VAO_land = 0;
     c->VBO_land = 0;
@@ -24,26 +25,33 @@ Chunk* chunk_create(int chunk_x, int chunk_z)
     c->vertex_water_count = 0;
 
     // Generate terrain
-    c->blocks = calloc(CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH, 1);
-    worldgen_generate_chunk(c);
+    //c->blocks = calloc(CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH, 1);
+    //worldgen_generate_chunk(c);
 
-    if (USE_MAP)
-    {
-        // load block differences from database
-        db_get_blocks_for_chunk(c);
-    }
+    //if (USE_MAP)
+    //{
+    //    // load block differences from database
+    //    db_get_blocks_for_chunk(c);
+    //}
 
     return c;
 }
 
+void chunk_generate_terrain(Chunk* c)
+{
+    c->blocks = calloc(CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH, 1);
+    worldgen_generate_chunk(c);
+}
+
 void chunk_rebuild_buffer(Chunk* c, Chunk* neighs[8])
 {
-    if (c->is_loaded)
+    if (c->is_mesh_generated)
     {
+        c->is_mesh_generated = 0;
         glDeleteVertexArrays(2, (const GLuint[]){c->VAO_land, c->VAO_water});
         glDeleteBuffers(2, (const GLuint[]){c->VBO_land, c->VBO_water});
     }
-    
+
     // Keep static buffers in order not to
     // make a lot of big allocations
     static Vertex* vertices_land = NULL;
@@ -137,7 +145,7 @@ void chunk_rebuild_buffer(Chunk* c, Chunk* neighs[8])
 
     c->vertex_land_count = curr_vertex_land_count;
     c->vertex_water_count = curr_vertex_water_count;
-    c->is_loaded = 1;
+    c->is_mesh_generated = 1;
 }
 
 int chunk_is_visible(int chunk_x, int chunk_z, vec4 planes[6])
@@ -158,11 +166,14 @@ int chunk_is_visible(int chunk_x, int chunk_z, vec4 planes[6])
 
 void chunk_delete(Chunk* c)
 {
-    if (c->is_loaded)
+    if (c->is_mesh_generated)
     {
-        free(c->blocks);
         glDeleteVertexArrays(2, (const GLuint[]){c->VAO_land, c->VAO_water});
         glDeleteBuffers(2, (const GLuint[]){c->VBO_land, c->VBO_water});
     }
+
+    if (c->is_terrain_generated)
+        free(c->blocks);
+
     free(c);
 }
