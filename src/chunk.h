@@ -5,8 +5,10 @@
 
 #include "cglm/cglm.h"
 #include "glad/glad.h"
-#include "config.h"
 #include "tinycthread.h"
+
+#include "utils.h"
+#include "config.h"
 
 // Access block by 3 coords from 1-dimensional array
 #define XYZ(x, y, z) (((x) + 1) * CHUNK_XZ_REAL * CHUNK_XY_REAL) + (((y) + 1) * CHUNK_XZ_REAL) + ((z) + 1)
@@ -25,6 +27,8 @@ typedef struct
 {
     unsigned char* blocks;
     int x, z;
+
+    int is_dirty;
     int is_terrain_generated;
     int is_mesh_generated;
 
@@ -35,8 +39,8 @@ typedef struct
     size_t vertex_land_count;
     size_t vertex_water_count;
 
-    char* generated_mesh_terrain;
-    char* generated_mesh_water;
+    Vertex* generated_mesh_terrain;
+    Vertex* generated_mesh_water;
 }
 Chunk;
 
@@ -45,7 +49,9 @@ Chunk* chunk_init(int chunk_x, int chunk_z);
 void chunk_generate_terrain(Chunk* c);
 
 // Create VAOs and VBOs, send them to GPU
-void chunk_rebuild_buffer(Chunk* c);
+void chunk_generate_mesh(Chunk* c);
+
+void chunk_upload_mesh_to_gpu(Chunk* c);
 
 // Used during frustum culling
 int chunk_is_visible(int chunk_x, int chunk_z, vec4 planes[6]);

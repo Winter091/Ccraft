@@ -530,35 +530,20 @@ void player_handle_left_mouse_click(Player* p)
     int y = p->block_pointed_at[1];
     int z = p->block_pointed_at[2];
 
-    // If camera looks at block nearby, remove the block
     map_set_block(x, y, z, BLOCK_AIR);
     p->pointing_at_block = 0;
-
-    if (USE_MAP)
-    {
-        // Store block change in database
-        db_insert_block(
-            chunked(x), chunked(z),
-            to_chunk_block(x), y, to_chunk_block(z),
-            BLOCK_AIR
-        );
-    }
 }
 
 // Helper function for player_handle_right_mouse_click()
-static void find_best_spot_to_place_block(
-    Camera* cam, int x, int y, int z, 
-    int* best_x, int* best_y, int* best_z, float* best_dist
-)
+static void find_best_spot_to_place_block(Camera* cam, int x, int y, int z, int* best_x, 
+                                          int* best_y, int* best_z, float* best_dist)
 {
     float cam_x = blocked(cam->pos[0]);
     float cam_y = blocked(cam->pos[1]);
     float cam_z = blocked(cam->pos[2]);
     
-    if (
-        camera_looks_at_block(cam, x, y, z, BLOCK_AIR) 
-        && !block_is_solid(map_get_block(x, y, z))
-    )
+    if (camera_looks_at_block(cam, x, y, z, BLOCK_AIR) 
+        && !block_is_solid(map_get_block(x, y, z)))
     {
         float dist = block_player_dist2(x, y, z, cam_x, cam_y, cam_z);
         if (dist < *best_dist)
@@ -602,16 +587,6 @@ void player_handle_right_mouse_click(Player* p)
         return;
 
     map_set_block(best_x, best_y, best_z, p->build_block);
-
-    if (USE_MAP)
-    {
-        // store block change in database
-        db_insert_block(
-            chunked(best_x), chunked(best_z),
-            to_chunk_block(best_x), best_y, to_chunk_block(best_z),
-            p->build_block
-        );
-    }
 }
 
 void player_render_item(Player* p)

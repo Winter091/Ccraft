@@ -2,6 +2,7 @@
 #define BLOCK_H_
 
 #include "chunk.h"
+#include "utils.h"
 
 // Block ids
 #define BLOCK_AIR                0
@@ -40,16 +41,6 @@
 #define BLOCK_SANDSTONE          33
 #define BLOCK_SANDSTONE_CHISELED 34
 #define BLOCKS_AMOUNT            35
-
-// Vertex layout for storing block data in GPU
-typedef struct
-{
-    float pos[3];
-    float tex_coord[2];
-    float ao;
-    unsigned char tile;
-}
-Vertex;
 
 // Textures for each face of each block
 extern unsigned char block_textures[][6];

@@ -71,56 +71,6 @@ static Chunk* map_get_chunk(int chunk_x, int chunk_z)
     return node ? node->data : NULL;
 }
 
-static void map_rebuild_chunk_buffer(Chunk* c, int rebuild_neighbours)
-{
-    if (!c) 
-        return;
-    
-    Chunk* neighs[8] = 
-    {
-        map_get_chunk(c->x - 1, c->z    ),
-        map_get_chunk(c->x    , c->z - 1),
-        map_get_chunk(c->x + 1, c->z    ),
-        map_get_chunk(c->x    , c->z + 1),
-        map_get_chunk(c->x - 1, c->z - 1),
-        map_get_chunk(c->x + 1, c->z - 1),
-        map_get_chunk(c->x + 1, c->z + 1),
-        map_get_chunk(c->x - 1, c->z + 1)
-    };
-
-    int all_neighs_are_here = 1;
-    for (int i = 0; i < 8; i++)
-    {
-        if (!neighs[i] || !neighs[i]->is_terrain_generated) 
-        {
-            all_neighs_are_here = 0;
-            break;
-        }
-    }
-
-    //double time = glfwGetTime();
-    if (all_neighs_are_here)
-    {
-        chunk_rebuild_buffer(c);
-    }
-    
-    if (rebuild_neighbours)
-    {
-        for (int i = 0; i < 8; i++)
-            map_rebuild_chunk_buffer(neighs[i], 0);
-    }
-    //printf("%.3f\n", (glfwGetTime() - time) * 1000);
-
-}
-
-static void map_load_chunk(int chunk_x, int chunk_z)
-{
-    Chunk* c = chunk_init(chunk_x, chunk_z);
-    chunk_generate_terrain(c);
-    hashmap_chunks_insert(map->chunks_active, c);
-    map_rebuild_chunk_buffer(c, 1);
-}
-
 static void map_delete_chunk(int chunk_x, int chunk_z)
 {
     Chunk* c = map_get_chunk(chunk_x, chunk_z);
@@ -134,7 +84,7 @@ static void map_delete_chunk(int chunk_x, int chunk_z)
     }
 }
 
-static void map_unload_far_chunks(Camera* cam)
+static void map_delete_far_chunks(Camera* cam)
 {
     int cam_chunk_x = cam->pos[0] / CHUNK_SIZE;
     int cam_chunk_z = cam->pos[2] / CHUNK_SIZE;
@@ -159,59 +109,12 @@ static void map_unload_far_chunks(Camera* cam)
     list_chunks_delete(chunks_to_delete);
 }
 
-static void map_load_update_chunks(Camera* cam)
-{
-    int cam_chunk_x = cam->pos[0] / CHUNK_SIZE;
-    int cam_chunk_z = cam->pos[2] / CHUNK_SIZE;
-    
-    // load one best chunk;
-    // best is closest visible chunk
-    int best_score = INT_MIN;
-    int best_chunk_x = 0, best_chunk_z = 0;
-
-    for (int x = cam_chunk_x - CHUNK_LOAD_RADIUS; x <= cam_chunk_x + CHUNK_LOAD_RADIUS; x++)
-    for (int z = cam_chunk_z - CHUNK_LOAD_RADIUS; z <= cam_chunk_z + CHUNK_LOAD_RADIUS; z++)
-    {
-        if (chunk_player_dist2(x, z, cam_chunk_x, cam_chunk_z) > CHUNK_LOAD_RADIUS2)
-        {
-            continue;
-        }
-        
-        Chunk* c = map_get_chunk(x, z);
-        // add all visible loaded chunks to render list,
-        // that list is being cleared every frame
-        if (c)
-        {
-            if (c->is_mesh_generated && chunk_is_visible(x, z, cam->frustum_planes)) {
-                list_chunks_push_front(map->chunks_to_render, c);
-            }
-        }
-        // find the closest visible chunk that is not loaded yet
-        else
-        {
-            int visible = chunk_is_visible(x, z, cam->frustum_planes);
-            int dist = chunk_player_dist2(x, z, cam_chunk_x, cam_chunk_z);
-            int curr_score = visible ? (1 << 30) : 0;
-            curr_score -= dist;
-            if (curr_score >= best_score)
-            {
-                best_chunk_x = x;
-                best_chunk_z = z;
-                best_score = curr_score;
-            }
-        }
-    }   
-
-    if (best_score != INT_MIN)
-        map_load_chunk(best_chunk_x, best_chunk_z);
-}
-
 void map_init()
 {
     map = malloc(sizeof(Map));
 
-    map->chunks_active     = hashmap_chunks_create(CHUNK_RENDER_RADIUS2 * 1.2f);
-    map->chunks_to_render  = list_chunks_create();
+    map->chunks_active    = hashmap_chunks_create(CHUNK_RENDER_RADIUS2 * 1.2f);
+    map->chunks_to_render = list_chunks_create();
 
     map->VAO_skybox = opengl_create_vao();
     map->VBO_skybox = opengl_create_vbo_cube();
@@ -231,10 +134,6 @@ void map_init()
         printf("Map is not enabled, using default seed\n");
     }
 
-    // Load one chunk in which player spawns when
-    // world is created
-    map_load_chunk(0, 0);
-
     map->num_workers = 3;
     map->workers = malloc(map->num_workers * sizeof(WorkerData));
 
@@ -244,7 +143,7 @@ void map_init()
         map->workers[i].state = WORKER_IDLE;
         mtx_init(&map->workers[i].state_mtx, mtx_plain);
         map->workers[i].chunk = NULL;
-        map->workers[i].mesh_rebuild = 0;
+        map->workers[i].generate_terrain = 0;
         
         thrd_create(&map->workers[i].thread, worker_func, &map->workers[i]);
     }
@@ -424,10 +323,69 @@ void map_render_chunks(Camera* cam)
 unsigned char map_get_block(int x, int y, int z)
 {
     Chunk* c = map_get_chunk(chunked(x), chunked(z));
-    if (!c || !c->is_terrain_generated || y >= CHUNK_HEIGHT || y < 0) 
+    if (!c || !c->is_terrain_generated) 
         return BLOCK_AIR;
 
     return c->blocks[XYZ(to_chunk_block(x), y, to_chunk_block(z))];
+}
+
+static void set_block_helper(int cx, int cz, int bx, int by, int bz, int block)
+{
+    db_insert_block(cx, cz, bx, by, bz, block);
+    
+    Chunk* c = map_get_chunk(cx, cz);
+    if (c)
+    {
+        c->blocks[XYZ(bx, by, bz)] = block;
+        c->is_dirty = 1;
+    }
+}
+
+static void set_block(Chunk* c, int bx, int by, int bz, int block)
+{
+    set_block_helper(c->x, c->z, bx, by, bz, block);
+
+    // Set in neighbour chunks if needed
+    int const first = -1;
+    int const last = CHUNK_WIDTH;
+
+    if (bx == 0)
+    {
+        set_block_helper(c->x - 1, c->z, last, by, bz, block);
+        
+        if (bz == 0)
+        {
+            set_block_helper(c->x - 1, c->z - 1, last,  by, last, block);
+            set_block_helper(c->x    , c->z - 1, 0, by, last, block);
+        }
+        else if (bz == CHUNK_WIDTH - 1)
+        {
+            set_block_helper(c->x - 1, c->z + 1, last,  by, first, block);
+            set_block_helper(c->x    , c->z + 1, 0, by, first, block);
+        }
+    }
+    else if (bx == CHUNK_WIDTH - 1)
+    {
+        set_block_helper(c->x + 1, c->z, first, by, bz, block);
+        
+        if (bz == 0)
+        {
+            set_block_helper(c->x + 1, c->z - 1, first, by, last, block);
+            set_block_helper(c->x    , c->z - 1, last - 1,  by, last, block);
+        }
+        else if (bz == CHUNK_WIDTH - 1)
+        {
+            set_block_helper(c->x + 1, c->z + 1, first, by, first, block);
+            set_block_helper(c->x    , c->z + 1, last - 1,  by, first, block);
+        }
+    }
+    else
+    {
+        if (bz == 0)
+            set_block_helper(c->x, c->z - 1, bx, by, last, block);
+        else if (bz == CHUNK_WIDTH - 1)
+            set_block_helper(c->x, c->z + 1, bx, by, first, block);
+    }
 }
 
 void map_set_block(int x, int y, int z, unsigned char block)
@@ -441,66 +399,14 @@ void map_set_block(int x, int y, int z, unsigned char block)
     int block_x = to_chunk_block(x);
     int block_z = to_chunk_block(z);
 
-    c->blocks[XYZ(block_x, y, block_z)] = block;
-    map_rebuild_chunk_buffer(c, 0);
-    
-    // update neighbour if changed block was
-    // on the edge of chunk
-    if (block_x == 0)
-    {
-        Chunk* left = map_get_chunk(chunk_x - 1, chunk_z);
-        map_rebuild_chunk_buffer(left, 0);
-
-        if (block_z == 0)
-        {
-            Chunk* backleft = map_get_chunk(chunk_x - 1, chunk_z - 1);
-            map_rebuild_chunk_buffer(backleft, 0);
-        }
-
-        else if (block_z == CHUNK_WIDTH - 1)
-        {
-            Chunk* frontleft = map_get_chunk(chunk_x - 1, chunk_z + 1);
-            map_rebuild_chunk_buffer(frontleft, 0);
-        }
-    }
-
-    else if (block_x == CHUNK_WIDTH - 1)
-    {
-        Chunk* right = map_get_chunk(chunk_x + 1, chunk_z);
-        map_rebuild_chunk_buffer(right, 0);
-
-        if (block_z == 0)
-        {
-            Chunk* backright = map_get_chunk(chunk_x + 1, chunk_z - 1);
-            map_rebuild_chunk_buffer(backright, 0);
-        }
-
-        else if (block_z == CHUNK_WIDTH - 1)
-        {
-            Chunk* frontright = map_get_chunk(chunk_x + 1, chunk_z + 1);
-            map_rebuild_chunk_buffer(frontright, 0);
-        }
-    }
-
-    if (block_z == 0)
-    {
-        Chunk* back = map_get_chunk(chunk_x, chunk_z - 1);
-        map_rebuild_chunk_buffer(back, 0);
-    }
-    
-    else if (block_z == CHUNK_WIDTH - 1)
-    {
-        Chunk* front = map_get_chunk(chunk_x, chunk_z + 1);
-        map_rebuild_chunk_buffer(front, 0);
-    }
+    set_block(c, block_x, y, block_z, block);
 }
 
-static bool get_chunk_to_load(Camera* cam, int* c_x, int* c_z)
+static bool find_chunk_for_worker(Camera* cam, int* best_x, int* best_z)
 {
     int cam_chunk_x = cam->pos[0] / CHUNK_SIZE;
     int cam_chunk_z = cam->pos[2] / CHUNK_SIZE;
     
-    // find best chunk;
     // best is closest visible chunk
     int best_score = INT_MIN;
     int best_chunk_x = 0, best_chunk_z = 0;
@@ -515,15 +421,15 @@ static bool get_chunk_to_load(Camera* cam, int* c_x, int* c_z)
         
         Chunk* c = map_get_chunk(x, z);
 
-        if (c)
-        {
+        int dirty  = c ? c->is_dirty : 0;
+        if (c && !c->is_dirty)
             continue;
-        }
-
         int visible = chunk_is_visible(x, z, cam->frustum_planes);
         int dist = chunk_player_dist2(x, z, cam_chunk_x, cam_chunk_z);
-        int curr_score = visible ? (1 << 30) : 0;
+        
+        int curr_score = (dirty << 24) | (visible << 16);
         curr_score -= dist;
+
         if (curr_score >= best_score)
         {
             best_chunk_x = x;
@@ -532,9 +438,10 @@ static bool get_chunk_to_load(Camera* cam, int* c_x, int* c_z)
         }
     }   
 
-    if (best_score != INT_MIN) {
-        *c_x = best_chunk_x;
-        *c_z = best_chunk_z;
+    if (best_score != INT_MIN) 
+    {
+        *best_x = best_chunk_x;
+        *best_z = best_chunk_z;
         return true;
     }
     return false;
@@ -555,56 +462,39 @@ static void handle_workers(Camera* cam)
 
         if (worker->state == WORKER_DONE)
         {
-            Chunk* c = worker->chunk;
-            worker->chunk = NULL;
             worker->state = WORKER_IDLE;
-            c->is_terrain_generated = 1;
+
+            Chunk* c = worker->chunk;
+            chunk_upload_mesh_to_gpu(c);
             
-            if (worker->mesh_rebuild)
-            {
-                if (c->is_mesh_generated)
-                {
-                    glDeleteVertexArrays(2, (const GLuint[]){c->VAO_land, c->VAO_water});
-                    glDeleteBuffers(2, (const GLuint[]){c->VBO_land, c->VBO_water});
-                }
-                c->is_mesh_generated = 1;
-
-                // Generate VAOs and VBOs
-                c->VAO_land = opengl_create_vao();
-                c->VBO_land = opengl_create_vbo(c->generated_mesh_terrain, c->vertex_land_count * sizeof(Vertex));
-                free(c->generated_mesh_terrain);
-                c->generated_mesh_terrain = NULL;
-                opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-                opengl_vbo_layout(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 3 * sizeof(float));
-                opengl_vbo_layout(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), 5 * sizeof(float));
-                opengl_vbo_layout(2, 1, GL_UNSIGNED_BYTE, GL_FALSE,  sizeof(Vertex), 6 * sizeof(float));
-
-                c->VAO_water = opengl_create_vao();
-                c->VBO_water = opengl_create_vbo(c->generated_mesh_water, c->vertex_water_count * sizeof(Vertex));
-                free(c->generated_mesh_water);
-                c->generated_mesh_water = NULL;
-                opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-                opengl_vbo_layout(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 3 * sizeof(float));
-                opengl_vbo_layout(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), 5 * sizeof(float));
-                opengl_vbo_layout(2, 1, GL_UNSIGNED_BYTE, GL_FALSE,  sizeof(Vertex), 6 * sizeof(float));
-            }
+            c->is_terrain_generated = 1;
+            c->is_mesh_generated = 1;
         }
 
         if (worker->state == WORKER_IDLE)
         {
-            int c_x, c_z;
-            bool found = get_chunk_to_load(cam, &c_x, &c_z);
+            int best_x, best_z;
+            bool found = find_chunk_for_worker(cam, &best_x, &best_z);
             if (!found)
             {
-                //printf("Not found!\n");
                 mtx_unlock(&worker->state_mtx);
-                break;
+                continue;
             }
             
-            Chunk* c = chunk_init(c_x, c_z);
-            hashmap_chunks_insert(map->chunks_active, c);
+            Chunk* c = map_get_chunk(best_x, best_z);
+            if (c)
+            {
+                c->is_dirty = 0;
+                worker->generate_terrain = 0;
+            }
+            else
+            {
+                c = chunk_init(best_x, best_z);
+                hashmap_chunks_insert(map->chunks_active, c);
+                worker->generate_terrain = 1;
+            }
+            
             worker->chunk = c;
-            worker->mesh_rebuild = 1;
             worker->state = WORKER_BUSY;
             mtx_unlock(&worker->state_mtx);
             cnd_signal(&worker->cond_var);
@@ -625,13 +515,9 @@ static void add_chunks_to_render_list(Camera* cam)
 
 void map_update(Camera* cam)
 {
-    //map_unload_far_chunks(cam);
-    //map_load_update_chunks(cam);
-
+    map_delete_far_chunks(cam);
     handle_workers(cam);
-
     add_chunks_to_render_list(cam);
-
 }
 
 void map_set_seed(int new_seed)

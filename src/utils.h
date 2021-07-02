@@ -10,6 +10,16 @@
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
+// Vertex layout for storing block data in GPU
+typedef struct
+{
+    float pos[3];
+    float tex_coord[2];
+    float ao;
+    unsigned char tile;
+}
+Vertex;
+
 GLuint opengl_create_vao();
 GLuint opengl_create_vbo(const void* vertices, size_t buf_size);
 GLuint opengl_create_vbo_cube();

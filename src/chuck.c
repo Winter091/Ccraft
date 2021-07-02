@@ -14,6 +14,8 @@ Chunk* chunk_init(int chunk_x, int chunk_z)
     c->blocks = NULL;
     c->x = chunk_x;
     c->z = chunk_z;
+
+    c->is_dirty = 0;
     c->is_terrain_generated = 0;
     c->is_mesh_generated = 0;
 
@@ -27,16 +29,6 @@ Chunk* chunk_init(int chunk_x, int chunk_z)
     c->generated_mesh_terrain = NULL;
     c->generated_mesh_water = NULL;
 
-    // Generate terrain
-    //c->blocks = calloc(CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_WIDTH, 1);
-    //worldgen_generate_chunk(c);
-
-    //if (USE_MAP)
-    //{
-    //    // load block differences from database
-    //    db_get_blocks_for_chunk(c);
-    //}
-
     return c;
 }
 
@@ -44,16 +36,15 @@ void chunk_generate_terrain(Chunk* c)
 {
     c->blocks = calloc(CHUNK_XZ_REAL * CHUNK_XZ_REAL * CHUNK_XY_REAL, 1);
     worldgen_generate_chunk(c);
+    db_get_blocks_for_chunk(c);
 }
 
-void chunk_rebuild_buffer(Chunk* c)
+void chunk_generate_mesh(Chunk* c)
 {
     c->generated_mesh_terrain = malloc(
-        CHUNK_WIDTH * CHUNK_WIDTH * CHUNK_HEIGHT * 36 * sizeof(Vertex)
-    );
+        CHUNK_WIDTH * CHUNK_WIDTH * CHUNK_HEIGHT * 36 * sizeof(Vertex));
     c->generated_mesh_water = malloc(
-        CHUNK_WIDTH * CHUNK_WIDTH * CHUNK_HEIGHT * 36 * sizeof(Vertex)
-    );
+        CHUNK_WIDTH * CHUNK_WIDTH * CHUNK_HEIGHT * 36 * sizeof(Vertex));
 
     int curr_vertex_land_count = 0;
     int curr_vertex_water_count = 0;
@@ -91,26 +82,22 @@ void chunk_rebuild_buffer(Chunk* c)
 
             // Water should be shorter only if there's air above
             int make_shorter = block_above == BLOCK_AIR ? 1 : 0;
-            gen_cube_vertices(
-                c->generated_mesh_water, &curr_vertex_water_count, block_x, block_y, block_z,
-                c->blocks[XYZ(x, y, z)], BLOCK_SIZE, make_shorter, faces, ao
-            );
+
+            gen_cube_vertices(c->generated_mesh_water, &curr_vertex_water_count, block_x, block_y, 
+                              block_z, c->blocks[XYZ(x, y, z)], BLOCK_SIZE, make_shorter, faces, ao);
         }
         else
         {
             if (block_is_plant(c->blocks[XYZ(x, y, z)]))
             {
-                gen_plant_vertices(
-                    c->generated_mesh_terrain, &curr_vertex_land_count, block_x, block_y, block_z,
-                    c->blocks[XYZ(x, y, z)], BLOCK_SIZE
-                );
+                gen_plant_vertices(c->generated_mesh_terrain, &curr_vertex_land_count, 
+                                   block_x, block_y, block_z, c->blocks[XYZ(x, y, z)], BLOCK_SIZE);
             }
             else
             {
-                gen_cube_vertices(
-                    c->generated_mesh_terrain, &curr_vertex_land_count, block_x, block_y, block_z,
-                    c->blocks[XYZ(x, y, z)], BLOCK_SIZE, 0, faces, ao
-                );
+                gen_cube_vertices(c->generated_mesh_terrain, &curr_vertex_land_count, 
+                                  block_x, block_y, block_z, c->blocks[XYZ(x, y, z)], 
+                                  BLOCK_SIZE, 0, faces, ao);
             }
         }
 
@@ -118,6 +105,33 @@ void chunk_rebuild_buffer(Chunk* c)
 
     c->vertex_land_count = curr_vertex_land_count;
     c->vertex_water_count = curr_vertex_water_count;
+}
+
+void chunk_upload_mesh_to_gpu(Chunk* c)
+{
+    if (c->is_mesh_generated)
+    {
+        glDeleteVertexArrays(2, (const GLuint[]){c->VAO_land, c->VAO_water});
+        glDeleteBuffers(2, (const GLuint[]){c->VBO_land, c->VBO_water});
+    }
+
+    c->VAO_land = opengl_create_vao();
+    c->VBO_land = opengl_create_vbo(c->generated_mesh_terrain, c->vertex_land_count * sizeof(Vertex));
+    free(c->generated_mesh_terrain);
+    c->generated_mesh_terrain = NULL;
+    opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+    opengl_vbo_layout(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 3 * sizeof(float));
+    opengl_vbo_layout(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), 5 * sizeof(float));
+    opengl_vbo_layout(2, 1, GL_UNSIGNED_BYTE, GL_FALSE,  sizeof(Vertex), 6 * sizeof(float));
+
+    c->VAO_water = opengl_create_vao();
+    c->VBO_water = opengl_create_vbo(c->generated_mesh_water, c->vertex_water_count * sizeof(Vertex));
+    free(c->generated_mesh_water);
+    c->generated_mesh_water = NULL;
+    opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+    opengl_vbo_layout(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 3 * sizeof(float));
+    opengl_vbo_layout(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), 5 * sizeof(float));
+    opengl_vbo_layout(2, 1, GL_UNSIGNED_BYTE, GL_FALSE,  sizeof(Vertex), 6 * sizeof(float));
 }
 
 int chunk_is_visible(int chunk_x, int chunk_z, vec4 planes[6])

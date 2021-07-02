@@ -12,9 +12,9 @@ int worker_func(void* _data)
             cnd_wait(&data->cond_var, &data->state_mtx);
         mtx_unlock(&data->state_mtx);
 
-        chunk_generate_terrain(data->chunk);
-        if (data->mesh_rebuild)
-            chunk_rebuild_buffer(data->chunk);
+        if (data->generate_terrain)
+            chunk_generate_terrain(data->chunk);
+        chunk_generate_mesh(data->chunk);
 
         mtx_lock(&data->state_mtx);
         data->state = WORKER_DONE;
