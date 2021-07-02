@@ -31,6 +31,7 @@ add_executable(
     ${CMAKE_SOURCE_DIR}/deps/sqlite-3.34.0/src/sqlite3.c
     ${CMAKE_SOURCE_DIR}/deps/fastnoise-1.0.1/src/fastnoiselite.c
     ${CMAKE_SOURCE_DIR}/deps/ini-0.1.1/src/ini.c
+    ${CMAKE_SOURCE_DIR}/deps/tinycthread-1.2.0/src/tinycthread.c
 )
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -57,6 +58,7 @@ target_include_directories(
     ${CMAKE_SOURCE_DIR}/deps/sqlite-3.34.0/include
     ${CMAKE_SOURCE_DIR}/deps/fastnoise-1.0.1/include
     ${CMAKE_SOURCE_DIR}/deps/ini-0.1.1/include
+    ${CMAKE_SOURCE_DIR}/deps/tinycthread-1.2.0/include
 )
 
 # Copy shaders folder to build folder
