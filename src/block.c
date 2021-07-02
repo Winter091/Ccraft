@@ -253,7 +253,6 @@ int block_is_plant(unsigned char block)
 // Helper function for block_get_neighs()
 static inline int get_block_from_chunk(Chunk* c, int bx, int by, int bz)
 {
-    if (!c) return BLOCK_AIR;
     return c->blocks[XYZ(bx, by, bz)];
 }
 
@@ -281,51 +280,23 @@ Bottom layer (blocks below):
 2 5 8
 
 */
-void block_get_neighs(Chunk* c, Chunk* neighs[8], int x, int y, int z, unsigned char b_neighs[27])
+void block_get_neighs(Chunk* c, int x, int y, int z, unsigned char b_neighs[27])
 {
-    int last = CHUNK_WIDTH - 1;
     int index = 0;
 
     for (int dy = -1; dy <= 1; dy++)
     for (int dx = -1; dx <= 1; dx++)
     for (int dz = -1; dz <= 1; dz++, index++)
     {
-        int bx = x + dx;
-        int by = y + dy;
-        int bz = z + dz;
+        int const bx = x + dx;
+        int const by = y + dy;
+        int const bz = z + dz;
 
         if (by < 0 || by >= CHUNK_HEIGHT)
             b_neighs[index] = BLOCK_AIR;
 
         // In bounds of current chunk
-        else if (bx >= 0 && bx <= last && by >= 0 && by < CHUNK_HEIGHT && bz >= 0 && bz <= last)
-            b_neighs[index] = get_block_from_chunk(c, bx, by, bz);
-
-        else if (bx < 0)
-        {
-            if (bz < 0)
-                b_neighs[index] = get_block_from_chunk(neighs[CHUNK_NEIGH_BL], last, by, last);
-            else if (bz >= CHUNK_WIDTH)
-                b_neighs[index] = get_block_from_chunk(neighs[CHUNK_NEIGH_FL], last, by, 0);
-            else
-                b_neighs[index] = get_block_from_chunk(neighs[CHUNK_NEIGH_L], last, by, bz);
-        }
-
-        else if (bx >= CHUNK_WIDTH)
-        {
-            if (bz < 0)
-                b_neighs[index] = get_block_from_chunk(neighs[CHUNK_NEIGH_BR], 0, by, last);
-            else if (bz >= CHUNK_WIDTH)
-                b_neighs[index] = get_block_from_chunk(neighs[CHUNK_NEIGH_FR], 0, by, 0);
-            else
-                b_neighs[index] = get_block_from_chunk(neighs[CHUNK_NEIGH_R], 0, by, bz);
-        }
-
-        else if (bz < 0)
-            b_neighs[index] = get_block_from_chunk(neighs[CHUNK_NEIGH_B], bx, by, last);
-        
-        else // bz >= CHUNK_WIDTH
-            b_neighs[index] = get_block_from_chunk(neighs[CHUNK_NEIGH_F], bx, by, 0);
+        else b_neighs[index] = c->blocks[XYZ(bx, by, bz)];
     }
 }
 
@@ -334,52 +305,31 @@ static inline int should_be_visible(
     unsigned char block_type, Chunk* c, int neigh_x, int neigh_y, int neigh_z
 )
 {
-    if (!c) return 1;
-
     unsigned char neigh_type = c->blocks[XYZ(neigh_x, neigh_y, neigh_z)];
     return block_is_transparent(neigh_type) && block_type != neigh_type;
 }
 
-int block_set_visible_faces(Chunk* c, int x, int y, int z, Chunk* neighs[8], int faces[6])
+int block_set_visible_faces(Chunk* c, int x, int y, int z, int faces[6])
 {
-    int last = CHUNK_WIDTH - 1;
     unsigned char block_type = c->blocks[XYZ(x, y, z)];
     
     // left
-    if (x == 0)
-        faces[0] = should_be_visible(block_type, neighs[CHUNK_NEIGH_L], last, y, z);
-    else
-        faces[0] = should_be_visible(block_type, c, x - 1, y, z);
+    faces[0] = should_be_visible(block_type, c, x - 1, y, z);
 
     // right
-    if (x == CHUNK_WIDTH - 1)
-        faces[1] = should_be_visible(block_type, neighs[CHUNK_NEIGH_R], 0, y, z);
-    else
-        faces[1] = should_be_visible(block_type, c, x + 1, y, z);
+    faces[1] = should_be_visible(block_type, c, x + 1, y, z);
  
     // top
-    if (y == CHUNK_HEIGHT - 1)
-        faces[2] = 1;
-    else
-        faces[2] = should_be_visible(block_type, c, x, y + 1, z);
+    faces[2] = should_be_visible(block_type, c, x, y + 1, z);
 
     // bottom
-    if (y == 0)
-        faces[3] = 0;
-    else
-        faces[3] = should_be_visible(block_type, c, x, y - 1, z);
+    faces[3] = should_be_visible(block_type, c, x, y - 1, z);
 
     // back
-    if (z == 0)
-        faces[4] = should_be_visible(block_type, neighs[CHUNK_NEIGH_B], x, y, last);
-    else
-        faces[4] = should_be_visible(block_type, c, x, y, z - 1);
+    faces[4] = should_be_visible(block_type, c, x, y, z - 1);
 
     // front
-    if (z == CHUNK_WIDTH - 1)
-        faces[5] = should_be_visible(block_type, neighs[CHUNK_NEIGH_F], x, y, 0);
-    else
-        faces[5] = should_be_visible(block_type, c, x, y, z + 1);
+    faces[5] = should_be_visible(block_type, c, x, y, z + 1);
 
     // Return amount of visible faces
     int sum = 0;

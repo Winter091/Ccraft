@@ -23,6 +23,7 @@ typedef struct
     cnd_t cond_var;
     mtx_t state_mtx;
     WorkerState state;
+    int mesh_rebuild;
 }
 WorkerData;
 

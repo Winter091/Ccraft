@@ -42,7 +42,6 @@ typedef struct
 {
     HashMap_chunks* chunks_active;
     LinkedList_chunks* chunks_to_render;
-    LinkedList_chunks* chunks_to_rebuild;
 
     GLuint VAO_skybox;
     GLuint VBO_skybox;
@@ -102,7 +101,7 @@ static void map_rebuild_chunk_buffer(Chunk* c, int rebuild_neighbours)
     //double time = glfwGetTime();
     if (all_neighs_are_here)
     {
-        chunk_rebuild_buffer(c, neighs);
+        chunk_rebuild_buffer(c);
     }
     
     if (rebuild_neighbours)
@@ -213,7 +212,6 @@ void map_init()
 
     map->chunks_active     = hashmap_chunks_create(CHUNK_RENDER_RADIUS2 * 1.2f);
     map->chunks_to_render  = list_chunks_create();
-    map->chunks_to_rebuild = list_chunks_create();
 
     map->VAO_skybox = opengl_create_vao();
     map->VBO_skybox = opengl_create_vbo_cube();
@@ -246,6 +244,7 @@ void map_init()
         map->workers[i].state = WORKER_IDLE;
         mtx_init(&map->workers[i].state_mtx, mtx_plain);
         map->workers[i].chunk = NULL;
+        map->workers[i].mesh_rebuild = 0;
         
         thrd_create(&map->workers[i].thread, worker_func, &map->workers[i]);
     }
@@ -560,7 +559,35 @@ static void handle_workers(Camera* cam)
             worker->chunk = NULL;
             worker->state = WORKER_IDLE;
             c->is_terrain_generated = 1;
-            list_chunks_push_back(map->chunks_to_rebuild, c);
+            
+            if (worker->mesh_rebuild)
+            {
+                if (c->is_mesh_generated)
+                {
+                    glDeleteVertexArrays(2, (const GLuint[]){c->VAO_land, c->VAO_water});
+                    glDeleteBuffers(2, (const GLuint[]){c->VBO_land, c->VBO_water});
+                }
+                c->is_mesh_generated = 1;
+
+                // Generate VAOs and VBOs
+                c->VAO_land = opengl_create_vao();
+                c->VBO_land = opengl_create_vbo(c->generated_mesh_terrain, c->vertex_land_count * sizeof(Vertex));
+                free(c->generated_mesh_terrain);
+                c->generated_mesh_terrain = NULL;
+                opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+                opengl_vbo_layout(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 3 * sizeof(float));
+                opengl_vbo_layout(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), 5 * sizeof(float));
+                opengl_vbo_layout(2, 1, GL_UNSIGNED_BYTE, GL_FALSE,  sizeof(Vertex), 6 * sizeof(float));
+
+                c->VAO_water = opengl_create_vao();
+                c->VBO_water = opengl_create_vbo(c->generated_mesh_water, c->vertex_water_count * sizeof(Vertex));
+                free(c->generated_mesh_water);
+                c->generated_mesh_water = NULL;
+                opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
+                opengl_vbo_layout(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 3 * sizeof(float));
+                opengl_vbo_layout(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), 5 * sizeof(float));
+                opengl_vbo_layout(2, 1, GL_UNSIGNED_BYTE, GL_FALSE,  sizeof(Vertex), 6 * sizeof(float));
+            }
         }
 
         if (worker->state == WORKER_IDLE)
@@ -569,17 +596,22 @@ static void handle_workers(Camera* cam)
             bool found = get_chunk_to_load(cam, &c_x, &c_z);
             if (!found)
             {
+                //printf("Not found!\n");
                 mtx_unlock(&worker->state_mtx);
                 break;
             }
-
-            worker->chunk = chunk_init(c_x, c_z);
-            hashmap_chunks_insert(map->chunks_active, worker->chunk);
+            
+            Chunk* c = chunk_init(c_x, c_z);
+            hashmap_chunks_insert(map->chunks_active, c);
+            worker->chunk = c;
+            worker->mesh_rebuild = 1;
             worker->state = WORKER_BUSY;
+            mtx_unlock(&worker->state_mtx);
+            cnd_signal(&worker->cond_var);
+            continue;
         }
         
         mtx_unlock(&worker->state_mtx);
-        cnd_signal(&worker->cond_var);
     }
 }
 
@@ -597,12 +629,6 @@ void map_update(Camera* cam)
     //map_load_update_chunks(cam);
 
     handle_workers(cam);
-
-    while (map->chunks_to_rebuild->size)
-    {
-        Chunk* c = list_chunks_pop_front(map->chunks_to_rebuild);
-        map_rebuild_chunk_buffer(c, 1);
-    }
 
     add_chunks_to_render_list(cam);
 

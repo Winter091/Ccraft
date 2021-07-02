@@ -71,8 +71,8 @@ int block_is_transparent(unsigned char block);
 int block_is_plant(unsigned char block);
 
 void block_gen_aabb(int x, int y, int z, vec3 aabb[2]);
-void block_get_neighs(Chunk* c, Chunk* neighs[8], int x, int y, int z, unsigned char b_neighs[27]);
-int block_set_visible_faces(Chunk* c, int x, int y, int z, Chunk* neighs[8], int faces[6]);
+void block_get_neighs(Chunk* c, int x, int y, int z, unsigned char b_neighs[27]);
+int block_set_visible_faces(Chunk* c, int x, int y, int z, int faces[6]);
 void block_set_ao(unsigned char neighs[27], float ao[6][4]);
 
 #endif

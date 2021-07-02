@@ -13,6 +13,8 @@ int worker_func(void* _data)
         mtx_unlock(&data->state_mtx);
 
         chunk_generate_terrain(data->chunk);
+        if (data->mesh_rebuild)
+            chunk_rebuild_buffer(data->chunk);
 
         mtx_lock(&data->state_mtx);
         data->state = WORKER_DONE;

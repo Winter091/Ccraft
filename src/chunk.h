@@ -34,6 +34,9 @@ typedef struct
     GLuint VBO_water;
     size_t vertex_land_count;
     size_t vertex_water_count;
+
+    char* generated_mesh_terrain;
+    char* generated_mesh_water;
 }
 Chunk;
 
@@ -42,7 +45,7 @@ Chunk* chunk_init(int chunk_x, int chunk_z);
 void chunk_generate_terrain(Chunk* c);
 
 // Create VAOs and VBOs, send them to GPU
-void chunk_rebuild_buffer(Chunk* c, Chunk* neighs[8]);
+void chunk_rebuild_buffer(Chunk* c);
 
 // Used during frustum culling
 int chunk_is_visible(int chunk_x, int chunk_z, vec4 planes[6]);
