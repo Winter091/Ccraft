@@ -84,7 +84,7 @@ static void map_delete_chunk(int chunk_x, int chunk_z)
     }
 }
 
-static void map_delete_far_chunks(Camera* cam)
+static void map_try_delete_far_chunks(Camera* cam)
 {
     int cam_chunk_x = cam->pos[0] / CHUNK_SIZE;
     int cam_chunk_z = cam->pos[2] / CHUNK_SIZE;
@@ -93,6 +93,12 @@ static void map_delete_far_chunks(Camera* cam)
 
     MAP_FOREACH_ACTIVE_CHUNK_BEGIN(c)
     {
+        // If mtx is locked, the chunk is now being processed in
+        // one of the worker threads, so can't safely delete it
+        if (mtx_trylock(&c->mtx) != thrd_success)
+            continue;
+        mtx_unlock(&c->mtx);
+
         if (chunk_player_dist2(c->x, c->z, cam_chunk_x, cam_chunk_z) > CHUNK_UNLOAD_RADIUS2)
         {
             list_chunks_push_front(chunks_to_delete, c);
@@ -466,6 +472,7 @@ static void handle_workers(Camera* cam)
 
             Chunk* c = worker->chunk;
             chunk_upload_mesh_to_gpu(c);
+            mtx_unlock(&c->mtx);
             
             c->is_terrain_generated = 1;
             c->is_mesh_generated = 1;
@@ -494,8 +501,10 @@ static void handle_workers(Camera* cam)
                 worker->generate_terrain = 1;
             }
             
+            mtx_lock(&c->mtx);
             worker->chunk = c;
             worker->state = WORKER_BUSY;
+            
             mtx_unlock(&worker->state_mtx);
             cnd_signal(&worker->cond_var);
             continue;
@@ -515,7 +524,7 @@ static void add_chunks_to_render_list(Camera* cam)
 
 void map_update(Camera* cam)
 {
-    map_delete_far_chunks(cam);
+    map_try_delete_far_chunks(cam);
     handle_workers(cam);
     add_chunks_to_render_list(cam);
 }

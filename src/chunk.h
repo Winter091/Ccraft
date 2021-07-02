@@ -28,6 +28,8 @@ typedef struct
     unsigned char* blocks;
     int x, z;
 
+    mtx_t mtx;
+
     int is_dirty;
     int is_terrain_generated;
     int is_mesh_generated;

@@ -15,6 +15,8 @@ Chunk* chunk_init(int chunk_x, int chunk_z)
     c->x = chunk_x;
     c->z = chunk_z;
 
+    mtx_init(&c->mtx, mtx_timed);
+
     c->is_dirty = 0;
     c->is_terrain_generated = 0;
     c->is_mesh_generated = 0;
