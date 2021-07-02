@@ -35,7 +35,7 @@ int  list_##TYPENAME ##_contains(LinkedList_##TYPENAME* list, TYPE elem);\
 TYPE list_##TYPENAME ##_get(LinkedList_##TYPENAME* list, size_t index);\
 TYPE list_##TYPENAME ##_front(LinkedList_##TYPENAME* list);\
 TYPE list_##TYPENAME ##_back(LinkedList_##TYPENAME* list);\
-void list_##TYPENAME ##clear(LinkedList_##TYPENAME* list);\
+void list_##TYPENAME ##_clear(LinkedList_##TYPENAME* list);\
 void list_##TYPENAME ##_delete(LinkedList_##TYPENAME* list);\
 
 #define LINKEDLIST_IMPLEMENTATION(TYPE, TYPENAME)\
