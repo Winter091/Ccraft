@@ -4,12 +4,14 @@
 #include "time.h"
 #include "string.h"
 
+#include "tinycthread.h"
 #include "sqlite3.h"
 #include "config.h"
 #include "map.h"
 
 // Keep global database object for simplicity
 sqlite3* db;
+mtx_t db_mtx;
 
 static sqlite3_stmt* db_compile_statement(const char* statement)
 {
@@ -131,6 +133,7 @@ void db_init()
     sprintf(db_path, "maps/%s", MAP_NAME);
     
     sqlite3_open(db_path, &db);
+    mtx_init(&db_mtx, mtx_plain);
 
     db_create_tables();
 
@@ -142,6 +145,8 @@ void db_init()
 
 void db_insert_block(int chunk_x, int chunk_z, int x, int y, int z, int block)
 {
+    mtx_lock(&db_mtx);
+    
     static sqlite3_stmt* stmt = NULL;
     if (stmt == NULL)
     {
@@ -162,10 +167,14 @@ void db_insert_block(int chunk_x, int chunk_z, int x, int y, int z, int block)
     sqlite3_bind_int(stmt, 6, block);
 
     sqlite3_step(stmt);
+
+    mtx_unlock(&db_mtx);
 }
 
 void db_get_blocks_for_chunk(Chunk* c)
 {
+    mtx_lock(&db_mtx);
+    
     static sqlite3_stmt* stmt = NULL;
     if (stmt == NULL)
     {
@@ -194,10 +203,14 @@ void db_get_blocks_for_chunk(Chunk* c)
         if (x < CHUNK_WIDTH && y < CHUNK_HEIGHT && z < CHUNK_WIDTH)
             c->blocks[XYZ(x, y, z)] = block;
     }
+
+    mtx_unlock(&db_mtx);
 }
 
 void db_insert_player_info(Player* p)
 {
+    mtx_lock(&db_mtx);
+    
     sqlite3_stmt* stmt = db_compile_statement(
         "UPDATE player_info " 
         "SET pos_x = ?, pos_y = ?, pos_z = ?, " 
@@ -213,10 +226,14 @@ void db_insert_player_info(Player* p)
     sqlite3_bind_int(stmt, 6, p->build_block);
 
     sqlite3_step(stmt);
+
+    mtx_unlock(&db_mtx);
 }
 
 void db_get_player_info(Player* p)
 {
+    mtx_lock(&db_mtx);
+
     sqlite3_stmt* stmt = db_compile_statement(
         "SELECT pos_x, pos_y, pos_z, pitch, yaw, build_block "
         "FROM player_info "
@@ -231,10 +248,14 @@ void db_get_player_info(Player* p)
     p->cam->pitch  = sqlite3_column_double(stmt, 3);
     p->cam->yaw    = sqlite3_column_double(stmt, 4);
     p->build_block = sqlite3_column_int(stmt, 5);
+
+    mtx_unlock(&db_mtx);
 }
 
 void db_insert_map_info()
 {
+    mtx_lock(&db_mtx);
+    
     sqlite3_stmt* stmt = db_compile_statement(
         "UPDATE map_info SET curr_time = ?"
     );
@@ -242,10 +263,14 @@ void db_insert_map_info()
     sqlite3_reset(stmt);
     sqlite3_bind_double(stmt, 1, map_get_time());
     sqlite3_step(stmt);
+
+    mtx_unlock(&db_mtx);
 }
 
 void db_get_map_info()
 {
+    mtx_lock(&db_mtx);
+
     sqlite3_stmt* stmt = db_compile_statement(
         "SELECT seed, curr_time FROM map_info"
     );
@@ -258,6 +283,8 @@ void db_get_map_info()
 
     map_set_seed(seed);
     map_set_time(curr_time);
+
+    mtx_unlock(&db_mtx);
 }
 
 void db_close()
