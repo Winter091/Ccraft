@@ -335,11 +335,7 @@ int main()
     // Start at the beginning of day
     glfwSetTime(DAY_LENGTH / 2.0);
 
-    if (USE_MAP)
-    {
-        db_init();
-    }
-
+    db_init();
     shaders_load();
     textures_load();
     noise_init();
@@ -367,12 +363,9 @@ int main()
         glfwPollEvents();
     }
 
-    if (USE_MAP)
-    {
-        map_save();
-        player_save(game->player);
-        db_close();
-    }
+    map_save();
+    player_save(game->player);
+    db_close();
 
     glfwDestroyWindow(window);
     glfwTerminate();

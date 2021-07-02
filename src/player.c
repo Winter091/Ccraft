@@ -68,18 +68,15 @@ Player* player_create()
     p->cam = camera_create();
     p->build_block = BLOCK_STONE;
 
-    if (USE_MAP)
-    {
-        // overwrite some parameters
-        db_get_player_info(p);    
-    }
+    // overwrite some parameters
+    db_get_player_info(p);
 
     p->pointing_at_block = 0;
     my_glm_ivec3_set(p->block_pointed_at, 0, 0, 0);
 
-    // Either it's newly created world or we don't use
-    // map saving; Spawn the player at ground level
-    if (p->cam->pos[1] < 0 || !USE_MAP)
+    // If it's newly created world (default pos[1] is -1.0),
+    // put player on ground level
+    if (p->cam->pos[1] < 0)
     {
         int bx = CHUNK_WIDTH / 2;
         int bz = CHUNK_WIDTH / 2;

@@ -131,14 +131,7 @@ void map_init()
     opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
     opengl_vbo_layout(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 3 * sizeof(float));
 
-    if (USE_MAP)
-    {
-        db_get_map_info();
-    }
-    else
-    {
-        printf("Map is not enabled, using default seed\n");
-    }
+    db_get_map_info();
 
     map->num_workers = 3;
     map->workers = malloc(map->num_workers * sizeof(WorkerData));
@@ -504,7 +497,7 @@ static void handle_workers(Camera* cam)
             mtx_lock(&c->mtx);
             worker->chunk = c;
             worker->state = WORKER_BUSY;
-            
+
             mtx_unlock(&worker->state_mtx);
             cnd_signal(&worker->cond_var);
             continue;

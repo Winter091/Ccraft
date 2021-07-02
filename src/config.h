@@ -26,7 +26,6 @@ extern int         VSYNC;
 
 // [GAMEPLAY]
 extern const char* MAP_NAME;
-extern int         USE_MAP;
 extern float       MOUSE_SENS;
 extern int         BLOCK_BREAK_RADIUS;
 extern int         DAY_LENGTH;

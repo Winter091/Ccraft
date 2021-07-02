@@ -30,7 +30,6 @@ int         VSYNC         = 0;
 
 // [GAMEPLAY] (default values)
 const char* MAP_NAME           = "default_map.db";
-int         USE_MAP            = 1;
 float       MOUSE_SENS         = 0.1f;
 int         BLOCK_BREAK_RADIUS = 5;
 int         DAY_LENGTH         = 1200;
@@ -129,11 +128,6 @@ static void create_default_cfg_file()
 
     "[GAMEPLAY]\n"
     "map_name = default_map.db\n"
-    "; You can disable loading and saving from/to map file;\n"
-    "; The world seed will always be 1337 and all changes\n"
-    "; to the world won't be remembered\n"
-    "use_map = 1\n\n"
-
     "mouse_sens = 0.1\n\n"
 
     "; Furthest distance (in blocks) for player to reach\n"
@@ -261,7 +255,6 @@ void config_load()
     try_load("WINDOW", "vsync", "%d", &VSYNC);
 
     try_load("GAMEPLAY", "map_name", NULL, &MAP_NAME);
-    try_load("GAMEPLAY", "use_map", "%d", &USE_MAP);
     try_load("GAMEPLAY", "mouse_sens", "%f", &MOUSE_SENS);
     try_load("GAMEPLAY", "block_break_radius", "%d", &BLOCK_BREAK_RADIUS);
     try_load("GAMEPLAY", "day_length", "%d", &DAY_LENGTH);
