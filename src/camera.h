@@ -20,8 +20,8 @@ typedef struct
     vec3 front;
     vec3 up;
 
-    float pitch;
-    float yaw;
+    double pitch;
+    double yaw;
 
     int fov;
     float sens;

@@ -12,7 +12,7 @@ Camera* camera_create()
     Camera* cam = malloc(sizeof(Camera));
 
     cam->active = 1;
-    cam->fly_mode = 0;
+    cam->fly_mode = 1;
 
     // Position will be set later, using database or
     // moving player to ground level
@@ -26,8 +26,8 @@ Camera* camera_create()
     my_glm_vec3_set(cam->front, 0.0f, 0.0f, -1.0f);
     my_glm_vec3_set(cam->up,    0.0f, 1.0f,  0.0f);
 
-    cam->pitch = 0.0f;
-    cam->yaw = 270.0f;
+    cam->pitch = 0.0;
+    cam->yaw = 270.0;
 
     cam->fov = FOV;
     cam->sens = MOUSE_SENS;
