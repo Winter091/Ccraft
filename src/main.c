@@ -162,13 +162,13 @@ static float get_current_dof_depth(float dt)
     return curr_depth;
 }
 
-void update(GLFWwindow* window, GameObjects* game, float dt)
+void update(GLFWwindow* window, Player* p, float dt)
 {
-    map_update(game->player->cam);
-    player_update(game->player, window, dt);
+    map_update(p->cam);
+    player_update(p, window, dt);
 }
 
-void render_game(GameObjects* game)
+void render_game(Player* p)
 {
     framebuffer_bind(FBO_game);
     glClear(GL_DEPTH_BUFFER_BIT);
@@ -177,9 +177,9 @@ void render_game(GameObjects* game)
     glDrawBuffer(GL_COLOR_ATTACHMENT0);
     glClearBufferfv(GL_COLOR, 0, (const GLfloat[]){1.0f, 0.0f, 0.0f, 1.0f});
 
-    map_render_sky(game->player->cam);
-    map_render_sun_moon(game->player->cam);
-    map_render_chunks(game->player->cam);
+    map_render_sky(p->cam);
+    map_render_sun_moon(p->cam);
+    map_render_chunks(p->cam);
 
     // Render ui to the color texture for ui;
     // Clear with alpha 0.0f to blend ui with
@@ -187,14 +187,14 @@ void render_game(GameObjects* game)
     glDrawBuffer(GL_COLOR_ATTACHMENT1);
     glClearBufferfv(GL_COLOR, 0, (const GLfloat[]){0.0f, 1.0f, 0.0f, 0.0f});
 
-    if (game->player->pointing_at_block)
-        ui_render_block_wireframe(game->player);
+    if (p->pointing_at_block)
+        ui_render_block_wireframe(p);
     ui_render_crosshair();
-    player_render_item(game->player);
+    player_render_item(p);
 }
 
 // First pass is applying depth of field effect
-void render_first_pass(GameObjects* game, float dt)
+void render_first_pass(float dt)
 {
     glUseProgram(shader_deferred1);
 
@@ -230,7 +230,7 @@ void render_first_pass(GameObjects* game, float dt)
 }
 
 // Second pass is applying motion blur and color correction
-void render_second_pass(GameObjects* game, float dt)
+void render_second_pass(Player* p, float dt)
 {
     glUseProgram(shader_deferred2);
 
@@ -248,20 +248,20 @@ void render_second_pass(GameObjects* game, float dt)
         shader_set_int1(shader_deferred2, "u_motion_blur_enabled", 1);
         
         mat4 matrix;
-        glm_mat4_inv(game->player->cam->proj_matrix, matrix);
+        glm_mat4_inv(p->cam->proj_matrix, matrix);
         shader_set_mat4(shader_deferred2, "u_projection_inv_matrix", matrix);
 
-        glm_mat4_inv(game->player->cam->view_matrix, matrix);
+        glm_mat4_inv(p->cam->view_matrix, matrix);
         shader_set_mat4(shader_deferred2, "u_view_inv_matrix", matrix);
 
-        glm_mat4_copy(game->player->cam->prev_view_matrix, matrix);
+        glm_mat4_copy(p->cam->prev_view_matrix, matrix);
         shader_set_mat4(shader_deferred2, "u_prev_view_matrix", matrix);
 
-        glm_mat4_copy(game->player->cam->proj_matrix, matrix);
+        glm_mat4_copy(p->cam->proj_matrix, matrix);
         shader_set_mat4(shader_deferred2, "u_projection_matrix", matrix);
 
-        shader_set_float3(shader_deferred2, "u_cam_pos", game->player->cam->pos);
-        shader_set_float3(shader_deferred2, "u_prev_cam_pos", game->player->cam->prev_pos);
+        shader_set_float3(shader_deferred2, "u_cam_pos", p->cam->pos);
+        shader_set_float3(shader_deferred2, "u_prev_cam_pos", p->cam->prev_pos);
 
         shader_set_float1(shader_deferred2, "u_strength", MOTION_BLUR_STRENGTH);
         shader_set_int1(shader_deferred2, "u_samples", MOTION_BLUR_SAMPLES);
@@ -280,12 +280,12 @@ void render_second_pass(GameObjects* game, float dt)
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-void render(GameObjects* game, float dt)
+void render(Player* p, float dt)
 {
-    render_game(game);
+    render_game(p);
 
-    render_first_pass(game, dt);
-    render_second_pass(game, dt);
+    render_first_pass(dt);
+    render_second_pass(p, dt);
 }
 
 int main()
@@ -340,12 +340,13 @@ int main()
     ui_init((float)WINDOW_WIDTH / WINDOW_HEIGHT);
     framebuffer_create(WINDOW_WIDTH, WINDOW_HEIGHT);
 
-    GameObjects* game = malloc(sizeof(GameObjects));
-    game->player = player_create();
+    Player* player = player_create();
 
-    // GameObjects will be available in glfw callback
+    // GameObjectRefs will be available in glfw callback
     // functions (using glfwGetWindowUserPointer)
-    glfwSetWindowUserPointer(window, game);
+    GameObjectRefs* objects = malloc(sizeof(GameObjectRefs));
+    objects->player = player;
+    glfwSetWindowUserPointer(window, objects);
 
     while (!glfwWindowShouldClose(window))
     {
@@ -353,15 +354,15 @@ int main()
 
         float dt = get_dt();
 
-        update(window, game, dt);
-        render(game, dt);
+        update(window, player, dt);
+        render(player, dt);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
 
     map_exit();
-    player_exit(game->player);
+    player_exit(player);
     db_close();
 
     glfwDestroyWindow(window);

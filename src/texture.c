@@ -14,9 +14,8 @@ GLuint texture_skybox_night;
 GLuint texture_sun;
 GLuint texture_moon;
 
-void exit_if_not_loaded_or_wrong_channels(
-    const char* path, unsigned char* data, int channels, int channels_required
-)
+void exit_if_not_loaded_or_wrong_channels(const char* path, unsigned char* data, 
+                                          int channels, int channels_required)
 {
     if (!data)
     {
@@ -26,10 +25,8 @@ void exit_if_not_loaded_or_wrong_channels(
     }
     else if (channels != channels_required)
     {
-        fprintf(
-            stderr, "%s: expected %d channels in image, but got %d\n", 
-            path, channels_required, channels
-        );
+        fprintf(stderr, "%s: expected %d channels in image, but got %d\n", 
+                path, channels_required, channels);
         glfwTerminate();
         exit(EXIT_FAILURE);
     }
@@ -51,9 +48,8 @@ void texture_load_from_file(GLuint target, const char* path, int desired_channel
     exit_if_not_loaded_or_wrong_channels(path, data, channels, desired_channels);
     
     GLuint format = desired_channels == 4 ? GL_RGBA : GL_RGB;
-    glTexImage2D(
-        target, 0, format, w, h, 0, format, GL_UNSIGNED_BYTE, data
-    );
+    glTexImage2D(target, 0, format, w, h, 0, 
+                 format, GL_UNSIGNED_BYTE, data);
 
     stbi_image_free(data);
 }
@@ -89,34 +85,26 @@ GLuint texture_array_create(const char* path)
     int tile_h = 16;
     int tile_row_size = tile_w * channels;
 
-    glTexImage3D(
-        GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, tile_w, tile_h, 
-        tiles, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL
-    );
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, tile_w, tile_h, 
+                 tiles, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
     // 16 x 16 pixels, 4 bytes per pixel
     unsigned char* tile_data = malloc(tile_w * tile_h * channels);
     
     for (int y = 0; y < 16; y++)
+    for (int x = 0; x < 16; x++)
     {
-        for (int x = 0; x < 16; x++)
+        // Extract tile data from texture atlas
+        for (int row = 0; row < tile_h; row++)
         {
-            // Extract tile data from texture atlas
-            for (int row = 0; row < tile_h; row++)
-            {
-                memcpy(
-                    tile_data + row * tile_row_size, 
-                    data + (x * tile_row_size) + atlas_row_size * (y * tile_h + row), 
-                    tile_row_size
-                );
-            }
-
-            int curr_tile = x + y * 16;
-            glTexSubImage3D(
-                GL_TEXTURE_2D_ARRAY, 0, 0, 0, curr_tile, tile_w, 
-                tile_h, 1, GL_RGBA, GL_UNSIGNED_BYTE, tile_data
-            );
+            memcpy(tile_data + row * tile_row_size, 
+                   data + (x * tile_row_size) + atlas_row_size * (y * tile_h + row), 
+                   tile_row_size);
         }
+
+        int curr_tile = x + y * 16;
+        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, curr_tile, tile_w, 
+                        tile_h, 1, GL_RGBA, GL_UNSIGNED_BYTE, tile_data);
     }
 
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -126,8 +114,10 @@ GLuint texture_array_create(const char* path)
     // Enable anisotropic filtering if it's available
     if (GLAD_GL_EXT_texture_filter_anisotropic)
     {
-        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY_EXT, ANISOTROPIC_FILTER_LEVEL);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAX_ANISOTROPY_EXT, 
+                        ANISOTROPIC_FILTER_LEVEL);
     }
+    
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
@@ -146,9 +136,7 @@ GLuint texture_skybox_create(const char* paths[6])
     stbi_set_flip_vertically_on_load(0);
 
     for (int i = 0; i < 6; i++)
-    {
         texture_load_from_file(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, paths[i], 3);
-    }
 
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -162,9 +150,7 @@ GLuint texture_skybox_create(const char* paths[6])
 
 void textures_load()
 {
-    texture_blocks = texture_array_create(
-        "textures/blocks.png"
-    );
+    texture_blocks = texture_array_create("textures/blocks.png");
 
     texture_skybox_day = texture_skybox_create(
         (const char*[6]){
@@ -199,20 +185,17 @@ void textures_load()
         }
     );
 
-    texture_sun = texture_2d_create(
-        "textures/sun.png"
-    );
-
-    texture_moon = texture_2d_create(
-        "textures/moon.png"
-    );
+    texture_sun = texture_2d_create("textures/sun.png");
+    texture_moon = texture_2d_create("textures/moon.png");
 }
 
 GLuint framebuffer_color_texture_create(int width, int height)
 {
     GLuint texture = texture_init(GL_TEXTURE_2D);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 
+                 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -225,7 +208,9 @@ GLuint framebuffer_depth_texture_create(int width, int height)
 {
     GLuint texture = texture_init(GL_TEXTURE_2D);
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, 
+                 height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);

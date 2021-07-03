@@ -35,16 +35,6 @@ void noise_set_settings(fnl_state* state, fnl_noise_type noise_type, float freq,
     state->gain = gain;
 }
 
-void noise_set_return_type(fnl_state* state, fnl_cellular_return_type return_type)
-{
-    state->cellular_return_type = return_type;
-}
-
-void noise_apply_warp(fnl_state* state, float* x, float* z)
-{
-    fnlDomainWarp2D(state, x, z);
-}
-
 float noise_2d(fnl_state* state, float x, float z)
 {
     return (fnlGetNoise2D(state, x, z) + 1.0f) / 2.0f;

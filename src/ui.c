@@ -139,9 +139,9 @@ void ui_render_block_wireframe(Player* p)
     glm_mat4_identity(model);
     glm_translate(model, (vec3){ x, y, z });
 
-    unsigned char block = map_get_block(
-        p->block_pointed_at[0], p->block_pointed_at[1], p->block_pointed_at[2]
-    );
+    unsigned char block = map_get_block(p->block_pointed_at[0], 
+                                        p->block_pointed_at[1],
+                                        p->block_pointed_at[2]);
 
     // make wireframe smaller
     if (block_is_plant(block))

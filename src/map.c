@@ -20,23 +20,26 @@ LINKEDLIST_IMPLEMENTATION(Chunk*, chunks);
 HASHMAP_IMPLEMENTATION(Chunk*, chunks, chunk_hash_func);
 
 // Useful defines that simplify iteration over chunks
-#define MAP_FOREACH_ACTIVE_CHUNK_BEGIN(CHUNK_NAME)\
-for (int i = 0; i < map->chunks_active->array_size; i++)\
-{\
-    LinkedListNodeMap_chunks* node = map->chunks_active->array[i]->head;\
-    for ( ; node; node = node->ptr_next)\
-    {\
-        Chunk* CHUNK_NAME = node->data;\
+#define MAP_FOREACH_ACTIVE_CHUNK_BEGIN(CHUNK_NAME)                       \
+for (int i = 0; i < map->chunks_active->array_size; i++)                 \
+{                                                                        \
+    LinkedListNodeMap_chunks* node = map->chunks_active->array[i]->head; \
+    for ( ; node; node = node->ptr_next)                                 \
+    {                                                                    \
+        Chunk* CHUNK_NAME = node->data;                                  \
+
 
 #define MAP_FOREACH_ACTIVE_CHUNK_END() }}
 
-#define LIST_FOREACH_CHUNK_BEGIN(LIST, CHUNK_NAME)\
-{LinkedListNode_chunks* node = LIST->head;\
-for ( ; node; node = node->ptr_next)\
-{\
-    Chunk* c = node->data;\
+
+#define LIST_FOREACH_CHUNK_BEGIN(LIST, CHUNK_NAME) \
+{LinkedListNode_chunks* node = LIST->head;         \
+for ( ; node; node = node->ptr_next)               \
+{                                                  \
+    Chunk* c = node->data;                         \
 
 #define LIST_FOREACH_CHUNK_END() }}
+
 
 typedef struct
 {
@@ -102,16 +105,12 @@ static void try_delete_far_chunks(Camera* cam)
         mtx_unlock(&c->mtx);
 
         if (chunk_player_dist2(c->x, c->z, player_cx, player_cz) > CHUNK_UNLOAD_RADIUS2)
-        {
             list_chunks_push_front(chunks_to_delete, c);
-        }
     }
     MAP_FOREACH_ACTIVE_CHUNK_END()
 
     LIST_FOREACH_CHUNK_BEGIN(chunks_to_delete, c)
-    {
         map_delete_chunk(c->x, c->z);
-    }
     LIST_FOREACH_CHUNK_END()
 
     list_chunks_delete(chunks_to_delete);
@@ -157,11 +156,20 @@ static float map_get_blocks_light()
     double time = map_get_time();
 
     if (time < EVN_TO_NIGHT_START)
-        return glm_lerp(DAY_LIGHT, EVENING_LIGHT, glm_smoothstep(DAY_TO_EVN_START, EVN_TO_NIGHT_START, time));
+    {
+        return glm_lerp(DAY_LIGHT, EVENING_LIGHT, 
+                        glm_smoothstep(DAY_TO_EVN_START, EVN_TO_NIGHT_START, time));
+    }
     else if (time < NIGHT_TO_DAY_START)
-        return glm_lerp(EVENING_LIGHT, NIGHT_LIGHT, glm_smoothstep(EVN_TO_NIGHT_START, NIGHT_START, time));
+    {
+        return glm_lerp(EVENING_LIGHT, NIGHT_LIGHT, 
+                        glm_smoothstep(EVN_TO_NIGHT_START, NIGHT_START, time));
+    }
     else
-        return glm_lerp(NIGHT_LIGHT, DAY_LIGHT, glm_smoothstep(NIGHT_TO_DAY_START, 1.0, time));
+    {
+        return glm_lerp(NIGHT_LIGHT, DAY_LIGHT, 
+                        glm_smoothstep(NIGHT_TO_DAY_START, 1.0, time));
+    }
 }
 
 static void map_get_fog_color(float* r, float* g, float* b)
@@ -173,11 +181,20 @@ static void map_get_fog_color(float* r, float* g, float* b)
     vec3 color;
 
     if (time < EVN_TO_NIGHT_START)
-        glm_vec3_mix(day_color, evening_color, glm_smoothstep(DAY_TO_EVN_START, EVN_TO_NIGHT_START, time), color);
+    {
+        glm_vec3_mix(day_color, evening_color, 
+                     glm_smoothstep(DAY_TO_EVN_START, EVN_TO_NIGHT_START, time), color);
+    }
     else if (time < NIGHT_TO_DAY_START)
-        glm_vec3_mix(evening_color, night_color, glm_smoothstep(EVN_TO_NIGHT_START, NIGHT_START, time), color);
+    {
+        glm_vec3_mix(evening_color, night_color, 
+                     glm_smoothstep(EVN_TO_NIGHT_START, NIGHT_START, time), color);
+    }
     else
-        glm_vec3_mix(night_color, day_color, glm_smoothstep(NIGHT_TO_DAY_START, 1.0, time), color);
+    {
+        glm_vec3_mix(night_color, day_color, 
+                     glm_smoothstep(NIGHT_TO_DAY_START, 1.0, time), color);
+    }
 
     *r = color[0];
     *g = color[1];
@@ -530,8 +547,10 @@ void map_force_chunks_near_player(Camera* cam)
 static void add_chunks_to_render_list(Camera* cam)
 {
     MAP_FOREACH_ACTIVE_CHUNK_BEGIN(c)
+    {
         if (c->is_generated && chunk_is_visible(c->x, c->z, cam->frustum_planes))
             list_chunks_push_front(map->chunks_to_render, c);
+    }
     MAP_FOREACH_ACTIVE_CHUNK_END()
 }
 
@@ -594,9 +613,7 @@ void map_exit()
     // Chunk hashmaps and lists
     LinkedList_chunks* to_delete = list_chunks_create();
     MAP_FOREACH_ACTIVE_CHUNK_BEGIN(c)
-    {
         list_chunks_push_back(to_delete, c);
-    }
     MAP_FOREACH_ACTIVE_CHUNK_END()
 
     while (to_delete->size)

@@ -66,8 +66,8 @@ extern int   CHUNK_UNLOAD_RADIUS;
 extern int   CHUNK_UNLOAD_RADIUS2;
 extern int   BLOCK_BREAK_RADIUS2;
 extern int   CHUNK_RENDER_RADIUS2;
-extern int   CHUNK_XZ_REAL;
-extern int   CHUNK_XY_REAL;
+extern int   CHUNK_WIDTH_REAL;
+extern int   CHUNK_HEIGHT_REAL;
 
 void config_load();
 

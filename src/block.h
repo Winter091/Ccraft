@@ -1,7 +1,6 @@
 #ifndef BLOCK_H_
 #define BLOCK_H_
 
-#include "chunk.h"
 #include "utils.h"
 
 // Block ids
@@ -42,6 +41,14 @@
 #define BLOCK_SANDSTONE_CHISELED 34
 #define BLOCKS_AMOUNT            35
 
+// Faces order
+#define BLOCK_FACE_LFT           0
+#define BLOCK_FACE_RGT           1
+#define BLOCK_FACE_TOP           2
+#define BLOCK_FACE_BTM           3
+#define BLOCK_FACE_BCK           4
+#define BLOCK_FACE_FRT           5
+
 // Textures for each face of each block
 extern unsigned char block_textures[][6];
 
@@ -62,8 +69,5 @@ int block_is_transparent(unsigned char block);
 int block_is_plant(unsigned char block);
 
 void block_gen_aabb(int x, int y, int z, vec3 aabb[2]);
-void block_get_neighs(Chunk* c, int x, int y, int z, unsigned char b_neighs[27]);
-int block_set_visible_faces(Chunk* c, int x, int y, int z, int faces[6]);
-void block_set_ao(unsigned char neighs[27], float ao[6][4]);
 
 #endif

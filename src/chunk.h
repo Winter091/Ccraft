@@ -11,17 +11,9 @@
 #include "config.h"
 
 // Access block by 3 coords from 1-dimensional array
-#define XYZ(x, y, z) (((x) + 1) * CHUNK_XZ_REAL * CHUNK_XY_REAL) + (((y) + 1) * CHUNK_XZ_REAL) + ((z) + 1)
-
-// Chunk neighbours order
-#define CHUNK_NEIGH_L  0
-#define CHUNK_NEIGH_B  1
-#define CHUNK_NEIGH_R  2
-#define CHUNK_NEIGH_F  3
-#define CHUNK_NEIGH_BL 4
-#define CHUNK_NEIGH_BR 5
-#define CHUNK_NEIGH_FR 6
-#define CHUNK_NEIGH_FL 7
+#define XYZ(x, y, z)   (((x) + 1) * CHUNK_WIDTH_REAL * CHUNK_HEIGHT_REAL) \
+                     + (((y) + 1) * CHUNK_WIDTH_REAL)                     \
+                     +  ((z) + 1)                                          
 
 typedef struct
 {
@@ -45,7 +37,7 @@ typedef struct
 }
 Chunk;
 
-Chunk* chunk_init(int chunk_x, int chunk_z);
+Chunk* chunk_init(int cx, int cz);
 
 void chunk_generate_terrain(Chunk* c);
 
@@ -55,19 +47,19 @@ void chunk_generate_mesh(Chunk* c);
 void chunk_upload_mesh_to_gpu(Chunk* c);
 
 // Used during frustum culling
-int chunk_is_visible(int chunk_x, int chunk_z, vec4 planes[6]);
-
-// Hash functions used in chunk hashmap
-static inline uint32_t chunk_hash_func(Chunk* c)
-{
-    return (c->x + c->z) * (c->x + c->z + 1) / 2 + c->z;
-}
-
-static inline uint32_t chunk_hash_func2(int chunk_x, int chunk_z)
-{
-    return (chunk_x + chunk_z) * (chunk_x + chunk_z + 1) / 2 + chunk_z;
-}
+int chunk_is_visible(int cx, int cz, vec4 planes[6]);
 
 void chunk_delete(Chunk* c);
+
+// Hash functions used in chunk hashmap
+static inline uint32_t chunk_hash_func2(int cx, int cz)
+{
+    return (cx + cz) * (cx + cz + 1) / 2 + cz;
+}
+
+static inline uint32_t chunk_hash_func(Chunk* c)
+{
+    return chunk_hash_func2(c->x, c->z);
+}
 
 #endif

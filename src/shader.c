@@ -16,14 +16,12 @@ GLuint shader_deferred2 = 0;
 static char* get_file_data(const char* path)
 {
     FILE* f = fopen(path, "rb");
-
     if (!f)
     {
         fprintf(stderr, "Unable to open file:\n%s\n", path);
         return NULL;
     }
 
-    // get file size
     fseek(f, 0, SEEK_END);
     int data_size = ftell(f);
     fseek(f, 0, SEEK_SET);
@@ -39,12 +37,11 @@ static char* get_file_data(const char* path)
 static GLuint compile_shader(const char* path, GLenum shader_type)
 {
     char* shader_src = get_file_data(path);
-
     if (!shader_src)
         return 0;
 
     GLuint shader_id = glCreateShader(shader_type);
-    glShaderSource(shader_id, 1, (const GLchar * const*)&shader_src, NULL);
+    glShaderSource(shader_id, 1, (const GLchar* const*)&shader_src, NULL);
     glCompileShader(shader_id);
 
     free(shader_src);
@@ -68,7 +65,6 @@ GLuint create_shader_program(const char* vs_path, const char* fs_path)
 {
     GLuint vs_id = compile_shader(vs_path, GL_VERTEX_SHADER);
     GLuint fs_id = compile_shader(fs_path, GL_FRAGMENT_SHADER);
-
     if (!vs_id || !fs_id)
         return 0;
     
@@ -79,7 +75,6 @@ GLuint create_shader_program(const char* vs_path, const char* fs_path)
 
     GLint success;
     glGetProgramiv(shader_prog, GL_LINK_STATUS, &success);
-
     if (!success) 
     {
         char info[512];

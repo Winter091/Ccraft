@@ -22,7 +22,7 @@ float GAMMA                    = 1.5f;
 float SATURATION               = 1.2f;
 
 // [WINDOW] (default values)
-const char* __WINDOW__NAME  = "SND Corp - Ccraft";
+const char* WINDOW_TITLE  = "SND Corp - Ccraft";
 int         WINDOW_WIDTH  = 1280;
 int         WINDOW_HEIGHT = 720;
 int         FULLSCREEN    = 0;
@@ -70,8 +70,8 @@ int   CHUNK_UNLOAD_RADIUS           = 16 + 5;
 int   CHUNK_UNLOAD_RADIUS2          = (16 + 5) * (16 + 5);
 int   BLOCK_BREAK_RADIUS2           = 5 * 5;
 int   CHUNK_RENDER_RADIUS2          = 16 * 16;
-int   CHUNK_XZ_REAL                 = 32 + 2;
-int   CHUNK_XY_REAL                 = 256 + 2;
+int   CHUNK_WIDTH_REAL              = 32 + 2;
+int   CHUNK_HEIGHT_REAL             = 256 + 2;
 
 ini_t* cfg = NULL;
 
@@ -248,7 +248,7 @@ void config_load()
     try_load("GRAPHICS", "gamma", "%f", &GAMMA);
     try_load("GRAPHICS", "saturation", "%f", &SATURATION);
 
-    try_load("WINDOW", "title", NULL, &__WINDOW__NAME);
+    try_load("WINDOW", "title", NULL, &WINDOW_TITLE);
     try_load("WINDOW", "width", "%d", &WINDOW_WIDTH);
     try_load("WINDOW", "height", "%d", &WINDOW_HEIGHT);
     try_load("WINDOW", "fullscreen", "%d", &FULLSCREEN);
@@ -281,14 +281,17 @@ void config_load()
 
     normalize_player_physics();
 
-    CHUNK_SIZE = CHUNK_WIDTH * BLOCK_SIZE;
-    CHUNK_LOAD_RADIUS = CHUNK_RENDER_RADIUS + 2;
+    CHUNK_SIZE          = CHUNK_WIDTH * BLOCK_SIZE;
+    CHUNK_LOAD_RADIUS   = CHUNK_RENDER_RADIUS + 2;
     CHUNK_UNLOAD_RADIUS = CHUNK_RENDER_RADIUS + 5;
 
-    BLOCK_BREAK_RADIUS2 = BLOCK_BREAK_RADIUS * BLOCK_BREAK_RADIUS;
+    BLOCK_BREAK_RADIUS2  = BLOCK_BREAK_RADIUS  * BLOCK_BREAK_RADIUS;
     CHUNK_RENDER_RADIUS2 = CHUNK_RENDER_RADIUS * CHUNK_RENDER_RADIUS;
-    CHUNK_LOAD_RADIUS2 = CHUNK_LOAD_RADIUS * CHUNK_LOAD_RADIUS;
+    CHUNK_LOAD_RADIUS2   = CHUNK_LOAD_RADIUS   * CHUNK_LOAD_RADIUS;
     CHUNK_UNLOAD_RADIUS2 = CHUNK_UNLOAD_RADIUS * CHUNK_UNLOAD_RADIUS;
+
+    CHUNK_WIDTH_REAL  = CHUNK_WIDTH + 2;
+    CHUNK_HEIGHT_REAL = CHUNK_HEIGHT + 2;
 
     printf("Loaded everything.\n");
 

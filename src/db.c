@@ -197,9 +197,8 @@ void db_get_blocks_for_chunk(Chunk* c)
         int z = sqlite3_column_int(stmt, 2);
         int block = sqlite3_column_int(stmt, 3);
 
-        // If map was created and played at certain chunk width
-        // and then chunk width was reduced, there may be 
-        // possible out-of-bounds writes
+        // Coordinates can be too large if the map was created
+        // and played on with higher CHUNK_WIDTH than now
         if (x < CHUNK_WIDTH && y < CHUNK_HEIGHT && z < CHUNK_WIDTH)
             c->blocks[XYZ(x, y, z)] = block;
     }

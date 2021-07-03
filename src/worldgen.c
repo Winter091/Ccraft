@@ -23,13 +23,13 @@ Biome;
 static Biome get_biome(noise_state* state, int bx, int bz)
 {
     // Voronoi noise
-    noise_set_return_type(&state->fnl, FNL_CELLULAR_RETURN_VALUE_CELLVALUE);
+    state->fnl.cellular_return_type = FNL_CELLULAR_RETURN_VALUE_CELLVALUE;
     noise_set_settings(&state->fnl, FNL_NOISE_CELLULAR, 0.005f, 1, 2.0f, 0.5f);
 
     float fx = bx;
     float fz = bz;
 
-    noise_apply_warp(&state->fnl, &fx, &fz);
+    fnlDomainWarp2D(&state->fnl, &fx, &fz);
     float h = noise_2d(&state->fnl, fx, fz);
 
     if (h < 0.2f)
@@ -294,19 +294,19 @@ void worldgen_generate_chunk(Chunk* c)
 {
     noise_state* state = noise_state_create(c->x, c->z);
 
-    Biome** biomes = malloc(CHUNK_XZ_REAL * sizeof(Biome*));
-    int** heightmap = malloc(CHUNK_XZ_REAL * sizeof(int*));
-    for (int i = 0; i < CHUNK_XZ_REAL; i++)
+    Biome** biomes = malloc(CHUNK_WIDTH_REAL * sizeof(Biome*));
+    int** heightmap = malloc(CHUNK_WIDTH_REAL * sizeof(int*));
+    for (int i = 0; i < CHUNK_WIDTH_REAL; i++)
     {
-        biomes[i] = malloc(CHUNK_XZ_REAL * sizeof(Biome));
-        heightmap[i] = malloc(CHUNK_XZ_REAL * sizeof(int));
+        biomes[i] = malloc(CHUNK_WIDTH_REAL * sizeof(Biome));
+        heightmap[i] = malloc(CHUNK_WIDTH_REAL * sizeof(int));
     }
     
     int chunk_x_start = (c->x * CHUNK_WIDTH) - 1;
     int chunk_z_start = (c->z * CHUNK_WIDTH) - 1;
 
-    for (int x = 0; x < CHUNK_XZ_REAL; x++)
-    for (int z = 0; z < CHUNK_XZ_REAL; z++)
+    for (int x = 0; x < CHUNK_WIDTH_REAL; x++)
+    for (int z = 0; z < CHUNK_WIDTH_REAL; z++)
     {
         int bx = chunk_x_start + x;
         int bz = chunk_z_start + z;
@@ -320,8 +320,8 @@ void worldgen_generate_chunk(Chunk* c)
             heightmap[x][z] = get_height(&state->fnl, biomes[x][z], bx, bz);
     }
 
-    for (int x = 0; x < CHUNK_XZ_REAL; x++)
-    for (int z = 0; z < CHUNK_XZ_REAL; z++)
+    for (int x = 0; x < CHUNK_WIDTH_REAL; x++)
+    for (int z = 0; z < CHUNK_WIDTH_REAL; z++)
     {
         if ((x >= 2 && x < CHUNK_WIDTH && z >= 2 && z < CHUNK_WIDTH) 
             && (x % 8 || z % 8))
@@ -345,7 +345,7 @@ void worldgen_generate_chunk(Chunk* c)
         }
     }
 
-    for (int i = 0; i < CHUNK_XZ_REAL; i++)
+    for (int i = 0; i < CHUNK_WIDTH_REAL; i++)
     {
         free(biomes[i]);
         free(heightmap[i]);

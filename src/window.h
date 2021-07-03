@@ -22,7 +22,7 @@ typedef struct
 {
     Player* player;
 }
-GameObjects;
+GameObjectRefs;
 
 GLFWwindow* window_create();
 
