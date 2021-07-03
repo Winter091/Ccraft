@@ -15,10 +15,9 @@ Chunk* chunk_init(int cx, int cz)
     c->x = cx;
     c->z = cz;
 
-    mtx_init(&c->mtx, mtx_timed);
-
     c->is_dirty = 0;
     c->is_generated = 0;
+    c->is_safe_to_modify = 1;
 
     c->VAO_land = 0;
     c->VBO_land = 0;

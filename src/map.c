@@ -98,11 +98,9 @@ static void try_delete_far_chunks(Camera* cam)
 
     MAP_FOREACH_ACTIVE_CHUNK_BEGIN(c)
     {
-        // If mtx is locked, the chunk is now being processed in
-        // one of the worker threads, so can't safely delete it
-        if (mtx_trylock(&c->mtx) != thrd_success)
+        // Worker thread may be processing this chunk
+        if (!c->is_safe_to_modify)
             continue;
-        mtx_unlock(&c->mtx);
 
         if (chunk_player_dist2(c->x, c->z, player_cx, player_cz) > CHUNK_UNLOAD_RADIUS2)
             list_chunks_push_front(chunks_to_delete, c);
@@ -477,7 +475,7 @@ static void handle_workers(Camera* cam)
             Chunk* c = worker->chunk;
             chunk_upload_mesh_to_gpu(c);
 
-            mtx_unlock(&c->mtx);
+            c->is_safe_to_modify = 1;
         }
 
         if (worker->state == WORKER_IDLE)
@@ -503,7 +501,7 @@ static void handle_workers(Camera* cam)
                 worker->generate_terrain = 1;
             }
             
-            mtx_lock(&c->mtx);
+            c->is_safe_to_modify = 0;
             worker->chunk = c;
             worker->state = WORKER_BUSY;
 

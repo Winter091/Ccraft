@@ -20,10 +20,9 @@ typedef struct
     unsigned char* blocks;
     int x, z;
 
-    mtx_t mtx;
-
     int is_dirty;
     int is_generated;
+    int is_safe_to_modify;
 
     GLuint VAO_land;
     GLuint VBO_land;
