@@ -360,8 +360,8 @@ int main()
         glfwPollEvents();
     }
 
-    map_save();
-    player_save(game->player);
+    map_exit();
+    player_exit(game->player);
     db_close();
 
     glfwDestroyWindow(window);

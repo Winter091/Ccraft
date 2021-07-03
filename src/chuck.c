@@ -162,5 +162,11 @@ void chunk_delete(Chunk* c)
         free(c->blocks);
     }
 
+    if (c->generated_mesh_terrain)
+    {
+        free(c->generated_mesh_terrain);
+        free(c->generated_mesh_water);
+    }
+
     free(c);
 }

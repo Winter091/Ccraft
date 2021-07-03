@@ -22,7 +22,7 @@ float GAMMA                    = 1.5f;
 float SATURATION               = 1.2f;
 
 // [WINDOW] (default values)
-const char* WINDOW_TITLE  = "SND Corp - Ccraft";
+const char* __WINDOW__NAME  = "SND Corp - Ccraft";
 int         WINDOW_WIDTH  = 1280;
 int         WINDOW_HEIGHT = 720;
 int         FULLSCREEN    = 0;
@@ -248,7 +248,7 @@ void config_load()
     try_load("GRAPHICS", "gamma", "%f", &GAMMA);
     try_load("GRAPHICS", "saturation", "%f", &SATURATION);
 
-    try_load("WINDOW", "title", NULL, &WINDOW_TITLE);
+    try_load("WINDOW", "title", NULL, &__WINDOW__NAME);
     try_load("WINDOW", "width", "%d", &WINDOW_WIDTH);
     try_load("WINDOW", "height", "%d", &WINDOW_HEIGHT);
     try_load("WINDOW", "fullscreen", "%d", &FULLSCREEN);
@@ -291,4 +291,7 @@ void config_load()
     CHUNK_UNLOAD_RADIUS2 = CHUNK_UNLOAD_RADIUS * CHUNK_UNLOAD_RADIUS;
 
     printf("Loaded everything.\n");
+
+    ini_free(cfg);
+    cfg = NULL;
 }

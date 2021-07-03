@@ -645,3 +645,10 @@ void player_save(Player* p)
 {
     db_insert_player_info(p);
 }
+
+void player_exit(Player* p)
+{
+    player_save(p);
+    free(p->cam);
+    free(p);
+}
