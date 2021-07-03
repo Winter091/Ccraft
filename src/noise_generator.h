@@ -13,7 +13,7 @@ typedef struct
 }
 noise_state;
 
-noise_state* noise_state_create();
+noise_state* noise_state_create(int cx, int cz);
 
 void noise_set_settings(fnl_state* state, fnl_noise_type noise_type, float freq, 
                         int octaves, float lacunarity, float gain);

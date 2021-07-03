@@ -312,7 +312,6 @@ int main()
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
 #ifdef DEBUG
-    /*
     // Set up debug context if it's available
     GLint context_flags;
     glGetIntegerv(GL_CONTEXT_FLAGS, &context_flags);
@@ -322,7 +321,6 @@ int main()
         glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
         glDebugMessageCallbackARB((GLDEBUGPROCARB)opengl_debug_callback, NULL);
     }
-    */
 #endif
 
     const GLubyte* version = glGetString(GL_VERSION);

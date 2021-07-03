@@ -292,7 +292,7 @@ static int blerp(int h11, int h12, int h21, int h22, float x, float y)
 // these heights in order to get all remaining heights.
 void worldgen_generate_chunk(Chunk* c)
 {
-    noise_state* state = noise_state_create();
+    noise_state* state = noise_state_create(c->x, c->z);
 
     Biome** biomes = malloc(CHUNK_XZ_REAL * sizeof(Biome*));
     int** heightmap = malloc(CHUNK_XZ_REAL * sizeof(int*));
