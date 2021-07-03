@@ -291,4 +291,7 @@ void config_load()
     CHUNK_UNLOAD_RADIUS2 = CHUNK_UNLOAD_RADIUS * CHUNK_UNLOAD_RADIUS;
 
     printf("Loaded everything.\n");
+
+    ini_free(cfg);
+    cfg = NULL;
 }

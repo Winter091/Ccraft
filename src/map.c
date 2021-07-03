@@ -140,17 +140,7 @@ void map_init()
     map->workers = malloc(map->num_workers * sizeof(Worker));
     
     for (int i = 0; i < map->num_workers; i++) 
-    {
-        WorkerData* worker = &map->workers[i].data;
-        
-        cnd_init(&worker->cond_var);
-        worker->state = WORKER_IDLE;
-        mtx_init(&worker->state_mtx, mtx_plain);
-        worker->chunk = NULL;
-        worker->generate_terrain = 0;
-        
-        thrd_create(&map->workers[i].thread, worker_func, &map->workers[i].data);
-    }
+        worker_create(&map->workers[i], worker_loop);
 }
 
 // [0.0 - 1.0)
@@ -590,4 +580,35 @@ int map_get_highest_block(int bx, int bz)
 void map_save()
 {
     db_insert_map_info();
+}
+
+void map_exit()
+{
+    map_save();
+
+    // Workers
+    for (int i = 0; i < map->num_workers; i++)
+        worker_destroy(&map->workers[i]);
+    free(map->workers);
+
+    // Chunk hashmaps and lists
+    LinkedList_chunks* to_delete = list_chunks_create();
+    MAP_FOREACH_ACTIVE_CHUNK_BEGIN(c)
+    {
+        list_chunks_push_back(to_delete, c);
+    }
+    MAP_FOREACH_ACTIVE_CHUNK_END()
+
+    while (to_delete->size)
+    {
+        Chunk* c = list_chunks_pop_front(to_delete);
+        chunk_delete(c);
+    }
+
+    hashmap_chunks_delete(map->chunks_active);
+    list_chunks_delete(map->chunks_to_render);
+    list_chunks_delete(to_delete);
+
+    free(map);
+    map = NULL;
 }

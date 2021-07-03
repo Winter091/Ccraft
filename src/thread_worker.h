@@ -11,7 +11,8 @@ typedef enum
 {
     WORKER_IDLE,
     WORKER_BUSY,
-    WORKER_DONE
+    WORKER_DONE,
+    WORKER_EXIT
 }
 WorkerState;
 
@@ -33,6 +34,9 @@ typedef struct
 }
 Worker;
 
-int worker_func(void* data);
+int worker_loop(void* data);
+
+void worker_create(Worker* worker, thrd_start_t func);
+void worker_destroy(Worker* worker);
 
 #endif
