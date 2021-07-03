@@ -338,7 +338,6 @@ int main()
     db_init();
     shaders_load();
     textures_load();
-    noise_init();
     map_init();
     ui_init((float)WINDOW_WIDTH / WINDOW_HEIGHT);
     framebuffer_create(WINDOW_WIDTH, WINDOW_HEIGHT);

@@ -256,14 +256,6 @@ void fnlDomainWarp2D(fnl_state *state, FNLfloat *x, FNLfloat *y);
  */
 void fnlDomainWarp3D(fnl_state *state, FNLfloat *x, FNLfloat *y, FNLfloat *z);
 
-void noise_init();
-void noise_set_seed(int new_seed);
-void noise_set_settings(fnl_noise_type noise_type, float freq, int octaves, float lacunarity, float gain);
-void noise_set_return_type(fnl_cellular_return_type return_type);
-int noise_get_seed();
-void noise_apply_warp(float* x, float* z);
-float noise_2d(float x, float z);
-
 // ====================
 // Below this line is the implementation
 // ====================

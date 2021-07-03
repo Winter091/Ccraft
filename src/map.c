@@ -51,6 +51,8 @@ typedef struct
 
     WorkerData* workers;
     int num_workers;
+
+    int seed;
 }
 Map;
 
@@ -131,6 +133,7 @@ void map_init()
     opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
     opengl_vbo_layout(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 3 * sizeof(float));
 
+    map->seed = 0;
     db_get_map_info();
 
     map->num_workers = 3;
@@ -525,7 +528,7 @@ void map_update(Camera* cam)
 void map_set_seed(int new_seed)
 {
     printf("Using seed: %d\n", new_seed);
-    noise_set_seed(new_seed);
+    map->seed = new_seed;
 }
 
 void map_set_time(double new_time)
@@ -535,7 +538,7 @@ void map_set_time(double new_time)
 
 int map_get_seed()
 {
-    return noise_get_seed();
+    return map->seed;
 }
 
 int map_get_highest_block(int x, int z)
