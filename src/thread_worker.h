@@ -18,14 +18,20 @@ WorkerState;
 typedef struct
 {
     Chunk* chunk;
-
-    thrd_t thread;
-    cnd_t cond_var;
-    mtx_t state_mtx;
-    WorkerState state;
     int generate_terrain;
+
+    WorkerState state;
+    mtx_t state_mtx;
+    cnd_t cond_var;
 }
 WorkerData;
+
+typedef struct
+{
+    thrd_t thread;
+    WorkerData data;
+}
+Worker;
 
 int worker_func(void* data);
 

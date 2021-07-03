@@ -49,7 +49,7 @@ typedef struct
     GLuint VAO_sun_moon;
     GLuint VBO_sun_moon;
 
-    WorkerData* workers;
+    Worker* workers;
     int num_workers;
 
     int seed;
@@ -136,18 +136,20 @@ void map_init()
     map->seed = 0;
     db_get_map_info();
 
-    map->num_workers = 3;
-    map->workers = malloc(map->num_workers * sizeof(WorkerData));
-
+    map->num_workers = MAX(1, thread_hardware_concurrency() - 1);
+    map->workers = malloc(map->num_workers * sizeof(Worker));
+    
     for (int i = 0; i < map->num_workers; i++) 
     {
-        cnd_init(&map->workers[i].cond_var);
-        map->workers[i].state = WORKER_IDLE;
-        mtx_init(&map->workers[i].state_mtx, mtx_plain);
-        map->workers[i].chunk = NULL;
-        map->workers[i].generate_terrain = 0;
+        WorkerData* worker = &map->workers[i].data;
         
-        thrd_create(&map->workers[i].thread, worker_func, &map->workers[i]);
+        cnd_init(&worker->cond_var);
+        worker->state = WORKER_IDLE;
+        mtx_init(&worker->state_mtx, mtx_plain);
+        worker->chunk = NULL;
+        worker->generate_terrain = 0;
+        
+        thrd_create(&map->workers[i].thread, worker_func, &map->workers[i].data);
     }
 }
 
@@ -453,7 +455,7 @@ static void handle_workers(Camera* cam)
 {
     for (int i = 0; i < map->num_workers; i++)
     {
-        WorkerData* worker = &map->workers[i];
+        WorkerData* worker = &map->workers[i].data;
         mtx_lock(&worker->state_mtx);
 
         if (worker->state == WORKER_BUSY)

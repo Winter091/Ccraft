@@ -7,6 +7,14 @@
 #include "glad/glad.h"
 #include "config.h"
 
+#if defined(_WIN32) || defined(__WIN32__) || defined(__WINDOWS__)
+    #define PLATFORM_WINDOWS
+    #include "Windows.h"
+#else
+    #define PLATFORM_POSIX
+    #include "unistd.h"
+#endif
+
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
@@ -25,6 +33,20 @@ GLuint opengl_create_vbo(const void* vertices, size_t buf_size);
 GLuint opengl_create_vbo_cube();
 GLuint opengl_create_vbo_quad();
 GLuint opengl_create_fbo();
+
+static inline int thread_hardware_concurrency()
+{
+#if defined(PLATFORM_WINDOWS)
+    SYSTEM_INFO sysinfo;
+    GetSystemInfo(&sysinfo);
+    return sysinfo.dwNumberOfProcessors;
+#elif defined(PLATFORM_POSIX)
+    return sysconf(_SC_NPROCESSORS_ONLN);
+#else
+    // Why are we here? Just to suffer?
+    return 1;
+#endif
+}
 
 static inline void my_glm_vec3_set(vec3 vec, float f0, float f1, float f2)
 {
