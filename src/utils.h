@@ -62,17 +62,23 @@ static inline void my_glm_ivec3_set(ivec3 vec, int i0, int i1, int i2)
     vec[2] = i2;
 }
 
-static inline int chunked(int coord)
+static inline int chunked_block(int world_block_coord)
 {
-    if (coord >= 0) return coord / CHUNK_WIDTH;
-    return (coord + 1) / CHUNK_WIDTH - 1;
+    if (world_block_coord >= 0) 
+        return world_block_coord / CHUNK_WIDTH;
+    return (world_block_coord + 1) / CHUNK_WIDTH - 1;
 }
 
-static inline int to_chunk_block(int coord)
+static inline int to_chunk_coord(int world_block_coord)
 {
-    int block = coord % CHUNK_WIDTH;
+    int block = world_block_coord % CHUNK_WIDTH;
     if (block < 0) block += CHUNK_WIDTH;
     return block;
+}
+
+static inline int chunked_cam(float cam_coord)
+{
+    return (int)(cam_coord / CHUNK_SIZE);
 }
 
 static inline float blocked(float coord)

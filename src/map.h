@@ -15,6 +15,7 @@ void map_update(Camera* cam);
 void map_render_sun_moon(Camera* cam);
 void map_render_sky(Camera* cam);
 void map_render_chunks(Camera* cam);
+void map_force_chunks_near_player(Camera* cam);
 
 void map_set_block(int x, int y, int z, unsigned char block);
 void map_set_seed(int new_seed);

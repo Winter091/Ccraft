@@ -31,8 +31,7 @@ typedef struct
     mtx_t mtx;
 
     int is_dirty;
-    int is_terrain_generated;
-    int is_mesh_generated;
+    int is_generated;
 
     GLuint VAO_land;
     GLuint VBO_land;

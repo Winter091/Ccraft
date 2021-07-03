@@ -18,8 +18,7 @@ Chunk* chunk_init(int chunk_x, int chunk_z)
     mtx_init(&c->mtx, mtx_timed);
 
     c->is_dirty = 0;
-    c->is_terrain_generated = 0;
-    c->is_mesh_generated = 0;
+    c->is_generated = 0;
 
     c->VAO_land = 0;
     c->VBO_land = 0;
@@ -111,7 +110,7 @@ void chunk_generate_mesh(Chunk* c)
 
 void chunk_upload_mesh_to_gpu(Chunk* c)
 {
-    if (c->is_mesh_generated)
+    if (c->is_generated)
     {
         glDeleteVertexArrays(2, (const GLuint[]){c->VAO_land, c->VAO_water});
         glDeleteBuffers(2, (const GLuint[]){c->VBO_land, c->VBO_water});
@@ -134,6 +133,8 @@ void chunk_upload_mesh_to_gpu(Chunk* c)
     opengl_vbo_layout(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 3 * sizeof(float));
     opengl_vbo_layout(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), 5 * sizeof(float));
     opengl_vbo_layout(2, 1, GL_UNSIGNED_BYTE, GL_FALSE,  sizeof(Vertex), 6 * sizeof(float));
+
+    c->is_generated = 1;
 }
 
 int chunk_is_visible(int chunk_x, int chunk_z, vec4 planes[6])
@@ -154,14 +155,12 @@ int chunk_is_visible(int chunk_x, int chunk_z, vec4 planes[6])
 
 void chunk_delete(Chunk* c)
 {
-    if (c->is_mesh_generated)
+    if (c->is_generated)
     {
         glDeleteVertexArrays(2, (const GLuint[]){c->VAO_land, c->VAO_water});
         glDeleteBuffers(2, (const GLuint[]){c->VBO_land, c->VBO_water});
-    }
-
-    if (c->is_terrain_generated)
         free(c->blocks);
+    }
 
     free(c);
 }

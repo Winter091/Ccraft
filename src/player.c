@@ -74,6 +74,8 @@ Player* player_create()
     p->pointing_at_block = 0;
     my_glm_ivec3_set(p->block_pointed_at, 0, 0, 0);
 
+    map_force_chunks_near_player(p->cam);
+
     // If it's newly created world (default pos[1] is -1.0),
     // put player on ground level
     if (p->cam->pos[1] < 0)

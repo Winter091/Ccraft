@@ -12,7 +12,7 @@ Camera* camera_create()
     Camera* cam = malloc(sizeof(Camera));
 
     cam->active = 1;
-    cam->fly_mode = 1;
+    cam->fly_mode = 0;
 
     // Position will be set later, using database or
     // moving player to ground level

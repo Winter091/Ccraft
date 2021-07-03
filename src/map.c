@@ -86,10 +86,10 @@ static void map_delete_chunk(int chunk_x, int chunk_z)
     }
 }
 
-static void map_try_delete_far_chunks(Camera* cam)
+static void try_delete_far_chunks(Camera* cam)
 {
-    int cam_chunk_x = cam->pos[0] / CHUNK_SIZE;
-    int cam_chunk_z = cam->pos[2] / CHUNK_SIZE;
+    int player_cx = chunked_cam(cam->pos[0]);
+    int player_cz = chunked_cam(cam->pos[2]);
     
     LinkedList_chunks* chunks_to_delete = list_chunks_create();
 
@@ -101,7 +101,7 @@ static void map_try_delete_far_chunks(Camera* cam)
             continue;
         mtx_unlock(&c->mtx);
 
-        if (chunk_player_dist2(c->x, c->z, cam_chunk_x, cam_chunk_z) > CHUNK_UNLOAD_RADIUS2)
+        if (chunk_player_dist2(c->x, c->z, player_cx, player_cz) > CHUNK_UNLOAD_RADIUS2)
         {
             list_chunks_push_front(chunks_to_delete, c);
         }
@@ -324,13 +324,13 @@ void map_render_chunks(Camera* cam)
     list_chunks_clear(map->chunks_to_render);
 }
 
-unsigned char map_get_block(int x, int y, int z)
+unsigned char map_get_block(int bx, int by, int bz)
 {
-    Chunk* c = map_get_chunk(chunked(x), chunked(z));
-    if (!c || !c->is_terrain_generated) 
+    Chunk* c = map_get_chunk(chunked_block(bx), chunked_block(bz));
+    if (!c || !c->is_generated) 
         return BLOCK_AIR;
 
-    return c->blocks[XYZ(to_chunk_block(x), y, to_chunk_block(z))];
+    return c->blocks[XYZ(to_chunk_coord(bx), by, to_chunk_coord(bz))];
 }
 
 static void set_block_helper(int cx, int cz, int bx, int by, int bz, int block)
@@ -392,33 +392,33 @@ static void set_block(Chunk* c, int bx, int by, int bz, int block)
     }
 }
 
-void map_set_block(int x, int y, int z, unsigned char block)
+void map_set_block(int bx, int by, int bz, unsigned char block)
 {
-    int chunk_x = chunked(x);
-    int chunk_z = chunked(z);
+    int cx = chunked_block(bx);
+    int cz = chunked_block(bz);
     
-    Chunk* c = map_get_chunk(chunk_x, chunk_z);
+    Chunk* c = map_get_chunk(cx, cz);
     if (!c) return;
 
-    int block_x = to_chunk_block(x);
-    int block_z = to_chunk_block(z);
+    int x = to_chunk_coord(bx);
+    int z = to_chunk_coord(bz);
 
-    set_block(c, block_x, y, block_z, block);
+    set_block(c, x, by, z, block);
 }
 
 static bool find_chunk_for_worker(Camera* cam, int* best_x, int* best_z)
 {
-    int cam_chunk_x = cam->pos[0] / CHUNK_SIZE;
-    int cam_chunk_z = cam->pos[2] / CHUNK_SIZE;
+    int player_cx = chunked_cam(cam->pos[0]);
+    int player_cz = chunked_cam(cam->pos[2]);
     
     int best_score = INT_MAX;
-    int best_chunk_x = 0, best_chunk_z = 0;
+    int best_cx = 0, best_cz = 0;
     int found = 0;
 
-    for (int x = cam_chunk_x - CHUNK_LOAD_RADIUS; x <= cam_chunk_x + CHUNK_LOAD_RADIUS; x++)
-    for (int z = cam_chunk_z - CHUNK_LOAD_RADIUS; z <= cam_chunk_z + CHUNK_LOAD_RADIUS; z++)
+    for (int x = player_cx - CHUNK_LOAD_RADIUS; x <= player_cx + CHUNK_LOAD_RADIUS; x++)
+    for (int z = player_cz - CHUNK_LOAD_RADIUS; z <= player_cz + CHUNK_LOAD_RADIUS; z++)
     {
-        if (chunk_player_dist2(x, z, cam_chunk_x, cam_chunk_z) > CHUNK_LOAD_RADIUS2)
+        if (chunk_player_dist2(x, z, player_cx, player_cz) > CHUNK_LOAD_RADIUS2)
             continue;
         
         Chunk* c = map_get_chunk(x, z);
@@ -427,15 +427,15 @@ static bool find_chunk_for_worker(Camera* cam, int* best_x, int* best_z)
         if (c && not_dirty)
             continue;
         int not_visible = !chunk_is_visible(x, z, cam->frustum_planes);
-        int dist = chunk_player_dist2(x, z, cam_chunk_x, cam_chunk_z);
+        int dist = chunk_player_dist2(x, z, player_cx, player_cz);
         
         // Visibility is more important than dirtiness, and dirtiness
         // is more important than distance
         int curr_score = ((not_visible << 24) | (not_dirty << 16)) + dist;
         if (curr_score <= best_score)
         {
-            best_chunk_x = x;
-            best_chunk_z = z;
+            best_cx = x;
+            best_cz = z;
             best_score = curr_score;
             found = 1;
         }
@@ -443,8 +443,8 @@ static bool find_chunk_for_worker(Camera* cam, int* best_x, int* best_z)
 
     if (found)
     {
-        *best_x = best_chunk_x;
-        *best_z = best_chunk_z;
+        *best_x = best_cx;
+        *best_z = best_cz;
         return true;
     }
     return false;
@@ -469,23 +469,21 @@ static void handle_workers(Camera* cam)
 
             Chunk* c = worker->chunk;
             chunk_upload_mesh_to_gpu(c);
+
             mtx_unlock(&c->mtx);
-            
-            c->is_terrain_generated = 1;
-            c->is_mesh_generated = 1;
         }
 
         if (worker->state == WORKER_IDLE)
         {
-            int best_x, best_z;
-            bool found = find_chunk_for_worker(cam, &best_x, &best_z);
+            int best_cx, best_cz;
+            bool found = find_chunk_for_worker(cam, &best_cx, &best_cz);
             if (!found)
             {
                 mtx_unlock(&worker->state_mtx);
                 continue;
             }
             
-            Chunk* c = map_get_chunk(best_x, best_z);
+            Chunk* c = map_get_chunk(best_cx, best_cz);
             if (c)
             {
                 c->is_dirty = 0;
@@ -493,7 +491,7 @@ static void handle_workers(Camera* cam)
             }
             else
             {
-                c = chunk_init(best_x, best_z);
+                c = chunk_init(best_cx, best_cz);
                 hashmap_chunks_insert(map->chunks_active, c);
                 worker->generate_terrain = 1;
             }
@@ -511,18 +509,47 @@ static void handle_workers(Camera* cam)
     }
 }
 
+static void load_chunk(int cx, int cz)
+{
+    Chunk* c = chunk_init(cx, cz);
+    chunk_generate_terrain(c);
+    chunk_generate_mesh(c);
+    chunk_upload_mesh_to_gpu(c);
+
+    hashmap_chunks_insert(map->chunks_active, c);
+}
+
+void map_force_chunks_near_player(Camera* cam)
+{
+    int const dist = 1;
+
+    int player_cx = chunked_cam(cam->pos[0]);
+    int player_cz = chunked_cam(cam->pos[2]);
+
+    for (int dx = -dist; dx <= dist; dx++)
+    for (int dz = -dist; dz <= dist; dz++)
+    {
+        int const cx = player_cx + dx;
+        int const cz = player_cz + dz;
+
+        if (!map_get_chunk(cx, cz))
+            load_chunk(cx, cz);
+    }
+}
+
 static void add_chunks_to_render_list(Camera* cam)
 {
     MAP_FOREACH_ACTIVE_CHUNK_BEGIN(c)
-        if (c->is_mesh_generated && chunk_is_visible(c->x, c->z, cam->frustum_planes))
+        if (c->is_generated && chunk_is_visible(c->x, c->z, cam->frustum_planes))
             list_chunks_push_front(map->chunks_to_render, c);
     MAP_FOREACH_ACTIVE_CHUNK_END()
 }
 
 void map_update(Camera* cam)
 {
-    map_try_delete_far_chunks(cam);
+    try_delete_far_chunks(cam);
     handle_workers(cam);
+    map_force_chunks_near_player(cam);
     add_chunks_to_render_list(cam);
 }
 
@@ -542,18 +569,18 @@ int map_get_seed()
     return map->seed;
 }
 
-int map_get_highest_block(int x, int z)
+int map_get_highest_block(int bx, int bz)
 {
-    Chunk* c = map_get_chunk(chunked(x), chunked(z));
+    Chunk* c = map_get_chunk(chunked_block(bx), chunked_block(bz));
     if (!c) return CHUNK_HEIGHT;
 
-    int bx = to_chunk_block(x);
-    int bz = to_chunk_block(z);
+    int x = to_chunk_coord(bx);
+    int z = to_chunk_coord(bz);
 
     int max_height = 0;
     for (int y = 0; y < CHUNK_HEIGHT; y++)
     {
-        if (block_is_solid(c->blocks[XYZ(bx, y, bz)]))
+        if (block_is_solid(c->blocks[XYZ(x, y, z)]))
             max_height = y;
     }
 
