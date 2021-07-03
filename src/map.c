@@ -411,38 +411,37 @@ static bool find_chunk_for_worker(Camera* cam, int* best_x, int* best_z)
     int cam_chunk_x = cam->pos[0] / CHUNK_SIZE;
     int cam_chunk_z = cam->pos[2] / CHUNK_SIZE;
     
-    // best is closest visible chunk
-    int best_score = INT_MIN;
+    int best_score = INT_MAX;
     int best_chunk_x = 0, best_chunk_z = 0;
+    int found = 0;
 
     for (int x = cam_chunk_x - CHUNK_LOAD_RADIUS; x <= cam_chunk_x + CHUNK_LOAD_RADIUS; x++)
     for (int z = cam_chunk_z - CHUNK_LOAD_RADIUS; z <= cam_chunk_z + CHUNK_LOAD_RADIUS; z++)
     {
         if (chunk_player_dist2(x, z, cam_chunk_x, cam_chunk_z) > CHUNK_LOAD_RADIUS2)
-        {
             continue;
-        }
         
         Chunk* c = map_get_chunk(x, z);
 
-        int dirty  = c ? c->is_dirty : 0;
-        if (c && !c->is_dirty)
+        int not_dirty  = c ? !c->is_dirty : 1;
+        if (c && not_dirty)
             continue;
-        int visible = chunk_is_visible(x, z, cam->frustum_planes);
+        int not_visible = !chunk_is_visible(x, z, cam->frustum_planes);
         int dist = chunk_player_dist2(x, z, cam_chunk_x, cam_chunk_z);
         
-        int curr_score = (dirty << 24) | (visible << 16);
-        curr_score -= dist;
-
-        if (curr_score >= best_score)
+        // Visibility is more important than dirtiness, and dirtiness
+        // is more important than distance
+        int curr_score = ((not_visible << 24) | (not_dirty << 16)) + dist;
+        if (curr_score <= best_score)
         {
             best_chunk_x = x;
             best_chunk_z = z;
             best_score = curr_score;
+            found = 1;
         }
     }   
 
-    if (best_score != INT_MIN) 
+    if (found)
     {
         *best_x = best_chunk_x;
         *best_z = best_chunk_z;
