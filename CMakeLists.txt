@@ -20,7 +20,7 @@ set(CGLM_SHARED   OFF CACHE BOOL "" FORCE)
 set(CGLM_STATIC    ON CACHE BOOL "" FORCE)
 set(CGLM_USE_C99   ON CACHE BOOL "" FORCE)
 set(CGLM_USE_TEST OFF CACHE BOOL "" FORCE)
-add_subdirectory(${CMAKE_SOURCE_DIR}/deps/cglm-0.7.8)
+add_subdirectory(${CMAKE_SOURCE_DIR}/deps/cglm-0.8.3)
 
 file(GLOB CCRAFT_SOURCES ${CMAKE_SOURCE_DIR}/src/*.c)
 add_executable(
@@ -51,7 +51,7 @@ target_link_libraries(Ccraft glfw cglm)
 target_include_directories(
     Ccraft PRIVATE 
     ${CMAKE_SOURCE_DIR}/deps/glfw-3.3.2/include
-    ${CMAKE_SOURCE_DIR}/deps/cglm-0.7.8/include
+    ${CMAKE_SOURCE_DIR}/deps/cglm-0.8.3/include
     ${CMAKE_SOURCE_DIR}/deps/glad-0.1.34/include
     ${CMAKE_SOURCE_DIR}/deps/stb_image-2.26/include
     ${CMAKE_SOURCE_DIR}/deps/sqlite-3.34.0/include
