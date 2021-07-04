@@ -1,15 +1,15 @@
 #include "db.h"
 
 #include "stdio.h"
-#include "time.h"
 #include "string.h"
 
+#include "tinycthread.h"
 #include "sqlite3.h"
 #include "config.h"
 #include "map.h"
 
-// Keep global database object for simplicity
-sqlite3* db;
+static sqlite3* db;
+static mtx_t db_mtx;
 
 static sqlite3_stmt* db_compile_statement(const char* statement)
 {
@@ -56,12 +56,7 @@ static void db_insert_default_map_info()
         "VALUES (?, 0)"
     );
 
-    // generate random seed
-    srand(time(0));
     int seed = rand();
-    seed = ((seed >> 16) ^ seed) * 0x45d9f3b;
-    seed = ((seed >> 16) ^ seed) * 0x45d9f3b;
-    seed = (seed >> 16) ^ seed;
     printf("Created new map with seed: %d\n", seed);
 
     sqlite3_bind_int(stmt, 1, seed);
@@ -75,11 +70,11 @@ static void db_insert_default_player_info()
     // it during player creation and know whether it's
     // newly generated map and we should place the player
     // manually or it's already existing map and we 
-    // shoud do nothing
+    // should do nothing
     sqlite3_stmt* stmt = db_compile_statement(
         "INSERT INTO "
         "player_info (pos_x, pos_y, pos_z, pitch, yaw, build_block) "
-        "VALUES (0.0, -1.0, 0.0, 0.0, -90.0, 0)"
+        "VALUES (0.0, -1.0, 0.0, 0.0, -90.0, 1)"
     );
 
     sqlite3_step(stmt);
@@ -131,6 +126,7 @@ void db_init()
     sprintf(db_path, "maps/%s", MAP_NAME);
     
     sqlite3_open(db_path, &db);
+    mtx_init(&db_mtx, mtx_plain);
 
     db_create_tables();
 
@@ -142,6 +138,8 @@ void db_init()
 
 void db_insert_block(int chunk_x, int chunk_z, int x, int y, int z, int block)
 {
+    mtx_lock(&db_mtx);
+    
     static sqlite3_stmt* stmt = NULL;
     if (stmt == NULL)
     {
@@ -162,10 +160,14 @@ void db_insert_block(int chunk_x, int chunk_z, int x, int y, int z, int block)
     sqlite3_bind_int(stmt, 6, block);
 
     sqlite3_step(stmt);
+
+    mtx_unlock(&db_mtx);
 }
 
 void db_get_blocks_for_chunk(Chunk* c)
 {
+    mtx_lock(&db_mtx);
+    
     static sqlite3_stmt* stmt = NULL;
     if (stmt == NULL)
     {
@@ -188,16 +190,19 @@ void db_get_blocks_for_chunk(Chunk* c)
         int z = sqlite3_column_int(stmt, 2);
         int block = sqlite3_column_int(stmt, 3);
 
-        // If map was created and played at certain chunk width
-        // and then chunk width was reduced, there may be 
-        // possible out-of-bounds writes
+        // Coordinates can be too large if the map was created
+        // and played on with higher CHUNK_WIDTH than now
         if (x < CHUNK_WIDTH && y < CHUNK_HEIGHT && z < CHUNK_WIDTH)
             c->blocks[XYZ(x, y, z)] = block;
     }
+
+    mtx_unlock(&db_mtx);
 }
 
 void db_insert_player_info(Player* p)
 {
+    mtx_lock(&db_mtx);
+    
     sqlite3_stmt* stmt = db_compile_statement(
         "UPDATE player_info " 
         "SET pos_x = ?, pos_y = ?, pos_z = ?, " 
@@ -213,10 +218,14 @@ void db_insert_player_info(Player* p)
     sqlite3_bind_int(stmt, 6, p->build_block);
 
     sqlite3_step(stmt);
+
+    mtx_unlock(&db_mtx);
 }
 
 void db_get_player_info(Player* p)
 {
+    mtx_lock(&db_mtx);
+
     sqlite3_stmt* stmt = db_compile_statement(
         "SELECT pos_x, pos_y, pos_z, pitch, yaw, build_block "
         "FROM player_info "
@@ -231,10 +240,14 @@ void db_get_player_info(Player* p)
     p->cam->pitch  = sqlite3_column_double(stmt, 3);
     p->cam->yaw    = sqlite3_column_double(stmt, 4);
     p->build_block = sqlite3_column_int(stmt, 5);
+
+    mtx_unlock(&db_mtx);
 }
 
 void db_insert_map_info()
 {
+    mtx_lock(&db_mtx);
+    
     sqlite3_stmt* stmt = db_compile_statement(
         "UPDATE map_info SET curr_time = ?"
     );
@@ -242,10 +255,14 @@ void db_insert_map_info()
     sqlite3_reset(stmt);
     sqlite3_bind_double(stmt, 1, map_get_time());
     sqlite3_step(stmt);
+
+    mtx_unlock(&db_mtx);
 }
 
 void db_get_map_info()
 {
+    mtx_lock(&db_mtx);
+
     sqlite3_stmt* stmt = db_compile_statement(
         "SELECT seed, curr_time FROM map_info"
     );
@@ -258,6 +275,8 @@ void db_get_map_info()
 
     map_set_seed(seed);
     map_set_time(curr_time);
+
+    mtx_unlock(&db_mtx);
 }
 
 void db_close()

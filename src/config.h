@@ -26,7 +26,6 @@ extern int         VSYNC;
 
 // [GAMEPLAY]
 extern const char* MAP_NAME;
-extern int         USE_MAP;
 extern float       MOUSE_SENS;
 extern int         BLOCK_BREAK_RADIUS;
 extern int         DAY_LENGTH;
@@ -46,7 +45,7 @@ extern float MAX_MOVE_SPEED_SNEAK;
 extern float MAX_SWIM_SPEED;
 extern float MAX_FALL_SPEED;
 extern float MAX_DIVE_SPEED;
-extern float MAX_EMEGRE_SPEED;
+extern float MAX_EMERGE_SPEED;
 extern float ACCELERATION_HORIZONTAL;
 extern float DECELERATION_HORIZONTAL;
 extern float DECELERATION_VERTICAL;
@@ -67,8 +66,8 @@ extern int   CHUNK_UNLOAD_RADIUS;
 extern int   CHUNK_UNLOAD_RADIUS2;
 extern int   BLOCK_BREAK_RADIUS2;
 extern int   CHUNK_RENDER_RADIUS2;
-
-
+extern int   CHUNK_WIDTH_REAL;
+extern int   CHUNK_HEIGHT_REAL;
 
 void config_load();
 

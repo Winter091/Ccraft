@@ -5,7 +5,7 @@
 
 #include "config.h"
 #include "block.h"
-#include "fastnoiselite.h"
+#include "noise_generator.h"
 
 static const int water_level = 50;
 
@@ -20,17 +20,17 @@ typedef enum
 }
 Biome;
 
-static Biome get_biome(int bx, int bz)
+static Biome get_biome(noise_state* state, int bx, int bz)
 {
     // Voronoi noise
-    noise_set_return_type(FNL_CELLULAR_RETURN_VALUE_CELLVALUE);
-    noise_set_settings(FNL_NOISE_CELLULAR, 0.005f, 1, 2.0f, 0.5f);
+    state->fnl.cellular_return_type = FNL_CELLULAR_RETURN_VALUE_CELLVALUE;
+    noise_set_settings(&state->fnl, FNL_NOISE_CELLULAR, 0.005f, 1, 2.0f, 0.5f);
 
     float fx = bx;
     float fz = bz;
 
-    noise_apply_warp(&fx, &fz);
-    float h = noise_2d(fx, fz);
+    fnlDomainWarp2D(&state->fnl, &fx, &fz);
+    float h = noise_2d(&state->fnl, fx, fz);
 
     if (h < 0.2f)
         return BIOME_OCEAN;
@@ -100,7 +100,7 @@ static void make_tree(Chunk* c, int x, int y, int z)
             }
 }
 
-static void gen_plains(Chunk* c, int x, int z, int h)
+static void gen_plains(noise_state* state, Chunk* c, int x, int z, int h)
 {
     for (int y = 0; y < h; y++)
         c->blocks[XYZ(x, y, z)] = BLOCK_DIRT;
@@ -113,18 +113,18 @@ static void gen_plains(Chunk* c, int x, int z, int h)
     if (c->blocks[XYZ(x, h + 1, z)] == BLOCK_WATER)
         return;
 
-    if (rand() % 10 >= 7)
+    if (my_rand(&state->rand_value) % 10 >= 7)
         c->blocks[XYZ(x, h + 1, z)] = BLOCK_GRASS_PLANT;
-    else if (rand() % 100 > 97)
+    else if (my_rand(&state->rand_value) % 100 > 97)
     {
-        if (rand() % 2)
+        if (my_rand(&state->rand_value) % 2)
             c->blocks[XYZ(x, h + 1, z)] = BLOCK_FLOWER_DANDELION;
         else
             c->blocks[XYZ(x, h + 1, z)] = BLOCK_FLOWER_ROSE;
     }
 }
 
-static void gen_forest(Chunk* c, int x, int z, int h)
+static void gen_forest(noise_state* state, Chunk* c, int x, int z, int h)
 {
     for (int y = 0; y < h; y++)
         c->blocks[XYZ(x, y, z)] = BLOCK_DIRT;
@@ -136,22 +136,25 @@ static void gen_forest(Chunk* c, int x, int z, int h)
     if (c->blocks[XYZ(x, h + 1, z)] == BLOCK_WATER)
         return;
 
-    if (rand() % 1000 > 975 && x >= 2 && z >= 2 && x <= CHUNK_WIDTH - 3 && z <= CHUNK_WIDTH - 3)
+    if (my_rand(&state->rand_value) % 1000 > 975 
+        && x >= 2 && z >= 2 && x <= CHUNK_WIDTH - 3 && z <= CHUNK_WIDTH - 3)
+    {
         make_tree(c, x, h, z);
+    }
 
-    else if (rand() % 10 >= 9)
+    else if (my_rand(&state->rand_value) % 10 >= 9)
         c->blocks[XYZ(x, h + 1, z)] = BLOCK_GRASS_PLANT;
     
-    else if (rand() % 100 > 97)
+    else if (my_rand(&state->rand_value) % 100 > 97)
     {
-        if (rand() % 2)
+        if (my_rand(&state->rand_value) % 2)
             c->blocks[XYZ(x, h + 1, z)] = BLOCK_FLOWER_DANDELION;
         else
             c->blocks[XYZ(x, h + 1, z)] = BLOCK_FLOWER_ROSE;
     }
 }
 
-static void gen_flower_forest(Chunk* c, int x, int z, int h)
+static void gen_flower_forest(noise_state* state, Chunk* c, int x, int z, int h)
 {
     for (int y = 0; y < h; y++)
         c->blocks[XYZ(x, y, z)] = BLOCK_DIRT;
@@ -163,12 +166,15 @@ static void gen_flower_forest(Chunk* c, int x, int z, int h)
     if (c->blocks[XYZ(x, h + 1, z)] == BLOCK_WATER)
         return;
     
-    if (rand() % 1000 > 975 && x >= 2 && z >= 2 && x <= CHUNK_WIDTH - 3 && z <= CHUNK_WIDTH - 3)
-        make_tree(c, x, h, z);
-
-    else if (rand() % 10 >= 7)
+    if (my_rand(&state->rand_value) % 1000 > 975 
+        && x >= 2 && z >= 2 && x <= CHUNK_WIDTH - 3 && z <= CHUNK_WIDTH - 3)
     {
-        int r = rand() % 3;
+        make_tree(c, x, h, z);
+    }
+
+    else if (my_rand(&state->rand_value) % 10 >= 7)
+    {
+        int r = my_rand(&state->rand_value) % 3;
         if (r == 0)
             c->blocks[XYZ(x, h + 1, z)] = BLOCK_GRASS_PLANT;
         else if (r == 1)
@@ -179,13 +185,13 @@ static void gen_flower_forest(Chunk* c, int x, int z, int h)
 
 }
 
-static void gen_mountains(Chunk* c, int x, int z, int h)
+static void gen_mountains(noise_state* state, Chunk* c, int x, int z, int h)
 {
     for (int y = 0; y <= h; y++)
     {
-        if (y < 100 + rand() % 10 - 5)
+        if (y < 100 + my_rand(&state->rand_value) % 10 - 5)
         {
-            if (rand() % 10 == 0)
+            if (my_rand(&state->rand_value) % 10 == 0)
                 c->blocks[XYZ(x, y, z)] = BLOCK_GRAVEL;
             else
                 c->blocks[XYZ(x, y, z)] = BLOCK_STONE;
@@ -198,7 +204,7 @@ static void gen_mountains(Chunk* c, int x, int z, int h)
         c->blocks[XYZ(x, y, z)] = BLOCK_WATER;
 }
 
-static void gen_desert(Chunk* c, int x, int z, int h)
+static void gen_desert(noise_state* state, Chunk* c, int x, int z, int h)
 {
     for (int y = 0; y < h; y++)
         c->blocks[XYZ(x, y, z)] = BLOCK_SANDSTONE;
@@ -210,21 +216,21 @@ static void gen_desert(Chunk* c, int x, int z, int h)
     if (c->blocks[XYZ(x, h + 1, z)] == BLOCK_WATER)
         return;
 
-    if (rand() % 1000 > 995)
+    if (my_rand(&state->rand_value) % 1000 > 995)
     {
-        int cactus_height = rand() % 6;
+        int cactus_height = my_rand(&state->rand_value) % 6;
         for (int y = 0; y < cactus_height; y++)
             c->blocks[XYZ(x, h + 1 + y, z)] = BLOCK_CACTUS;
     }
-    else if (rand() % 1000 > 995)
+    else if (my_rand(&state->rand_value) % 1000 > 995)
         c->blocks[XYZ(x, h + 1, z)] = BLOCK_DEAD_PLANT;
 }
 
-static void gen_ocean(Chunk* c, int x, int z, int h)
+static void gen_ocean(noise_state* state, Chunk* c, int x, int z, int h)
 {
     for (int y = 0; y <= h; y++)
     {
-        if (rand() % 4 == 0)
+        if (my_rand(&state->rand_value) % 4 == 0)
             c->blocks[XYZ(x, y, z)] = BLOCK_GRAVEL;
         else
             c->blocks[XYZ(x, y, z)] = BLOCK_SAND;
@@ -234,41 +240,40 @@ static void gen_ocean(Chunk* c, int x, int z, int h)
         c->blocks[XYZ(x, y, z)] = BLOCK_WATER;
 }
 
-// Biomes' noise settings
-static int get_height(Biome biome, int bx, int bz)
+static int get_height(fnl_state* state, Biome biome, int bx, int bz)
 {
     int v;
     
     switch (biome)
     {
         case BIOME_PLAINS:    
-            noise_set_settings(FNL_NOISE_OPENSIMPLEX2, 0.003f, 3, 2.5f, 0.1f);
-            v = noise_2d(bx, bz) * CHUNK_HEIGHT;
+            noise_set_settings(state, FNL_NOISE_OPENSIMPLEX2, 0.003f, 3, 2.5f, 0.1f);
+            v = noise_2d(state, bx, bz) * CHUNK_HEIGHT;
             return 44 + v / 8;    
 
         case BIOME_FOREST:   
-            noise_set_settings(FNL_NOISE_OPENSIMPLEX2, 0.001f, 6, 4.0f, 0.75f);
-            v = noise_2d(bx, bz) * CHUNK_HEIGHT * 0.7f;
+            noise_set_settings(state, FNL_NOISE_OPENSIMPLEX2, 0.001f, 6, 4.0f, 0.75f);
+            v = noise_2d(state, bx, bz) * CHUNK_HEIGHT * 0.7f;
             return 38 + v / 4;     
 
         case BIOME_FLOWER_FOREST: 
-            noise_set_settings(FNL_NOISE_OPENSIMPLEX2, 0.001f, 6, 4.0f, 0.75f);
-            v = noise_2d(bx, bz) * CHUNK_HEIGHT * 0.7f;
+            noise_set_settings(state, FNL_NOISE_OPENSIMPLEX2, 0.001f, 6, 4.0f, 0.75f);
+            v = noise_2d(state, bx, bz) * CHUNK_HEIGHT * 0.7f;
             return 38 + v / 4;     
 
         case BIOME_MOUNTAINS:  
-            noise_set_settings(FNL_NOISE_OPENSIMPLEX2, 0.005f, 3, 2.0f, 1.0f);
-            v = noise_2d(bx, bz) * CHUNK_HEIGHT;
+            noise_set_settings(state, FNL_NOISE_OPENSIMPLEX2, 0.005f, 3, 2.0f, 1.0f);
+            v = noise_2d(state, bx, bz) * CHUNK_HEIGHT;
             return 48 + v / 3;   
 
         case BIOME_DESERT:        
-            noise_set_settings(FNL_NOISE_OPENSIMPLEX2, 0.0006f, 5, 2.5f, 0.75f);
-            v = noise_2d(bx, bz) * CHUNK_HEIGHT;
+            noise_set_settings(state, FNL_NOISE_OPENSIMPLEX2, 0.0006f, 5, 2.5f, 0.75f);
+            v = noise_2d(state, bx, bz) * CHUNK_HEIGHT;
             return 48 + v / 8;  
 
         case BIOME_OCEAN:         
-            noise_set_settings(FNL_NOISE_OPENSIMPLEX2, 0.01f, 4, 2.0f, 0.5f);
-            v = noise_2d(bx, bz) * CHUNK_HEIGHT;
+            noise_set_settings(state, FNL_NOISE_OPENSIMPLEX2, 0.01f, 4, 2.0f, 0.5f);
+            v = noise_2d(state, bx, bz) * CHUNK_HEIGHT;
             return 32 + v / 16;
         
         default:
@@ -282,75 +287,67 @@ static int blerp(int h11, int h12, int h21, int h22, float x, float y)
     return h11 * (1 - x) * (1 - y) + h21 * x * (1 - y) + h12 * (1 - x) * y + h22 * x * y;
 }
 
-// Generate height only for some blocks (for every 8th block
-// in a grid: (0, 0), (0, 8), (8, 0) etc), then interpolate
-// these heights in order to get all remaining heights.
+// Indexing into 'biomes' and 'heightmap' arrays
+#define XZ(x, z) ((((x) + 8) * ((CHUNK_WIDTH + 1) + 8 + 8)) + ((z) + 8))
+
 void worldgen_generate_chunk(Chunk* c)
 {
-    // Set seed for rand() in order to always get the
-    // same grass/flowers/trees
-    unsigned int seed = noise_get_seed();
-    seed = ((seed >> 16) ^ c->x) * 0x45d9f3b;
-    seed = ((seed >> 16) ^ c->z) * 0x45d9f3b;
-    seed = (seed >> 16) ^ seed;
-    srand(seed);
+    noise_state* state = noise_state_create(c->x, c->z);
 
-    // Keep static buffers to increase performance
-    static Biome** biomes = NULL;
-    static int** heightmap = NULL;
-    if (biomes == NULL)
+    // Space for (CHUNK_WIDTH - 1) normal chunk blocks,
+    // 2 blocks that are stored as neighbour data,
+    // and 8 + 8 blocks for additional blocks used for
+    // interpolation
+    int const side_len = (CHUNK_WIDTH - 1) + 2 + 8 + 8;
+
+    Biome* biomes = malloc(side_len * side_len * sizeof(Biome));
+    int* heightmap = malloc(side_len * side_len * sizeof(int));
+
+    int c_start_x = c->x * CHUNK_WIDTH;
+    int c_start_z = c->z * CHUNK_WIDTH;
+
+    for (int x = -8; x <= CHUNK_WIDTH + 8; x++)
+    for (int z = -8; z <= CHUNK_WIDTH + 8; z++)
     {
-        // We need last index to be CHUNK_WIDTH
-        biomes = malloc((CHUNK_WIDTH + 1) * sizeof(Biome*));
-        heightmap = malloc((CHUNK_WIDTH + 1) * sizeof(int*));
+        int bx = c_start_x + x;
+        int bz = c_start_z + z;
+        
+        biomes[XZ(x, z)] = get_biome(state, bx, bz);
 
-        for (int i = 0; i < CHUNK_WIDTH + 1; i++)
-        {
-            biomes[i] = malloc((CHUNK_WIDTH + 1) * sizeof(Biome));
-            heightmap[i] = malloc((CHUNK_WIDTH + 1) * sizeof(int));
-        }
-    }
-    
-    int chunk_x_start = c->x * CHUNK_WIDTH;
-    int chunk_z_start = c->z * CHUNK_WIDTH;
-
-    for (int x = 0; x <= CHUNK_WIDTH; x++)
-    for (int z = 0; z <= CHUNK_WIDTH; z++)
-    {
-        int bx = chunk_x_start + x;
-        int bz = chunk_z_start + z;
-
-        // Generate biome for each block
-        biomes[x][z] = get_biome(bx, bz);
-
-        // Generate height only for some blocks
         if (x % 8 == 0 && z % 8 == 0)
-            heightmap[x][z] = get_height(biomes[x][z], bx, bz);
+            heightmap[XZ(x, z)] = get_height(&state->fnl, biomes[XZ(x, z)], bx, bz);
     }
 
-    for (int x = 0; x < CHUNK_WIDTH; x++)
-    for (int z = 0; z < CHUNK_WIDTH; z++)
+    for (int x = -1; x <= CHUNK_WIDTH; x++)
+    for (int z = -1; z <= CHUNK_WIDTH; z++)
     {
-        // Interpolate generated heights over all blocks
         if (x % 8 || z % 8)
         {
-            heightmap[x][z] = blerp(
-                heightmap[x - (x % 8)][z - (z % 8)], 
-                heightmap[x - (x % 8)][z - (z % 8) + 8],
-                heightmap[x - (x % 8) + 8][z - (z % 8)], 
-                heightmap[x - (x % 8) + 8][z - (z % 8) + 8], 
-                (float)(x % 8) / 8.0f, (float)(z % 8) / 8.0f
+            int const x_left = floor8(x);
+            int const z_top  = floor8(z);
+
+            heightmap[XZ(x, z)] = blerp(
+                heightmap[XZ(x_left, z_top)],
+                heightmap[XZ(x_left, z_top + 8)],
+                heightmap[XZ(x_left + 8, z_top)],
+                heightmap[XZ(x_left + 8, z_top + 8)],
+                (float)(x - x_left) / 8.0f, (float)(z - z_top) / 8.0f
             );
         }
 
-        switch (biomes[x][z])
+        switch (biomes[XZ(x, z)])
         {
-            case BIOME_PLAINS:        gen_plains(c, x, z, heightmap[x][z]); break;
-            case BIOME_FOREST:        gen_forest(c, x, z, heightmap[x][z]); break;
-            case BIOME_FLOWER_FOREST: gen_flower_forest(c, x, z, heightmap[x][z]); break;
-            case BIOME_MOUNTAINS:     gen_mountains(c, x, z, heightmap[x][z]); break;
-            case BIOME_DESERT:        gen_desert(c, x, z, heightmap[x][z]); break;
-            case BIOME_OCEAN:         gen_ocean(c, x, z, heightmap[x][z]); break; 
+            case BIOME_PLAINS:        gen_plains(state, c, x, z,        heightmap[XZ(x, z)]); break;
+            case BIOME_FOREST:        gen_forest(state, c, x, z,        heightmap[XZ(x, z)]); break;
+            case BIOME_FLOWER_FOREST: gen_flower_forest(state, c, x, z, heightmap[XZ(x, z)]); break;
+            case BIOME_MOUNTAINS:     gen_mountains(state, c, x, z,     heightmap[XZ(x, z)]); break;
+            case BIOME_DESERT:        gen_desert(state, c, x, z,        heightmap[XZ(x, z)]); break;
+            case BIOME_OCEAN:         gen_ocean(state, c, x, z,         heightmap[XZ(x, z)]); break;
         }
     }
+
+    free(biomes);
+    free(heightmap);
+
+    free(state);
 }

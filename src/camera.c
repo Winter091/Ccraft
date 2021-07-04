@@ -6,16 +6,16 @@
 #include "config.h"
 #include "utils.h"
 #include "block.h"
+#include "window.h"
 
 Camera* camera_create()
 {
     Camera* cam = malloc(sizeof(Camera));
 
-    cam->active = 1;
-    cam->fly_mode = 0;
+    cam->is_active = 1;
+    cam->is_fly_mode = 0;
+    cam->is_first_frame = 1;
 
-    // Position will be set later, using database or
-    // moving player to ground level
     glm_vec3_fill(cam->pos, 0.0f);
     glm_vec3_fill(cam->prev_pos, 0.0f);
 
@@ -26,43 +26,39 @@ Camera* camera_create()
     my_glm_vec3_set(cam->front, 0.0f, 0.0f, -1.0f);
     my_glm_vec3_set(cam->up,    0.0f, 1.0f,  0.0f);
 
-    cam->pitch = 0.0f;
-    cam->yaw = 270.0f;
+    cam->pitch = 0.0;
+    cam->yaw = 0.0;
 
     cam->fov = FOV;
     cam->sens = MOUSE_SENS;
     cam->fly_speed = 20.0f * BLOCK_SIZE;
 
-    cam->first_frame = 1;
-    cam->mouse_last_x = 0;
-    cam->mouse_last_y = 0;
-
-    cam->aspect_ratio = (float)WINDOW_WIDTH / WINDOW_HEIGHT;
+    cam->mouse_last_x = 0.0f;
+    cam->mouse_last_y = 0.0f;
 
     cam->clip_near = BLOCK_SIZE / 10.0f;
-    // At least 512 blocks
-    cam->clip_far = MAX((CHUNK_RENDER_RADIUS * 1.2f) * CHUNK_SIZE, 512 * BLOCK_SIZE);
+    cam->clip_far = MAX((CHUNK_RENDER_RADIUS * 1.2f) * CHUNK_SIZE,
+                        512 * BLOCK_SIZE);
+    cam->aspect_ratio = (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT;
 
-    // Generate matrices
     glm_look(cam->pos, cam->front, cam->up, cam->view_matrix);
-    glm_perspective(
-        glm_rad(cam->fov), (float)WINDOW_WIDTH / WINDOW_HEIGHT,
-        cam->clip_near, cam->clip_far, cam->proj_matrix
-    );
+    glm_perspective(glm_rad(cam->fov),
+                    (float)WINDOW_WIDTH / WINDOW_HEIGHT,
+                    cam->clip_near, cam->clip_far, cam->proj_matrix);
     glm_mat4_mul(cam->proj_matrix, cam->view_matrix, cam->vp_matrix);
     glm_mat4_copy(cam->view_matrix, cam->prev_view_matrix);
     
     return cam;
 }
 
-void camera_update_view_dir(Camera* cam, GLFWwindow* window)
+void camera_update_view_dir(Camera* cam)
 {
     double mouse_x, mouse_y;
-    glfwGetCursorPos(window, &mouse_x, &mouse_y);
+    glfwGetCursorPos(g_window->glfw, &mouse_x, &mouse_y);
 
-    if (cam->first_frame)
+    if (cam->is_first_frame)
     {
-        cam->first_frame = 0;
+        cam->is_first_frame = 0;
         cam->mouse_last_x = mouse_x;
         cam->mouse_last_y = mouse_y;
         return;
@@ -91,17 +87,17 @@ void camera_update_view_dir(Camera* cam, GLFWwindow* window)
     glm_vec3_normalize(cam->front);
 }
 
-void camera_update_parameters(Camera* cam, GLFWwindow* window, float dt)
+void camera_update_parameters(Camera* cam, float dt)
 {
     glm_vec3_copy(cam->pos, cam->prev_pos);
 
-    if (!cam->active)
+    if (!cam->is_active)
         return;
 
-    int key_c        = glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS;
-    int key_pageup   = glfwGetKey(window, GLFW_KEY_PAGE_UP) == GLFW_PRESS;
-    int key_pagedown = glfwGetKey(window, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS;
-    int key_tab      = glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS;
+    int key_c        = (glfwGetKey(g_window->glfw, GLFW_KEY_C)         == GLFW_PRESS);
+    int key_pageup   = (glfwGetKey(g_window->glfw, GLFW_KEY_PAGE_UP)   == GLFW_PRESS);
+    int key_pagedown = (glfwGetKey(g_window->glfw, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS);
+    int key_tab      = (glfwGetKey(g_window->glfw, GLFW_KEY_TAB)       == GLFW_PRESS);
     static int tab_already_pressed = 0;
 
     // Handle fly speed
@@ -124,10 +120,10 @@ void camera_update_parameters(Camera* cam, GLFWwindow* window, float dt)
     // Handle fly/walk mode
     if (key_tab && !tab_already_pressed)
     {
-        if (cam->fly_mode == 1)
-            cam->fly_mode = 0;
+        if (cam->is_fly_mode == 1)
+            cam->is_fly_mode = 0;
         else
-            cam->fly_mode = 1;
+            cam->is_fly_mode = 1;
         
         tab_already_pressed = 1;
     }

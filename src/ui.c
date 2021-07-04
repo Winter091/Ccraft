@@ -18,7 +18,6 @@ typedef struct
 }
 UI;
 
-// Keep static object for simplicity
 static UI* ui;
 
 void ui_init(float aspect_ratio)
@@ -48,7 +47,7 @@ void ui_init(float aspect_ratio)
     float bs = BLOCK_SIZE;
 
     float offset = 0.001f * BLOCK_SIZE;
-    // That's beatiful
+    // That's beautiful
     float vertices_wireframe[] = {
         x - offset, y - offset, z - offset,
         x + bs + offset, y - offset, z - offset,
@@ -139,9 +138,9 @@ void ui_render_block_wireframe(Player* p)
     glm_mat4_identity(model);
     glm_translate(model, (vec3){ x, y, z });
 
-    unsigned char block = map_get_block(
-        p->block_pointed_at[0], p->block_pointed_at[1], p->block_pointed_at[2]
-    );
+    unsigned char block = map_get_block(p->block_pointed_at[0], 
+                                        p->block_pointed_at[1],
+                                        p->block_pointed_at[2]);
 
     // make wireframe smaller
     if (block_is_plant(block))

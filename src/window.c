@@ -6,19 +6,19 @@
 #include "config.h"
 #include "framebuffer.h"
 
-int curr_window_w;
-int curr_window_h;
+Window* g_window;
 
 static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-    GameObjects* game = glfwGetWindowUserPointer(window);
+    GameObjectRefs* game = glfwGetWindowUserPointer(window);
+    Player* p = game->player;
 
-    camera_set_aspect_ratio(game->player->cam, (float)width / height);
+    camera_set_aspect_ratio(p->cam, (float)width / height);
     ui_update_aspect_ratio((float)width / height);
-    framebuffer_rebuild(width, height);
+    framebuffers_rebuild(g_window->fb, width, height);
 
-    curr_window_w = width;
-    curr_window_h = height;
+    g_window->width  = width;
+    g_window->height = height;
 
     glViewport(0, 0, width, height);
 }
@@ -28,12 +28,13 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     if (action == GLFW_RELEASE)
         return;
 
-    GameObjects* game = glfwGetWindowUserPointer(window);
+    GameObjectRefs* game = glfwGetWindowUserPointer(window);
+    Player* p = game->player;
 
     switch (key)
     {
         case GLFW_KEY_ESCAPE:
-            game->player->cam->active = 0;
+            p->cam->is_active = 0;
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             break;
     };
@@ -44,16 +45,18 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
     if (action != GLFW_PRESS)
         return;
 
-    GameObjects* game = glfwGetWindowUserPointer(window);
-    if (!game->player->cam->active)
+    GameObjectRefs* game = glfwGetWindowUserPointer(window);
+    Player* p = game->player;
+
+    if (!p->cam->is_active)
     {
-        game->player->cam->active = 1;
+        p->cam->is_active = 1;
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
         double x, y;
         glfwGetCursorPos(window, &x, &y);
-        game->player->cam->mouse_last_x = x;
-        game->player->cam->mouse_last_y = y;
+        p->cam->mouse_last_x = x;
+        p->cam->mouse_last_y = y;
 
         return;
     }
@@ -61,24 +64,26 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
     switch (button)
     {
         case GLFW_MOUSE_BUTTON_LEFT:
-            player_handle_left_mouse_click(game->player);
+            player_handle_left_mouse_click(p);
             break;
         case GLFW_MOUSE_BUTTON_RIGHT:
-            player_handle_right_mouse_click(game->player);
+            player_handle_right_mouse_click(p);
             break;
     };
 }
 
 static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    GameObjects* game = glfwGetWindowUserPointer(window);
+    GameObjectRefs* game = glfwGetWindowUserPointer(window);
+    Player* p = game->player;
+    
     if (yoffset > 0)
-        player_set_build_block(game->player, game->player->build_block + 1);
+        player_set_build_block(p, p->build_block + 1);
     else
-        player_set_build_block(game->player, game->player->build_block - 1);
+        player_set_build_block(p, p->build_block - 1);
 }
 
-GLFWwindow* window_create()
+void window_init()
 {
     if (!glfwInit())
     {
@@ -110,37 +115,51 @@ GLFWwindow* window_create()
         glfwWindowHint(GLFW_CENTER_CURSOR, GLFW_TRUE);
     }
 
+    g_window = malloc(sizeof(Window));
+
     // Will fail if OpenGL version is not supported
-    GLFWwindow* window = glfwCreateWindow(
-        WINDOW_WIDTH, WINDOW_HEIGHT, 
-        WINDOW_TITLE, monitor, NULL
-    );
-
-    curr_window_w = WINDOW_WIDTH;
-    curr_window_h = WINDOW_HEIGHT;
-
-    if (!window)
+    g_window->glfw = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, 
+                                      WINDOW_TITLE, monitor, NULL);
+    
+    if (!g_window->glfw)
     {
         fprintf(stderr, "GLFW window failed to init.\n");
-        fprintf(stderr, 
-            "Probably, the required version of OpenGL is not supported:\n"
-        );
-        fprintf(stderr, "OpenGL %d.%d\n", 
-            OPENGL_VERSION_MAJOR_REQUIRED, OPENGL_VERSION_MINOR_REQUIRED
-        );
+        fprintf(stderr, "Probably, the required version of OpenGL is not supported:\n");
+        fprintf(stderr, "OpenGL %d.%d\n", OPENGL_VERSION_MAJOR_REQUIRED, 
+                OPENGL_VERSION_MINOR_REQUIRED);
+        
         glfwTerminate();
         exit(EXIT_FAILURE);
     }
 
-    glfwMakeContextCurrent(window);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwMakeContextCurrent(g_window->glfw);
+    glfwSetInputMode(g_window->glfw, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSwapInterval(VSYNC);
 
     // Set callbacks
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetKeyCallback(window, key_callback);
-    glfwSetMouseButtonCallback(window, mouse_button_callback);
-    glfwSetScrollCallback(window, scroll_callback);
+    glfwSetFramebufferSizeCallback(g_window->glfw, framebuffer_size_callback);
+    glfwSetKeyCallback(g_window->glfw, key_callback);
+    glfwSetMouseButtonCallback(g_window->glfw, mouse_button_callback);
+    glfwSetScrollCallback(g_window->glfw, scroll_callback);
 
-    return window;
+    g_window->fb = NULL;
+
+    g_window->width  = WINDOW_WIDTH;
+    g_window->height = WINDOW_HEIGHT;
+}
+
+void window_init_fb()
+{
+    g_window->fb = framebuffers_init(WINDOW_WIDTH, WINDOW_HEIGHT);
+}
+
+void window_destroy()
+{
+    framebuffers_destroy(g_window->fb);
+    
+    glfwDestroyWindow(g_window->glfw);
+    glfwTerminate();
+
+    free(g_window);
+    g_window = NULL;
 }

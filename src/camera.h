@@ -7,8 +7,9 @@
 
 typedef struct
 {
-    int active;
-    int fly_mode;
+    int is_active;
+    int is_fly_mode;
+    int is_first_frame;
 
     vec3 pos;
     vec3 prev_pos;
@@ -20,14 +21,13 @@ typedef struct
     vec3 front;
     vec3 up;
 
-    float pitch;
-    float yaw;
+    double pitch;
+    double yaw;
 
     int fov;
     float sens;
     float fly_speed;
 
-    int first_frame;
     float mouse_last_x;
     float mouse_last_y;
 
@@ -44,13 +44,17 @@ typedef struct
 Camera;
 
 Camera* camera_create();
+
 int camera_looks_at_block(Camera* cam, int x, int y, int z, unsigned char block_type);
 
-void camera_update_view_dir(Camera* cam, GLFWwindow* window);
-void camera_update_parameters(Camera* cam, GLFWwindow* window, float dt);
+void camera_update_view_dir(Camera* cam);
+
+void camera_update_parameters(Camera* cam, float dt);
+
 void camera_update_matrices(Camera* cam);
 
 void camera_set_aspect_ratio(Camera* cam, float new_ratio);
+
 void camera_set_fov(Camera* cam, int new_fov);
 
 #endif
