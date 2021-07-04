@@ -40,12 +40,10 @@ Chunk* chunk_init(int cx, int cz);
 
 void chunk_generate_terrain(Chunk* c);
 
-// Create VAOs and VBOs, send them to GPU
 void chunk_generate_mesh(Chunk* c);
 
 void chunk_upload_mesh_to_gpu(Chunk* c);
 
-// Used during frustum culling
 int chunk_is_visible(int cx, int cz, vec4 planes[6]);
 
 void chunk_delete(Chunk* c);

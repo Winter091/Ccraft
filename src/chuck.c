@@ -87,7 +87,7 @@ static int block_set_visible_faces(Chunk* c, int x, int y, int z, int faces[6])
     return num_visible;
 }
 
-void block_set_ao(unsigned char neighs[27], float ao[6][4])
+static void block_set_ao(unsigned char neighs[27], float ao[6][4])
 {       
     // Neighbours indices for each vertex for each face
     static const unsigned char lookup[6][4][3] = 

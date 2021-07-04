@@ -2,8 +2,6 @@
 
 #include "stdlib.h"
 
-#include "config.h"
-
 GLuint opengl_create_vao()
 {
     GLuint VAO;

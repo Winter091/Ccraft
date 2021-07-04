@@ -40,20 +40,12 @@ unsigned char block_textures[][6] =
     { 21,  21,  64,  32,  21,  21},      // 34  BLOCK_SANDSTONE_CHISELED      
 };
 
-/*
-
-x, y, z: cube's world coordinates
-faces:   determine whether to draw face or not
-ao:      ao level for each vertex of each face
-
-*/
-void gen_cube_vertices(
-        Vertex* vertices, int* curr_vertex_count, int x, int y, int z,
-        int block_type, float block_size, int is_short, int faces[6], float ao[6][4]
-)
+void gen_cube_vertices(Vertex* vertices, int* curr_vertex_count, int x, int y, int z,
+                       int block_type, float block_size, int is_short, int faces[6],
+                       float ao[6][4])
 {
     // 6 faces, each face has 4 points forming a square
-    static const float positions[6][4][3] = 
+    static const float pos[6][4][3] =
     {
         { {0, 0, 0}, {0, 0, 1}, {0, 1, 0}, {0, 1, 1} }, // left
         { {1, 0, 0}, {1, 0, 1}, {1, 1, 0}, {1, 1, 1} }, // right
@@ -64,9 +56,9 @@ void gen_cube_vertices(
     };
 
     // Cactus is a bit smaller than other blocks
-#define a 0.0625f
-#define b 1.0f - a
-    static const float positions_cactus[6][4][3] = 
+    float const a = 0.0625f;
+    float const b = 1.0f - a;
+    static const float pos_cactus[6][4][3] =
     {
         { {a, 0, 0}, {a, 0, 1}, {a, 1, 0}, {a, 1, 1} }, // left
         { {b, 0, 0}, {b, 0, 1}, {b, 1, 0}, {b, 1, 1} }, // right
@@ -76,7 +68,7 @@ void gen_cube_vertices(
         { {0, 0, b}, {0, 1, b}, {1, 0, b}, {1, 1, b} }  // front
     };
 
-    static const int indices[6][6] = 
+    static const int indices[6][6] =
     {
         {0, 3, 2, 0, 1, 3},
         {0, 3, 1, 0, 2, 3},
@@ -95,7 +87,7 @@ void gen_cube_vertices(
         {0, 2, 1, 2, 3, 1}
     };
 
-    static const float uvs[6][4][2] = 
+    static const float uvs[6][4][2] =
     {
         { {0, 0}, {1, 0}, {0, 1}, {1, 1} },
         { {1, 0}, {0, 0}, {1, 1}, {0, 1} },
@@ -105,55 +97,50 @@ void gen_cube_vertices(
         { {1, 0}, {1, 1}, {0, 0}, {0, 1} }
     };
 
-    // for each face
     for (int f = 0; f < 6; f++)
     {
         if (!faces[f]) continue;
-        
-        // for each vertex
+
         for (int v = 0; v < 6; v++)
         {
-            // Flip some quads to eliminate ao unevenness
-            int index = ao[f][0] + ao[f][3] > ao[f][1] + ao[f][2] ?
-                indices_flipped[f][v] : indices[f][v];
+            // Flip some quads to eliminate ao unevenness:
+            // https://0fps.net/2013/07/03/ambient-occlusion-for-minecraft-like-worlds/
+            int index = (ao[f][0] + ao[f][3] > ao[f][1] + ao[f][2]) ?
+                        indices_flipped[f][v] : indices[f][v];
 
             int i = (*curr_vertex_count)++;
 
             // cactus is a bit thinner than other blocks
             if (block_type == BLOCK_CACTUS)
             {
-                vertices[i].pos[0] = (positions_cactus[f][index][0] + (float)x) * block_size;
-                vertices[i].pos[1] = (positions_cactus[f][index][1] + (float)y) * block_size;
-                vertices[i].pos[2] = (positions_cactus[f][index][2] + (float)z) * block_size;
+                vertices[i].pos[0] = (pos_cactus[f][index][0] + (float)x) * block_size;
+                vertices[i].pos[1] = (pos_cactus[f][index][1] + (float)y) * block_size;
+                vertices[i].pos[2] = (pos_cactus[f][index][2] + (float)z) * block_size;
             }
             else
             {
-                vertices[i].pos[0] = (positions[f][index][0] + (float)x) * block_size;
-                vertices[i].pos[1] = (positions[f][index][1] + (float)y) * block_size;
-                vertices[i].pos[2] = (positions[f][index][2] + (float)z) * block_size;
+                vertices[i].pos[0] = (pos[f][index][0] + (float)x) * block_size;
+                vertices[i].pos[1] = (pos[f][index][1] + (float)y) * block_size;
+                vertices[i].pos[2] = (pos[f][index][2] + (float)z) * block_size;
             }
 
-            // Shorten only a top of a block
-            if (is_short && positions[f][index][1] > 0)
-            {
+            // Make only a top of a block shorter
+            if (is_short && pos[f][index][1] > 0)
                 vertices[i].pos[1] -= 0.125f * block_size;
-            }
 
             vertices[i].tex_coord[0] = uvs[f][index][0];
             vertices[i].tex_coord[1] = uvs[f][index][1];
-            vertices[i].ao = ao[f][index];
-            vertices[i].tile = block_textures[block_type][f];
+            vertices[i].ao           = ao[f][index];
+            vertices[i].tile         = block_textures[block_type][f];
         }
     }
 }
 
-void gen_plant_vertices(
-    Vertex* vertices, int* curr_vertex_count, int x, int y, int z,
-    int block_type, float block_size
-)
+void gen_plant_vertices(Vertex* vertices, int* curr_vertex_count, int x, int y, int z,
+                        int block_type, float block_size)
 {
-    // A cross made up of 2 faces
-    static const float positions[2][4][3] =
+    // A cross made up of 2 perpendicular quads
+    static const float pos[2][4][3] =
     {
         { {0.5f, 0.0f, 0.0f}, {0.5f, 0.0f, 1.0f}, {0.5f, 1.0f, 1.0f}, {0.5f, 1.0f, 0.0f} },
         { {0.0f, 0.0f, 0.5f}, {1.0f, 0.0f, 0.5f}, {1.0f, 1.0f, 0.5f}, {0.0f, 1.0f, 0.5f} }
@@ -170,24 +157,22 @@ void gen_plant_vertices(
         {0, 0}, {1, 0}, {1, 1}, {0, 1}
     };
 
-    // There are 2 faces for a plant, but we are
-    // generating 4 to eliminate face culling effect
+    // Plant consists of 2 quads, but 4 are needed
+    // in order to correctly handle face culling
     for (int f = 0; f < 4; f++)
-    { 
-        for (int v = 0; v < 6; v++)
-        {
-            int index = indices[f % 2][v];
-            int i = (*curr_vertex_count)++;
+    for (int v = 0; v < 6; v++)
+    {
+        int index = indices[f % 2][v];
+        int i = (*curr_vertex_count)++;
 
-            vertices[i].pos[0] = (positions[f / 2][index][0] + (float)x) * block_size;
-            vertices[i].pos[1] = (positions[f / 2][index][1] + (float)y) * block_size;
-            vertices[i].pos[2] = (positions[f / 2][index][2] + (float)z) * block_size;
+        vertices[i].pos[0] = (pos[f / 2][index][0] + (float)x) * block_size;
+        vertices[i].pos[1] = (pos[f / 2][index][1] + (float)y) * block_size;
+        vertices[i].pos[2] = (pos[f / 2][index][2] + (float)z) * block_size;
 
-            vertices[i].tex_coord[0] = uvs[index][0];
-            vertices[i].tex_coord[1] = uvs[index][1];
-            vertices[i].ao = 0.0f;
-            vertices[i].tile = block_textures[block_type][f];
-        }
+        vertices[i].tex_coord[0] = uvs[index][0];
+        vertices[i].tex_coord[1] = uvs[index][1];
+        vertices[i].ao           = 0.0f;
+        vertices[i].tile         = block_textures[block_type][f];
     }
 }
 

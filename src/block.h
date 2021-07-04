@@ -52,20 +52,17 @@
 // Textures for each face of each block
 extern unsigned char block_textures[][6];
 
-// Write block's vertex data into vertices array
-void gen_cube_vertices(
-    Vertex* vertices, int* curr_vertex_count, int x, int y, int z,
-    int block_type, float block_size, int is_short, int faces[6], float ao[6][4]
-);
+void gen_cube_vertices(Vertex* vertices, int* curr_vertex_count, int x, int y, int z,
+                       int block_type, float block_size, int is_short, int faces[6],
+                       float ao[6][4]);
 
-// Write plant's vertex data into vertices array
-void gen_plant_vertices(
-    Vertex* vertices, int* curr_vertex_count, int x, int y, int z,
-    int block_type, float block_size
-);
+void gen_plant_vertices(Vertex* vertices, int* curr_vertex_count, int x, int y, int z,
+                        int block_type, float block_size);
 
 int block_is_solid(unsigned char block);
+
 int block_is_transparent(unsigned char block);
+
 int block_is_plant(unsigned char block);
 
 void block_gen_aabb(int x, int y, int z, vec3 aabb[2]);

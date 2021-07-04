@@ -1,7 +1,6 @@
 /*
 
-    My simple linked list implementation using 
-    a lot of preprocessor shit
+    Very simple generic singly-linked list
 
 */
 
@@ -10,7 +9,7 @@
 
 #include "stdlib.h"
 
-#define LINKEDLIST_DEFINITION(TYPE, TYPENAME)                               \
+#define LINKEDLIST_DECLARATION(TYPE, TYPENAME)                               \
                                                                             \
 typedef struct LinkedListNode_##TYPENAME                                    \
 {                                                                           \

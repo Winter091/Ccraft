@@ -288,13 +288,17 @@ static int blerp(int h11, int h12, int h21, int h22, float x, float y)
 }
 
 // Indexing into 'biomes' and 'heightmap' arrays
-#define XZ(x, z) (((x) + 8) * ((CHUNK_WIDTH + 1) + 8 + 8)) + ((z) + 8)
+#define XZ(x, z) ((((x) + 8) * ((CHUNK_WIDTH + 1) + 8 + 8)) + ((z) + 8))
 
 void worldgen_generate_chunk(Chunk* c)
 {
     noise_state* state = noise_state_create(c->x, c->z);
 
-    int const side_len = (CHUNK_WIDTH + 1) + 8 + 8;
+    // Space for (CHUNK_WIDTH - 1) normal chunk blocks,
+    // 2 blocks that are stored as neighbour data,
+    // and 8 + 8 blocks for additional blocks used for
+    // interpolation
+    int const side_len = (CHUNK_WIDTH - 1) + 2 + 8 + 8;
 
     Biome* biomes = malloc(side_len * side_len * sizeof(Biome));
     int* heightmap = malloc(side_len * side_len * sizeof(int));

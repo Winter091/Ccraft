@@ -13,8 +13,8 @@
 #include "thread_worker.h"
 
 // Define data structures for chunks
-LINKEDLIST_DEFINITION(Chunk*, chunks);
-HASHMAP_DEFINITION(Chunk*, chunks);
+LINKEDLIST_DECLARATION(Chunk*, chunks);
+HASHMAP_DECLARATION(Chunk*, chunks);
 
 LINKEDLIST_IMPLEMENTATION(Chunk*, chunks);
 HASHMAP_IMPLEMENTATION(Chunk*, chunks, chunk_hash_func);
@@ -27,7 +27,6 @@ for (int i = 0; i < map->chunks_active->array_size; i++)                 \
     for ( ; node; node = node->ptr_next)                                 \
     {                                                                    \
         Chunk* CHUNK_NAME = node->data;                                  \
-
 
 #define MAP_FOREACH_ACTIVE_CHUNK_END() }}
 
@@ -62,7 +61,7 @@ Map;
 // Keep static object for simplicity
 static Map* map;
 
-// NULL if chunk is not found
+// NULL if chunk is not here
 static Chunk* map_get_chunk(int chunk_x, int chunk_z)
 {
     uint32_t index = chunk_hash_func2(chunk_x, chunk_z) % map->chunks_active->array_size;
@@ -84,8 +83,10 @@ static void map_delete_chunk(int chunk_x, int chunk_z)
         hashmap_chunks_remove(map->chunks_active, c);
         chunk_delete(c);
 
-        // Should rebuild neighbours but as long as all deleted
-        // chunks are on edge of view, it's not nessessary
+        // Ideally should rebuild neighbours here, but
+        // this won't update anything because chunks
+        // are not minding neighbours at all, they just
+        // keep separate copy of neighbours' blocks
     }
 }
 
@@ -151,7 +152,7 @@ double map_get_time()
 
 static float map_get_blocks_light()
 {    
-    double time = map_get_time();
+    float time = (float)map_get_time();
 
     if (time < EVN_TO_NIGHT_START)
     {
@@ -166,13 +167,13 @@ static float map_get_blocks_light()
     else
     {
         return glm_lerp(NIGHT_LIGHT, DAY_LIGHT, 
-                        glm_smoothstep(NIGHT_TO_DAY_START, 1.0, time));
+                        glm_smoothstep(NIGHT_TO_DAY_START, 1.0f, time));
     }
 }
 
 static void map_get_fog_color(float* r, float* g, float* b)
 {    
-    double time = map_get_time();
+    float time = (float)map_get_time();
     static vec3 day_color     = {0.5f, 0.6f, 0.7f}; 
     static vec3 evening_color = {1.0f, 0.9f, 0.7f}; 
     static vec3 night_color   = {0.2f, 0.2f, 0.2f}; 
@@ -207,14 +208,14 @@ void map_render_sun_moon(Camera* cam)
     glm_translate(model_sun, cam->pos);
     glm_mat4_copy(model_sun, model_moon);
 
-    double time = map_get_time();
+    float time = (float)map_get_time();
 
     // apply offset to current time to synchronize
     // light level with sun presence in the sky
-    double offset = 0.1;
+    float offset = 0.1f;
     time += offset;
-    if (time > 1.0)
-        time -= 1.0;
+    if (time > 1.0f)
+        time -= 1.0f;
     
     // sun and moon are always on the opposite
     // parts of the sky
@@ -260,7 +261,8 @@ void map_render_sky(Camera* cam)
     glm_mat4_identity(model);
     glm_translate(model, cam->pos);
 
-    // rotate cubemap slightly, why not?
+    // rotate cubemap slightly, it looks better when
+    // stars and moon have different rotation axes
     glm_rotate(model, GLM_PI / 4.0f, (vec3){0.0f, 1.0f, 0.0f});
 
     mat4 mvp_matrix;
@@ -273,7 +275,7 @@ void map_render_sky(Camera* cam)
     shader_set_texture_skybox(shader_skybox, "texture_evening", texture_skybox_evening, 1);
     shader_set_texture_skybox(shader_skybox, "texture_night", texture_skybox_night, 2);
     
-    shader_set_float1(shader_skybox, "time", map_get_time());
+    shader_set_float1(shader_skybox, "time", (float)map_get_time());
     shader_set_float1(shader_skybox, "day_to_evn_start", DAY_TO_EVN_START);
     shader_set_float1(shader_skybox, "evn_to_night_start", EVN_TO_NIGHT_START);
     shader_set_float1(shader_skybox, "night_start", NIGHT_START);
@@ -411,7 +413,7 @@ void map_set_block(int bx, int by, int bz, unsigned char block)
     set_block(c, x, by, z, block);
 }
 
-static bool find_chunk_for_worker(Camera* cam, int* best_x, int* best_z)
+static int find_chunk_for_worker(Camera* cam, int* best_x, int* best_z)
 {
     int player_cx = chunked_cam(cam->pos[0]);
     int player_cz = chunked_cam(cam->pos[2]);
@@ -481,7 +483,7 @@ static void handle_workers(Camera* cam)
         if (worker->state == WORKER_IDLE)
         {
             int best_cx, best_cz;
-            bool found = find_chunk_for_worker(cam, &best_cx, &best_cz);
+            int found = find_chunk_for_worker(cam, &best_cx, &best_cz);
             if (!found)
             {
                 mtx_unlock(&worker->state_mtx);

@@ -13,10 +13,13 @@ extern GLuint texture_moon;
 void textures_load();
 
 GLuint framebuffer_color_texture_create(int width, int height);
+
 GLuint framebuffer_depth_texture_create(int width, int height);
 
 void texture_2d_bind(GLuint texture, int slot);
+
 void texture_array_bind(GLuint texture, int slot);
+
 void texture_skybox_bind(GLuint texture, int slot);
 
 #endif

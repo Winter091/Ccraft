@@ -29,13 +29,17 @@ typedef struct
 Vertex;
 
 GLuint opengl_create_vao();
+
 GLuint opengl_create_vbo(const void* vertices, size_t buf_size);
+
 GLuint opengl_create_vbo_cube();
+
 GLuint opengl_create_vbo_quad();
+
 GLuint opengl_create_fbo();
 
 // Get next smallest value that is divisible by 8:
-// 5 -> 0, 9 -> 8, -1 -> -8, -8 -> -8
+// 5 -> 0, 9 -> 8, -1 -> -8, -8 -> -8, ...
 static inline int floor8(int a)
 {
     if (a >= 0)

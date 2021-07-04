@@ -1,7 +1,6 @@
 /*
 
-    My simple hashmap implementation using 
-    a lot of preprocessor shit
+    Very simple generic hashmap
 
 */
 
@@ -11,7 +10,7 @@
 #include "stdlib.h"
 #include "stdint.h"
 
-#define HASHMAP_DEFINITION(TYPE, TYPENAME)                                  \
+#define HASHMAP_DECLARATION(TYPE, TYPENAME)                                  \
                                                                             \
 typedef struct LinkedListNodeMap_##TYPENAME                                 \
 {                                                                           \

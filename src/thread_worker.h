@@ -37,6 +37,7 @@ Worker;
 int worker_loop(void* data);
 
 void worker_create(Worker* worker, thrd_start_t func);
+
 void worker_destroy(Worker* worker);
 
 #endif

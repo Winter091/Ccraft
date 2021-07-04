@@ -8,113 +8,90 @@
 
 #include "config.h"
 #include "shader.h"
-#include "camera.h"
 #include "window.h"
 #include "texture.h"
 #include "db.h"
-#include "fastnoiselite.h"
-#include "tinycthread.h"
 
 // Print OpenGL warnings and errors
-void opengl_debug_callback(
-    GLenum source, GLenum type, GLuint id, GLenum severity, 
-    GLsizei length, const GLchar* message, const void* userParam
-)
+void opengl_debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity,
+                           GLsizei length, const GLchar* message, const void* userParam)
 {
     char* _source;
     char* _type;
     char* _severity;
 
-    switch (source) {
+    switch (source)
+    {
         case GL_DEBUG_SOURCE_API_ARB:
-        _source = "API";
-        break;
-
+            _source = "API";
+            break;
         case GL_DEBUG_SOURCE_WINDOW_SYSTEM_ARB:
-        _source = "WINDOW SYSTEM";
-        break;
-
+            _source = "WINDOW SYSTEM";
+            break;
         case GL_DEBUG_SOURCE_SHADER_COMPILER_ARB:
-        _source = "SHADER COMPILER";
-        break;
-
+            _source = "SHADER COMPILER";
+            break;
         case GL_DEBUG_SOURCE_THIRD_PARTY_ARB:
-        _source = "THIRD PARTY";
-        break;
-
+            _source = "THIRD PARTY";
+            break;
         case GL_DEBUG_SOURCE_APPLICATION_ARB:
-        _source = "APPLICATION";
-        break;
-
+            _source = "APPLICATION";
+            break;
         case GL_DEBUG_SOURCE_OTHER_ARB:
-        _source = "UNKNOWN";
-        break;
-
+            _source = "UNKNOWN";
+            break;
         default:
-        _source = "UNKNOWN";
-        break;
+            _source = "UNKNOWN";
     }
 
-    switch (type) {
+    switch (type)
+    {
         case GL_DEBUG_TYPE_ERROR_ARB:
-        _type = "ERROR";
-        break;
-
+            _type = "ERROR";
+            break;
         case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR_ARB:
-        _type = "DEPRECATED BEHAVIOR";
-        break;
-
+            _type = "DEPRECATED BEHAVIOR";
+            break;
         case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR_ARB:
-        _type = "UDEFINED BEHAVIOR";
-        break;
-
+            _type = "UDEFINED BEHAVIOR";
+            break;
         case GL_DEBUG_TYPE_PORTABILITY_ARB:
-        _type = "PORTABILITY";
-        break;
-
+            _type = "PORTABILITY";
+            break;
         case GL_DEBUG_TYPE_PERFORMANCE_ARB:
-        _type = "PERFORMANCE";
-        break;
-
+            _type = "PERFORMANCE";
+            break;
         case GL_DEBUG_TYPE_OTHER_ARB:
-        _type = "OTHER";
-        break;
-
+            _type = "OTHER";
+            break;
         default:
-        _type = "UNKNOWN";
-        break;
+            _type = "UNKNOWN";
     }
 
-    switch (severity) {
+    switch (severity)
+    {
         case GL_DEBUG_SEVERITY_HIGH_ARB:
-        _severity = "HIGH";
-        break;
-
+            _severity = "HIGH";
+            break;
         case GL_DEBUG_SEVERITY_MEDIUM_ARB:
-        _severity = "MEDIUM";
-        break;
-
+            _severity = "MEDIUM";
+            break;
         case GL_DEBUG_SEVERITY_LOW_ARB:
-        _severity = "LOW";
-        break;
-
+            _severity = "LOW";
+            break;
         default:
-        _severity = "UNKNOWN";
-        break;
+            _severity = "UNKNOWN";
     }
 
-    printf("%d: %s of %s severity, raised from %s: %s\n",
+    fprintf(stderr,"%d: %s of %s severity, raised from %s: %s\n",
             id, _type, _severity, _source, message);
 }
 
-// Show fps in window title bar
-static void print_fps()
+static void window_title_update_fps()
 {
     static double last_time = -1.0;
     if (last_time < 0)
-    {
         last_time = glfwGetTime();
-    }
 
     static int frames = 0;
     frames++;
@@ -130,14 +107,11 @@ static void print_fps()
     }
 }
 
-// Get time between current and last frame
 static double get_dt()
 {
     static double last_time = -1.0;
     if (last_time < 0)
-    {
         last_time = glfwGetTime();
-    }
 
     double curr_time = glfwGetTime();
     double dt = curr_time - last_time;
@@ -189,13 +163,15 @@ void render_game(Player* p)
     }
 }
 
-// First pass is applying depth of field effect
+// Apply depth of field and render to texture
 void render_first_pass(float dt)
 {
     shader_use(shader_deferred1);
 
-    shader_set_texture_2d(shader_deferred1, "texture_color", g_window->fb->gbuf_tex_color, 0);
-    shader_set_texture_2d(shader_deferred1, "texture_depth", g_window->fb->gbuf_tex_depth, 1);
+    shader_set_texture_2d(shader_deferred1, "texture_color",
+                          g_window->fb->gbuf_tex_color, 0);
+    shader_set_texture_2d(shader_deferred1, "texture_depth",
+                          g_window->fb->gbuf_tex_depth, 1);
 
     if (!DOF_ENABLED)
     {
@@ -220,14 +196,17 @@ void render_first_pass(float dt)
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
-// Second pass is applying motion blur and color correction
+// Apply motion blur, gamma correction, saturation and render to screen
 void render_second_pass(Player* p, float dt)
 {
     shader_use(shader_deferred2);
 
-    shader_set_texture_2d(shader_deferred2, "texture_color", g_window->fb->gbuf_tex_color_pass_1, 0);
-    shader_set_texture_2d(shader_deferred2, "texture_ui",    g_window->fb->gbuf_tex_color_ui, 1);
-    shader_set_texture_2d(shader_deferred2, "texture_depth", g_window->fb->gbuf_tex_depth, 2);
+    shader_set_texture_2d(shader_deferred2, "texture_color",
+                          g_window->fb->gbuf_tex_color_pass_1, 0);
+    shader_set_texture_2d(shader_deferred2, "texture_ui",
+                          g_window->fb->gbuf_tex_color_ui, 1);
+    shader_set_texture_2d(shader_deferred2, "texture_depth",
+                          g_window->fb->gbuf_tex_depth, 2);
 
     if (!MOTION_BLUR_ENABLED)
     {
@@ -278,7 +257,9 @@ void render(Player* p, float dt)
 }
 
 int main()
-{    
+{
+    srand(time(0));
+    
     config_load();
     window_init();
     
@@ -300,7 +281,7 @@ int main()
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
 #ifdef DEBUG
-    // Set up debug context if it's available
+    // Set up OpenGL's debug context, if it's available
     GLint context_flags;
     glGetIntegerv(GL_CONTEXT_FLAGS, &context_flags);
     if (context_flags & GLFW_OPENGL_DEBUG_CONTEXT)
@@ -338,7 +319,7 @@ int main()
 
     while (!glfwWindowShouldClose(g_window->glfw))
     {
-        print_fps();
+        window_title_update_fps();
 
         float dt = get_dt();
 

@@ -35,6 +35,7 @@ void noise_set_settings(fnl_state* state, fnl_noise_type noise_type, float freq,
     state->gain = gain;
 }
 
+// [0.0, 1.0]
 float noise_2d(fnl_state* state, float x, float z)
 {
     return (fnlGetNoise2D(state, x, z) + 1.0f) / 2.0f;

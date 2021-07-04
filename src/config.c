@@ -15,14 +15,14 @@ int   DOF_ENABLED              = 1;
 int   DOF_SMOOTH               = 1;
 float DOF_MAX_BLUR             = 0.023f;
 float DOF_APERTURE             = 0.3505f;
-float DOF_SPEED                = 5.0;
+float DOF_SPEED                = 5.0f;
 int   FOV                      = 65;
 int   FOV_ZOOM                 = 20;
 float GAMMA                    = 1.5f;
 float SATURATION               = 1.2f;
 
 // [WINDOW] (default values)
-const char* WINDOW_TITLE  = "SND Corp - Ccraft";
+const char* WINDOW_TITLE  = "Ccraft";
 int         WINDOW_WIDTH  = 1280;
 int         WINDOW_HEIGHT = 720;
 int         FULLSCREEN    = 0;
@@ -49,7 +49,7 @@ float MAX_MOVE_SPEED_SNEAK    = 1.3f;
 float MAX_SWIM_SPEED          = 3.0f;
 float MAX_FALL_SPEED          = 100.0f;
 float MAX_DIVE_SPEED          = 4.0f;
-float MAX_EMEGRE_SPEED        = 6.0f;
+float MAX_EMERGE_SPEED        = 6.0f;
 float ACCELERATION_HORIZONTAL = 40.0f;
 float DECELERATION_HORIZONTAL = 50.0f;
 float DECELERATION_VERTICAL   = 10.0f;
@@ -91,7 +91,7 @@ static void create_default_cfg_file()
     "; Default config file will be created.\n\n"
 
     "[WINDOW]\n"
-    "title      = SND Corp - Ccraft\n"
+    "title      = Ccraft\n"
     "width      = 1280\n"
     "height     = 720\n"
     "fullscreen = 0\n"
@@ -120,7 +120,7 @@ static void create_default_cfg_file()
     "depth_of_field_speed    = 5.0 ; Affects only smooth depth of field\n\n"
 
     "; Field of view\n"
-    "fov      = 65\n"
+    "fov      = 75\n"
     "fov_zoom = 20\n\n"
 
     "gamma      = 1.5\n"
@@ -145,17 +145,10 @@ static void create_default_cfg_file()
     "night_light   = 0.15\n\n"
 
     "[CORE]\n"
-    "; Should be a multiple of 8 (8, 16, 24, 32 etc),\n"
-    "; otherwise the gamme will crash/break.\n"
-    "; Also, game and map are incompatible if\n" 
-    "; widths are different. Reducing chunk width\n"
-    "; is a great performance boost on a slower\n"
-    "; proccessors\n"
+    "; Probably you shouldn't even dare to touch it\n"
     "chunk_width = 32\n\n"
 
-    "; Probably you don't want to change height,\n"
-    "; it will completely break world generation\n"
-    "; and maybe something else\n"
+    "; And also don't touch that!\n"
     "chunk_height = 256\n\n"
 
     "; Width of one block in GPU memory. If it's\n"
@@ -192,7 +185,7 @@ static void normalize_player_physics()
     MAX_SWIM_SPEED          *= BLOCK_SIZE;
     MAX_FALL_SPEED          *= BLOCK_SIZE;
     MAX_DIVE_SPEED          *= BLOCK_SIZE;
-    MAX_EMEGRE_SPEED        *= BLOCK_SIZE;
+    MAX_EMERGE_SPEED        *= BLOCK_SIZE;
     ACCELERATION_HORIZONTAL *= BLOCK_SIZE;
     DECELERATION_HORIZONTAL *= BLOCK_SIZE;
     DECELERATION_VERTICAL   *= BLOCK_SIZE;
@@ -272,7 +265,7 @@ void config_load()
     try_load("PHYSICS", "max_swim_speed", "%f", &MAX_SWIM_SPEED);
     try_load("PHYSICS", "max_fall_speed", "%f", &MAX_FALL_SPEED);
     try_load("PHYSICS", "max_dive_speed", "%f", &MAX_DIVE_SPEED);
-    try_load("PHYSICS", "max_emerge_speed", "%f", &MAX_EMEGRE_SPEED);
+    try_load("PHYSICS", "max_emerge_speed", "%f", &MAX_EMERGE_SPEED);
     try_load("PHYSICS", "acceleration_horizontal", "%f", &ACCELERATION_HORIZONTAL);
     try_load("PHYSICS", "deceleration_horizontal", "%f", &DECELERATION_HORIZONTAL);
     try_load("PHYSICS", "deceleration_vertical", "%f", &DECELERATION_VERTICAL);
@@ -281,7 +274,7 @@ void config_load()
 
     normalize_player_physics();
 
-    CHUNK_SIZE          = CHUNK_WIDTH * BLOCK_SIZE;
+    CHUNK_SIZE          = (float)CHUNK_WIDTH * BLOCK_SIZE;
     CHUNK_LOAD_RADIUS   = CHUNK_RENDER_RADIUS + 2;
     CHUNK_UNLOAD_RADIUS = CHUNK_RENDER_RADIUS + 5;
 

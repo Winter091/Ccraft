@@ -45,7 +45,7 @@ extern float MAX_MOVE_SPEED_SNEAK;
 extern float MAX_SWIM_SPEED;
 extern float MAX_FALL_SPEED;
 extern float MAX_DIVE_SPEED;
-extern float MAX_EMEGRE_SPEED;
+extern float MAX_EMERGE_SPEED;
 extern float ACCELERATION_HORIZONTAL;
 extern float DECELERATION_HORIZONTAL;
 extern float DECELERATION_VERTICAL;

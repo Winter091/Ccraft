@@ -47,7 +47,7 @@ void ui_init(float aspect_ratio)
     float bs = BLOCK_SIZE;
 
     float offset = 0.001f * BLOCK_SIZE;
-    // That's beatiful
+    // That's beautiful
     float vertices_wireframe[] = {
         x - offset, y - offset, z - offset,
         x + bs + offset, y - offset, z - offset,

@@ -34,10 +34,13 @@ typedef struct
 Framebuffers;
 
 Framebuffers* framebuffers_init(int window_w, int window_h);
+
 void framebuffers_rebuild(Framebuffers* fb, int new_window_w, int new_window_h);
+
 void framebuffers_destroy(Framebuffers* fb);
 
 void framebuffer_use(Framebuffers* fb, FbType type);
+
 void framebuffer_use_texture(FbTextureType type);
 
 #endif

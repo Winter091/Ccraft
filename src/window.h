@@ -29,7 +29,9 @@ GameObjectRefs;
 extern Window* g_window;
 
 void window_init();
+
 void window_init_fb();
+
 void window_destroy();
 
 #endif
