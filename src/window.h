@@ -23,7 +23,6 @@ Window;
 typedef struct
 {
     Player* player;
-    Window* window;
 }
 GameObjectRefs;
 

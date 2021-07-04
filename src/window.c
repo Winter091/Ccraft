@@ -12,14 +12,13 @@ static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     GameObjectRefs* game = glfwGetWindowUserPointer(window);
     Player* p = game->player;
-    Window* w = game->window;
 
     camera_set_aspect_ratio(p->cam, (float)width / height);
     ui_update_aspect_ratio((float)width / height);
-    framebuffers_rebuild(w->fb, width, height);
+    framebuffers_rebuild(g_window->fb, width, height);
 
-    w->width  = width;
-    w->height = height;
+    g_window->width  = width;
+    g_window->height = height;
 
     glViewport(0, 0, width, height);
 }

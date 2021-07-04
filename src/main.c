@@ -334,7 +334,6 @@ int main()
     // functions (using glfwGetWindowUserPointer)
     GameObjectRefs* objects = malloc(sizeof(GameObjectRefs));
     objects->player = player;
-    objects->window = g_window;
     glfwSetWindowUserPointer(g_window->glfw, objects);
 
     while (!glfwWindowShouldClose(g_window->glfw))
