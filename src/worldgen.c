@@ -287,69 +287,61 @@ static int blerp(int h11, int h12, int h21, int h22, float x, float y)
     return h11 * (1 - x) * (1 - y) + h21 * x * (1 - y) + h12 * (1 - x) * y + h22 * x * y;
 }
 
-// Generate height only for some blocks (for every 8th block
-// in a grid: (0, 0), (0, 8), (8, 0) etc), then interpolate
-// these heights in order to get all remaining heights.
+// Indexing into 'biomes' and 'heightmap' arrays
+#define XZ(x, z) (((x) + 8) * ((CHUNK_WIDTH + 1) + 8 + 8)) + ((z) + 8)
+
 void worldgen_generate_chunk(Chunk* c)
 {
     noise_state* state = noise_state_create(c->x, c->z);
 
-    Biome** biomes = malloc(CHUNK_WIDTH_REAL * sizeof(Biome*));
-    int** heightmap = malloc(CHUNK_WIDTH_REAL * sizeof(int*));
-    for (int i = 0; i < CHUNK_WIDTH_REAL; i++)
+    int const side_len = (CHUNK_WIDTH + 1) + 8 + 8;
+
+    Biome* biomes = malloc(side_len * side_len * sizeof(Biome));
+    int* heightmap = malloc(side_len * side_len * sizeof(int));
+
+    int c_start_x = c->x * CHUNK_WIDTH;
+    int c_start_z = c->z * CHUNK_WIDTH;
+
+    for (int x = -8; x <= CHUNK_WIDTH + 8; x++)
+    for (int z = -8; z <= CHUNK_WIDTH + 8; z++)
     {
-        biomes[i] = malloc(CHUNK_WIDTH_REAL * sizeof(Biome));
-        heightmap[i] = malloc(CHUNK_WIDTH_REAL * sizeof(int));
-    }
-    
-    int chunk_x_start = (c->x * CHUNK_WIDTH) - 1;
-    int chunk_z_start = (c->z * CHUNK_WIDTH) - 1;
+        int bx = c_start_x + x;
+        int bz = c_start_z + z;
+        
+        biomes[XZ(x, z)] = get_biome(state, bx, bz);
 
-    for (int x = 0; x < CHUNK_WIDTH_REAL; x++)
-    for (int z = 0; z < CHUNK_WIDTH_REAL; z++)
-    {
-        int bx = chunk_x_start + x;
-        int bz = chunk_z_start + z;
-
-        biomes[x][z] = get_biome(state, bx, bz);
-
-        // Generate 2-width-border precicely
-        if (x < 2 || x >= CHUNK_WIDTH || z < 2 || z >= CHUNK_WIDTH)
-            heightmap[x][z] = get_height(&state->fnl, biomes[x][z], bx, bz);
-        else if (x % 8 == 0 && z % 8 == 0)
-            heightmap[x][z] = get_height(&state->fnl, biomes[x][z], bx, bz);
+        if (x % 8 == 0 && z % 8 == 0)
+            heightmap[XZ(x, z)] = get_height(&state->fnl, biomes[XZ(x, z)], bx, bz);
     }
 
-    for (int x = 0; x < CHUNK_WIDTH_REAL; x++)
-    for (int z = 0; z < CHUNK_WIDTH_REAL; z++)
+    for (int x = -1; x <= CHUNK_WIDTH; x++)
+    for (int z = -1; z <= CHUNK_WIDTH; z++)
     {
-        if ((x >= 2 && x < CHUNK_WIDTH && z >= 2 && z < CHUNK_WIDTH) 
-            && (x % 8 || z % 8))
+        if (x % 8 || z % 8)
         {
-            heightmap[x][z] = blerp(
-                heightmap[x - (x % 8)][z - (z % 8)], 
-                heightmap[x - (x % 8)][z - (z % 8) + 8],
-                heightmap[x - (x % 8) + 8][z - (z % 8)], 
-                heightmap[x - (x % 8) + 8][z - (z % 8) + 8], 
-                (float)(x % 8) / 8.0f, (float)(z % 8) / 8.0f);
+            int const x_left = floor8(x);
+            int const z_top  = floor8(z);
+
+            heightmap[XZ(x, z)] = blerp(
+                heightmap[XZ(x_left, z_top)],
+                heightmap[XZ(x_left, z_top + 8)],
+                heightmap[XZ(x_left + 8, z_top)],
+                heightmap[XZ(x_left + 8, z_top + 8)],
+                (float)(x - x_left) / 8.0f, (float)(z - z_top) / 8.0f
+            );
         }
 
-        switch (biomes[x][z])
+        switch (biomes[XZ(x, z)])
         {
-            case BIOME_PLAINS:        gen_plains(state, c, x - 1, z - 1, heightmap[x][z]);        break;
-            case BIOME_FOREST:        gen_forest(state, c, x - 1, z - 1, heightmap[x][z]);        break;
-            case BIOME_FLOWER_FOREST: gen_flower_forest(state, c, x - 1, z - 1, heightmap[x][z]); break;
-            case BIOME_MOUNTAINS:     gen_mountains(state, c, x - 1, z - 1, heightmap[x][z]);     break;
-            case BIOME_DESERT:        gen_desert(state, c, x - 1, z - 1, heightmap[x][z]);        break;
-            case BIOME_OCEAN:         gen_ocean(state, c, x - 1, z - 1, heightmap[x][z]);         break;
+            case BIOME_PLAINS:        gen_plains(state, c, x, z,        heightmap[XZ(x, z)]); break;
+            case BIOME_FOREST:        gen_forest(state, c, x, z,        heightmap[XZ(x, z)]); break;
+            case BIOME_FLOWER_FOREST: gen_flower_forest(state, c, x, z, heightmap[XZ(x, z)]); break;
+            case BIOME_MOUNTAINS:     gen_mountains(state, c, x, z,     heightmap[XZ(x, z)]); break;
+            case BIOME_DESERT:        gen_desert(state, c, x, z,        heightmap[XZ(x, z)]); break;
+            case BIOME_OCEAN:         gen_ocean(state, c, x, z,         heightmap[XZ(x, z)]); break;
         }
     }
 
-    for (int i = 0; i < CHUNK_WIDTH_REAL; i++)
-    {
-        free(biomes[i]);
-        free(heightmap[i]);
-    }
     free(biomes);
     free(heightmap);
 

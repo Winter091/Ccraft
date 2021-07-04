@@ -34,6 +34,16 @@ GLuint opengl_create_vbo_cube();
 GLuint opengl_create_vbo_quad();
 GLuint opengl_create_fbo();
 
+// Get next smallest value that is divisible by 8:
+// 5 -> 0, 9 -> 8, -1 -> -8, -8 -> -8
+static inline int floor8(int a)
+{
+    if (a >= 0)
+        return (int)(a / 8) * 8;
+    else
+        return ((int)((a + 1) / 8) - 1) * 8;
+}
+
 static inline int thread_hardware_concurrency()
 {
 #if defined(PLATFORM_WINDOWS)
