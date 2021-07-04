@@ -12,10 +12,7 @@ int worker_loop(void* _data)
             cnd_wait(&data->cond_var, &data->state_mtx);
 
         if (data->state == WORKER_EXIT)
-        {
-            mtx_unlock(&data->state_mtx);
-            thrd_exit(0);
-        }
+            break;
         
         mtx_unlock(&data->state_mtx);
 
@@ -24,6 +21,8 @@ int worker_loop(void* _data)
         chunk_generate_mesh(data->chunk);
 
         mtx_lock(&data->state_mtx);
+        if (data->state == WORKER_EXIT)
+            break;
         data->state = WORKER_DONE;
         mtx_unlock(&data->state_mtx);
     }

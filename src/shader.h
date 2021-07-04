@@ -22,4 +22,6 @@ void shader_set_texture_2d(GLuint shader, char* name, GLuint texture, int slot);
 void shader_set_texture_array(GLuint shader, char* name, GLuint texture, int slot);
 void shader_set_texture_skybox(GLuint shader, char* name, GLuint texture, int slot);
 
+void shader_use(GLuint shader);
+
 #endif

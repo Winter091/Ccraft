@@ -9,9 +9,8 @@
 #include "config.h"
 #include "map.h"
 
-// Keep global database object for simplicity
-sqlite3* db;
-mtx_t db_mtx;
+static sqlite3* db;
+static mtx_t db_mtx;
 
 static sqlite3_stmt* db_compile_statement(const char* statement)
 {

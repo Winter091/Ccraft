@@ -8,22 +8,29 @@
 #include "map.h"
 #include "ui.h"
 #include "player.h"
+#include "framebuffer.h"
 
-// Globally accessible window width and height
-extern int curr_window_w;
-extern int curr_window_h;
+typedef struct
+{
+    GLFWwindow* glfw;
+    Framebuffers* fb;
+    
+    int width;
+    int height;
+}
+Window;
 
-// At one point of development I thought there
-// will be a lot of objects, but it looks like I
-// was a bit wrong; I don't want to make player
-// struct static as every other structure, so 
-// here we are, having only one object
 typedef struct
 {
     Player* player;
+    Window* window;
 }
 GameObjectRefs;
 
-GLFWwindow* window_create();
+extern Window* g_window;
+
+void window_init();
+void window_init_fb();
+void window_destroy();
 
 #endif

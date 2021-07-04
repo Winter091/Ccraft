@@ -294,7 +294,4 @@ void config_load()
     CHUNK_HEIGHT_REAL = CHUNK_HEIGHT + 2;
 
     printf("Loaded everything.\n");
-
-    ini_free(cfg);
-    cfg = NULL;
 }

@@ -3,21 +3,41 @@
 
 #include "glad/glad.h"
 
-extern GLuint FBO_screen;
-extern GLuint VAO_screen;
+typedef enum
+{
+    FBTYPE_DEFAULT,
+    FBTYPE_TEXTURE
+}
+FbType;
 
-extern GLuint FBO_game;
-extern GLuint FBO_game_texture_color;
-extern GLuint FBO_game_texture_color_ui;
-extern GLuint FBO_game_texture_color_pass_1;
-extern GLuint FBO_game_texture_depth;
+typedef enum
+{
+    TEX_COLOR = 0,
+    TEX_UI,
+    TEX_PASS_1
+}
+FbTextureType;
 
-void framebuffer_create(int curr_window_w, int curr_window_h);
+typedef struct
+{
+    GLuint default_fbo;
 
-// We need to rebuild framebuffer each time
-// when window size changes
-void framebuffer_rebuild(int curr_window_w, int curr_window_h);
+    GLuint quad_vao;
+    GLuint quad_vbo;
 
-void framebuffer_bind(GLuint framebuffer);
+    GLuint gbuf_fbo;
+    GLuint gbuf_tex_color;
+    GLuint gbuf_tex_color_ui;
+    GLuint gbuf_tex_color_pass_1;
+    GLuint gbuf_tex_depth;
+}
+Framebuffers;
+
+Framebuffers* framebuffers_init(int window_w, int window_h);
+void framebuffers_rebuild(Framebuffers* fb, int new_window_w, int new_window_h);
+void framebuffers_destroy(Framebuffers* fb);
+
+void framebuffer_use(Framebuffers* fb, FbType type);
+void framebuffer_use_texture(FbTextureType type);
 
 #endif

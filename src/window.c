@@ -6,20 +6,20 @@
 #include "config.h"
 #include "framebuffer.h"
 
-int curr_window_w;
-int curr_window_h;
+Window* g_window;
 
 static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     GameObjectRefs* game = glfwGetWindowUserPointer(window);
     Player* p = game->player;
+    Window* w = game->window;
 
     camera_set_aspect_ratio(p->cam, (float)width / height);
     ui_update_aspect_ratio((float)width / height);
-    framebuffer_rebuild(width, height);
+    framebuffers_rebuild(w->fb, width, height);
 
-    curr_window_w = width;
-    curr_window_h = height;
+    w->width  = width;
+    w->height = height;
 
     glViewport(0, 0, width, height);
 }
@@ -84,7 +84,7 @@ static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
         player_set_build_block(p, p->build_block - 1);
 }
 
-GLFWwindow* window_create()
+void window_init()
 {
     if (!glfwInit())
     {
@@ -103,8 +103,7 @@ GLFWwindow* window_create()
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GLFW_FALSE);
 #endif
 
-    int count;
-    GLFWmonitor* monitor = FULLSCREEN ? glfwGetMonitors(&count)[1] : NULL;
+    GLFWmonitor* monitor = FULLSCREEN ? glfwGetPrimaryMonitor() : NULL;
 
     // Setup windowed full screen mode
     if (monitor)
@@ -117,14 +116,13 @@ GLFWwindow* window_create()
         glfwWindowHint(GLFW_CENTER_CURSOR, GLFW_TRUE);
     }
 
+    g_window = malloc(sizeof(Window));
+
     // Will fail if OpenGL version is not supported
-    GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, 
-                                          WINDOW_TITLE, monitor, NULL);
-
-    curr_window_w = WINDOW_WIDTH;
-    curr_window_h = WINDOW_HEIGHT;
-
-    if (!window)
+    g_window->glfw = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, 
+                                      WINDOW_TITLE, monitor, NULL);
+    
+    if (!g_window->glfw)
     {
         fprintf(stderr, "GLFW window failed to init.\n");
         fprintf(stderr, "Probably, the required version of OpenGL is not supported:\n");
@@ -135,15 +133,34 @@ GLFWwindow* window_create()
         exit(EXIT_FAILURE);
     }
 
-    glfwMakeContextCurrent(window);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwMakeContextCurrent(g_window->glfw);
+    //glfwSetInputMode(g_window->glfw, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSwapInterval(VSYNC);
 
     // Set callbacks
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetKeyCallback(window, key_callback);
-    glfwSetMouseButtonCallback(window, mouse_button_callback);
-    glfwSetScrollCallback(window, scroll_callback);
+    glfwSetFramebufferSizeCallback(g_window->glfw, framebuffer_size_callback);
+    glfwSetKeyCallback(g_window->glfw, key_callback);
+    glfwSetMouseButtonCallback(g_window->glfw, mouse_button_callback);
+    glfwSetScrollCallback(g_window->glfw, scroll_callback);
 
-    return window;
+    g_window->fb = NULL;
+
+    g_window->width  = WINDOW_WIDTH;
+    g_window->height = WINDOW_HEIGHT;
+}
+
+void window_init_fb()
+{
+    g_window->fb = framebuffers_init(WINDOW_WIDTH, WINDOW_HEIGHT);
+}
+
+void window_destroy()
+{
+    framebuffers_destroy(g_window->fb);
+    
+    glfwDestroyWindow(g_window->glfw);
+    glfwTerminate();
+
+    free(g_window);
+    g_window = NULL;
 }

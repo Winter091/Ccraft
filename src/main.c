@@ -11,7 +11,6 @@
 #include "camera.h"
 #include "window.h"
 #include "texture.h"
-#include "framebuffer.h"
 #include "db.h"
 #include "fastnoiselite.h"
 #include "tinycthread.h"
@@ -109,7 +108,7 @@ void opengl_debug_callback(
 }
 
 // Show fps in window title bar
-static void print_fps(GLFWwindow* window)
+static void print_fps()
 {
     static double last_time = -1.0;
     if (last_time < 0)
@@ -125,7 +124,7 @@ static void print_fps(GLFWwindow* window)
     {
         char title[128];
         sprintf(title, "%s - %d FPS", WINDOW_TITLE, frames);
-        glfwSetWindowTitle(window, title);
+        glfwSetWindowTitle(g_window->glfw, title);
         frames = 0;
         last_time = curr_time;
     }
@@ -149,57 +148,54 @@ static double get_dt()
 
 static float get_current_dof_depth(float dt)
 {
-    // Very slow function, on i5-3470 and r9 280 it takes 1-2ms
+    // glReadPixels is very slow :(
     
     static float curr_depth = 1.0f;
 
     // Read depth in the center of the screen 
     // and gradually move towards it
     float desired_depth;
-    glReadPixels(curr_window_w / 2, curr_window_h / 2, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &desired_depth);
-    curr_depth = glm_lerp(curr_depth, desired_depth, dt * DOF_SPEED);
+    glReadPixels(g_window->width / 2, g_window->height / 2, 1, 1, 
+                 GL_DEPTH_COMPONENT, GL_FLOAT, &desired_depth);
     
+    curr_depth = glm_lerp(curr_depth, desired_depth, dt * DOF_SPEED);
     return curr_depth;
 }
 
-void update(GLFWwindow* window, Player* p, float dt)
+void update(Player* p, float dt)
 {
     map_update(p->cam);
-    player_update(p, window, dt);
+    player_update(p, dt);
 }
 
 void render_game(Player* p)
 {
-    framebuffer_bind(FBO_game);
+    framebuffer_use(g_window->fb, FBTYPE_TEXTURE);
     glClear(GL_DEPTH_BUFFER_BIT);
 
-    // Render everything except ui to the 0th color texture
-    glDrawBuffer(GL_COLOR_ATTACHMENT0);
-    glClearBufferfv(GL_COLOR, 0, (const GLfloat[]){1.0f, 0.0f, 0.0f, 1.0f});
+    framebuffer_use_texture(TEX_COLOR);
+    {
+        map_render_sky(p->cam);
+        map_render_sun_moon(p->cam);
+        map_render_chunks(p->cam);
+    }
 
-    map_render_sky(p->cam);
-    map_render_sun_moon(p->cam);
-    map_render_chunks(p->cam);
-
-    // Render ui to the color texture for ui;
-    // Clear with alpha 0.0f to blend ui with
-    // main game image later
-    glDrawBuffer(GL_COLOR_ATTACHMENT1);
-    glClearBufferfv(GL_COLOR, 0, (const GLfloat[]){0.0f, 1.0f, 0.0f, 0.0f});
-
-    if (p->pointing_at_block)
-        ui_render_block_wireframe(p);
-    ui_render_crosshair();
-    player_render_item(p);
+    framebuffer_use_texture(TEX_UI);
+    {
+        if (p->pointing_at_block)
+            ui_render_block_wireframe(p);
+        ui_render_crosshair();
+        player_render_item(p);
+    }
 }
 
 // First pass is applying depth of field effect
 void render_first_pass(float dt)
 {
-    glUseProgram(shader_deferred1);
+    shader_use(shader_deferred1);
 
-    shader_set_texture_2d(shader_deferred1, "texture_color", FBO_game_texture_color, 0);
-    shader_set_texture_2d(shader_deferred1, "texture_depth", FBO_game_texture_depth, 1);
+    shader_set_texture_2d(shader_deferred1, "texture_color", g_window->fb->gbuf_tex_color, 0);
+    shader_set_texture_2d(shader_deferred1, "texture_depth", g_window->fb->gbuf_tex_depth, 1);
 
     if (!DOF_ENABLED)
     {
@@ -207,37 +203,31 @@ void render_first_pass(float dt)
     }
     else
     {
-        float curr_depth; 
-        if (DOF_SMOOTH)
-            curr_depth = get_current_dof_depth(dt);
-        else
-            curr_depth = 0.0f;
+        float curr_depth = DOF_SMOOTH ? get_current_dof_depth(dt) : 0.0f;
 
         shader_set_int1(shader_deferred1, "u_dof_enabled", 1);
         shader_set_int1(shader_deferred1, "u_dof_smooth", DOF_SMOOTH);
         shader_set_float1(shader_deferred1, "u_max_blur", DOF_MAX_BLUR);
         shader_set_float1(shader_deferred1, "u_aperture", DOF_APERTURE);
-        shader_set_float1(shader_deferred1, "u_aspect_ratio", (float)curr_window_w / curr_window_h);
+        shader_set_float1(shader_deferred1, "u_aspect_ratio", 
+                          (float)g_window->width / g_window->height);
         shader_set_float1(shader_deferred1, "u_depth", curr_depth);
     }
 
-    // Render to color texture for the first pass (FBO_game_texture_color_pass_1)
-    glDrawBuffer(GL_COLOR_ATTACHMENT2);
-    glClearBufferfv(GL_COLOR, 0, (const GLfloat[]){1.0f, 0.0f, 1.0f, 1.0f});
+    framebuffer_use_texture(TEX_PASS_1);
+    glBindVertexArray(g_window->fb->quad_vao);
     glDepthFunc(GL_ALWAYS);
-    glBindVertexArray(VAO_screen);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
 // Second pass is applying motion blur and color correction
 void render_second_pass(Player* p, float dt)
 {
-    glUseProgram(shader_deferred2);
+    shader_use(shader_deferred2);
 
-    // Use texture with applied depth of field effect
-    shader_set_texture_2d(shader_deferred2, "texture_color", FBO_game_texture_color_pass_1, 0);
-    shader_set_texture_2d(shader_deferred2, "texture_ui",    FBO_game_texture_color_ui, 1);
-    shader_set_texture_2d(shader_deferred2, "texture_depth", FBO_game_texture_depth, 2);
+    shader_set_texture_2d(shader_deferred2, "texture_color", g_window->fb->gbuf_tex_color_pass_1, 0);
+    shader_set_texture_2d(shader_deferred2, "texture_ui",    g_window->fb->gbuf_tex_color_ui, 1);
+    shader_set_texture_2d(shader_deferred2, "texture_depth", g_window->fb->gbuf_tex_depth, 2);
 
     if (!MOTION_BLUR_ENABLED)
     {
@@ -271,12 +261,11 @@ void render_second_pass(Player* p, float dt)
     shader_set_float1(shader_deferred2, "u_gamma", GAMMA);
     shader_set_float1(shader_deferred2, "u_saturation", SATURATION);
 
-    // It's final pass, render to screem frame buffer
-    framebuffer_bind(FBO_screen);
+    framebuffer_use(g_window->fb, FBTYPE_DEFAULT);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    glBindVertexArray(g_window->fb->quad_vao);
     glDepthFunc(GL_ALWAYS);
-    glBindVertexArray(VAO_screen);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
@@ -291,13 +280,12 @@ void render(Player* p, float dt)
 int main()
 {    
     config_load();
-    
-    GLFWwindow* window = window_create();
+    window_init();
     
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
         fprintf(stderr, "GLAD failed to init\n");
-        glfwDestroyWindow(window);
+        glfwDestroyWindow(g_window->glfw);
         glfwTerminate();
         exit(EXIT_FAILURE);
     }
@@ -333,12 +321,12 @@ int main()
     // Start at the beginning of day
     glfwSetTime(DAY_LENGTH / 2.0);
 
+    window_init_fb();
     db_init();
     shaders_load();
     textures_load();
     map_init();
     ui_init((float)WINDOW_WIDTH / WINDOW_HEIGHT);
-    framebuffer_create(WINDOW_WIDTH, WINDOW_HEIGHT);
 
     Player* player = player_create();
 
@@ -346,18 +334,19 @@ int main()
     // functions (using glfwGetWindowUserPointer)
     GameObjectRefs* objects = malloc(sizeof(GameObjectRefs));
     objects->player = player;
-    glfwSetWindowUserPointer(window, objects);
+    objects->window = g_window;
+    glfwSetWindowUserPointer(g_window->glfw, objects);
 
-    while (!glfwWindowShouldClose(window))
+    while (!glfwWindowShouldClose(g_window->glfw))
     {
-        print_fps(window);
+        print_fps();
 
         float dt = get_dt();
 
-        update(window, player, dt);
+        update(player, dt);
         render(player, dt);
 
-        glfwSwapBuffers(window);
+        glfwSwapBuffers(g_window->glfw);
         glfwPollEvents();
     }
 
@@ -365,8 +354,7 @@ int main()
     player_exit(player);
     db_close();
 
-    glfwDestroyWindow(window);
-    glfwTerminate();
+    window_destroy();
 
     return 0;
 }

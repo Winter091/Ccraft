@@ -168,3 +168,8 @@ void shader_set_texture_skybox(GLuint shader, char* name, GLuint texture, int sl
     shader_set_int1(shader, name, slot);
     texture_skybox_bind(texture, slot);
 }
+
+void shader_use(GLuint shader)
+{
+    glUseProgram(shader);
+}

@@ -6,6 +6,7 @@
 #include "config.h"
 #include "utils.h"
 #include "block.h"
+#include "window.h"
 
 Camera* camera_create()
 {
@@ -55,10 +56,10 @@ Camera* camera_create()
     return cam;
 }
 
-void camera_update_view_dir(Camera* cam, GLFWwindow* window)
+void camera_update_view_dir(Camera* cam)
 {
     double mouse_x, mouse_y;
-    glfwGetCursorPos(window, &mouse_x, &mouse_y);
+    glfwGetCursorPos(g_window->glfw, &mouse_x, &mouse_y);
 
     if (cam->first_frame)
     {
@@ -91,17 +92,17 @@ void camera_update_view_dir(Camera* cam, GLFWwindow* window)
     glm_vec3_normalize(cam->front);
 }
 
-void camera_update_parameters(Camera* cam, GLFWwindow* window, float dt)
+void camera_update_parameters(Camera* cam, float dt)
 {
     glm_vec3_copy(cam->pos, cam->prev_pos);
 
     if (!cam->active)
         return;
 
-    int key_c        = glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS;
-    int key_pageup   = glfwGetKey(window, GLFW_KEY_PAGE_UP) == GLFW_PRESS;
-    int key_pagedown = glfwGetKey(window, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS;
-    int key_tab      = glfwGetKey(window, GLFW_KEY_TAB) == GLFW_PRESS;
+    int key_c        = (glfwGetKey(g_window->glfw, GLFW_KEY_C)         == GLFW_PRESS);
+    int key_pageup   = (glfwGetKey(g_window->glfw, GLFW_KEY_PAGE_UP)   == GLFW_PRESS);
+    int key_pagedown = (glfwGetKey(g_window->glfw, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS);
+    int key_tab      = (glfwGetKey(g_window->glfw, GLFW_KEY_TAB)       == GLFW_PRESS);
     static int tab_already_pressed = 0;
 
     // Handle fly speed

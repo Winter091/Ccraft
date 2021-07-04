@@ -18,7 +18,6 @@ typedef struct
 }
 UI;
 
-// Keep static object for simplicity
 static UI* ui;
 
 void ui_init(float aspect_ratio)

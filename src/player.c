@@ -6,6 +6,7 @@
 #include "shader.h"
 #include "texture.h"
 #include "db.h"
+#include "window.h"
 
 // Update VAO & VBO to match current build block
 static void regenerate_item_buffer(Player* p)
@@ -271,14 +272,14 @@ CHECK_Z:
     }
 }
 
-void gen_motion_vector_walk(Player* p, GLFWwindow* window, double dt)
+void gen_motion_vector_walk(Player* p, double dt)
 {
-    int key_w     = (glfwGetKey(window, GLFW_KEY_W)          == GLFW_PRESS);
-    int key_s     = (glfwGetKey(window, GLFW_KEY_S)          == GLFW_PRESS);
-    int key_a     = (glfwGetKey(window, GLFW_KEY_A)          == GLFW_PRESS);
-    int key_d     = (glfwGetKey(window, GLFW_KEY_D)          == GLFW_PRESS);
-    int key_space = (glfwGetKey(window, GLFW_KEY_SPACE)      == GLFW_PRESS);
-    int key_shift = (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS);
+    int key_w     = (glfwGetKey(g_window->glfw, GLFW_KEY_W)          == GLFW_PRESS);
+    int key_s     = (glfwGetKey(g_window->glfw, GLFW_KEY_S)          == GLFW_PRESS);
+    int key_a     = (glfwGetKey(g_window->glfw, GLFW_KEY_A)          == GLFW_PRESS);
+    int key_d     = (glfwGetKey(g_window->glfw, GLFW_KEY_D)          == GLFW_PRESS);
+    int key_space = (glfwGetKey(g_window->glfw, GLFW_KEY_SPACE)      == GLFW_PRESS);
+    int key_shift = (glfwGetKey(g_window->glfw, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS);
 
     vec3 front, right, up;
 
@@ -407,14 +408,14 @@ void gen_motion_vector_walk(Player* p, GLFWwindow* window, double dt)
     glm_vec3_scale(p->cam->frame_motion, dt, p->cam->frame_motion);
 }
 
-void gen_motion_vector_fly(Player* p, GLFWwindow* window, double dt)
+void gen_motion_vector_fly(Player* p, double dt)
 {   
-    int key_w     = glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS;
-    int key_s     = glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS;
-    int key_a     = glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS;
-    int key_d     = glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS;
-    int key_shift = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
-    int key_ctrl  = glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
+    int key_w     = glfwGetKey(g_window->glfw, GLFW_KEY_W) == GLFW_PRESS;
+    int key_s     = glfwGetKey(g_window->glfw, GLFW_KEY_S) == GLFW_PRESS;
+    int key_a     = glfwGetKey(g_window->glfw, GLFW_KEY_A) == GLFW_PRESS;
+    int key_d     = glfwGetKey(g_window->glfw, GLFW_KEY_D) == GLFW_PRESS;
+    int key_shift = glfwGetKey(g_window->glfw, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
+    int key_ctrl  = glfwGetKey(g_window->glfw, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
 
     vec3 front, right, up;
 
@@ -479,23 +480,23 @@ void check_if_in_water(Player* p)
     p->in_water = 0;
 }
 
-void player_update(Player* p, GLFWwindow* window, double dt)
+void player_update(Player* p, double dt)
 {
     if (!p->cam->active)
         return;
     
-    camera_update_view_dir(p->cam, window);
-    camera_update_parameters(p->cam, window, dt);
+    camera_update_view_dir(p->cam);
+    camera_update_parameters(p->cam, dt);
     check_if_in_water(p);
     
     if (p->cam->fly_mode)
     {
-        gen_motion_vector_fly(p, window, dt);
+        gen_motion_vector_fly(p, dt);
         glm_vec3_add(p->cam->pos, p->cam->frame_motion, p->cam->pos);
     }
     else
     {
-        gen_motion_vector_walk(p, window, dt);
+        gen_motion_vector_walk(p, dt);
         collide_with_map(p);
     }
     
