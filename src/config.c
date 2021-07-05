@@ -39,6 +39,7 @@ float       EVENING_LIGHT      = 0.5f;
 float       NIGHT_LIGHT        = 0.15f;
 
 // [CORE] (default values)
+int   NUM_WORKERS  = 0;
 int   CHUNK_WIDTH  = 32;
 int   CHUNK_HEIGHT = 256;
 float BLOCK_SIZE   = 0.1f;
@@ -145,6 +146,10 @@ static void create_default_cfg_file()
     "night_light   = 0.15\n\n"
 
     "[CORE]\n"
+    "; Number of threads to use to load chunks. Set to 0\n"
+    "; to determine automatically\n"
+    "num_workers = 0\n\n"
+
     "; Probably you shouldn't even dare to touch it\n"
     "chunk_width = 32\n\n"
 
@@ -256,6 +261,7 @@ void config_load()
     try_load("GAMEPLAY", "evening_light", "%f", &EVENING_LIGHT);
     try_load("GAMEPLAY", "night_light", "%f", &NIGHT_LIGHT);
 
+    try_load("CORE", "num_workers", "%d", &NUM_WORKERS);
     try_load("CORE", "chunk_width", "%d", &CHUNK_WIDTH);
     try_load("CORE", "chunk_height", "%d", &CHUNK_HEIGHT);
     try_load("CORE", "block_size", "%f", &BLOCK_SIZE);
