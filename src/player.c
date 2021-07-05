@@ -178,21 +178,27 @@ static inline int aabb_collide(vec3 box[2], vec3 other[2])
         && (box[0][2] < other[1][2] && box[1][2] > other[0][2]);
 }
 
-#define FOREACH_SOLID_BLOCK_AROUND()                     \
-for (int x = -3; x <= 3; x++)                            \
-for (int y = -3; y <= 3; y++)                            \
-for (int z = -3; z <= 3; z++)                            \
-{                                                        \
-    int bx = cam_x + x;                                  \
-    int by = cam_y + y;                                  \
-    int bz = cam_z + z;                                  \
-                                                         \
-    unsigned char block = map_get_block(bx, by, bz);     \
-    if (!block_is_solid(block) || block_is_plant(block)) \
-        continue;                                        \
-                                                         \
-    vec3 block_hitbox[2];                                \
-    block_gen_aabb(bx, by, bz, block_hitbox);            
+#define FOREACH_SOLID_BLOCK_AROUND()                            \
+for (int y = -3; y <= 3; y++)                                   \
+{                                                               \
+    int by = cam_y + y;                                         \
+    if (by < 0 || by >= CHUNK_HEIGHT)                           \
+        continue;                                               \
+                                                                \
+    for (int x = -3; x <= 3; x++)                               \
+    for (int z = -3; z <= 3; z++)                               \
+    {                                                           \
+        int bx = cam_x + x;                                     \
+        int bz = cam_z + z;                                     \
+                                                                \
+        unsigned char block = map_get_block(bx, by, bz);        \
+        if (!block_is_solid(block) || block_is_plant(block))    \
+            continue;                                           \
+                                                                \
+        vec3 block_hitbox[2];                                   \
+        block_gen_aabb(bx, by, bz, block_hitbox);            
+
+#define FOREACH_SOLID_BLOCK_AROUND_END() }}
 
 // Add components of frame_motion to camera's position one 
 // by one for each of 3 coordinates and check for collision 
@@ -229,7 +235,7 @@ static void collide_with_map(Player* p)
 
             goto CHECK_X;
         }
-    }
+    FOREACH_SOLID_BLOCK_AROUND_END()
 
 CHECK_X:
     p->cam->pos[0] += p->cam->frame_motion[0];
@@ -248,7 +254,7 @@ CHECK_X:
             update_hitbox(p);
             goto CHECK_Z;
         }
-    }
+    FOREACH_SOLID_BLOCK_AROUND_END()
 
 CHECK_Z:
     p->cam->pos[2] += p->cam->frame_motion[2];
@@ -267,7 +273,7 @@ CHECK_Z:
             update_hitbox(p);
             return;
         }
-    }
+    FOREACH_SOLID_BLOCK_AROUND_END()
 }
 
 static void gen_motion_vector_walk(Player* p, double dt)
@@ -447,27 +453,34 @@ static void check_if_in_water(Player* p)
     int cam_y = (int)blocked(p->cam->pos[1]);
     int cam_z = (int)blocked(p->cam->pos[2]);
 
-    for (int x = -1; x <= 1; x++)
     for (int y = -1; y <= 1; y++)
-    for (int z = -1; z <= 1; z++)
     {
-        int bx = cam_x + x;
         int by = cam_y + y;
-        int bz = cam_z + z;
         
-        unsigned char block = map_get_block(bx, by, bz);
-        if (block != BLOCK_WATER)
+        if (by < 0 || by >= CHUNK_HEIGHT)
             continue;
-
-        vec3 block_hitbox[2];
-        block_gen_aabb(bx, by, bz, block_hitbox);
-
-        if (aabb_collide(p->hitbox, block_hitbox))
+        
+        for (int x = -1; x <= 1; x++)
+        for (int z = -1; z <= 1; z++)
         {
-            p->in_water = 1;
-            return;
+            int bx = cam_x + x;
+            int bz = cam_z + z;
+            
+            unsigned char block = map_get_block(bx, by, bz);
+            if (block != BLOCK_WATER)
+                continue;
+
+            vec3 block_hitbox[2];
+            block_gen_aabb(bx, by, bz, block_hitbox);
+
+            if (aabb_collide(p->hitbox, block_hitbox))
+            {
+                p->in_water = 1;
+                return;
+            }
         }
     }
+    
 
     p->in_water = 0;
 }
@@ -533,7 +546,7 @@ static void find_best_spot_to_place_block(Camera* cam, int x, int y, int z, int*
 
 void player_handle_right_mouse_click(Player* p)
 {
-    if (!p->pointing_at_block)
+    if (!p->pointing_at_block || p->build_block == BLOCK_PLAYER_HAND)
         return;
 
     int x = p->block_pointed_at[0];
