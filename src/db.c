@@ -52,8 +52,8 @@ static void db_insert_default_map_info()
 {
     sqlite3_stmt* stmt = db_compile_statement(
         "INSERT INTO "
-        "map_info (seed, curr_time) "
-        "VALUES (?, 0)"
+        "map_info (seed, curr_time, chunk_width, chunk_height) "
+        "VALUES (?, 0, 32, 256)"
     );
 
     int seed = rand();
@@ -97,8 +97,10 @@ static void db_create_tables()
 
     db_compile_run_statement(
         "CREATE TABLE IF NOT EXISTS map_info("
-            "seed      INTEGER NOT NULL, "
-            "curr_time REAL NOT NULL"
+            "seed         INTEGER NOT NULL, "
+            "curr_time    REAL NOT NULL, "
+            "chunk_width  INTEGER NOT NULL, "
+            "chunk_height INTEGER NOT NULL"
         ")"
     );
 
@@ -190,10 +192,7 @@ void db_get_blocks_for_chunk(Chunk* c)
         int z = sqlite3_column_int(stmt, 2);
         int block = sqlite3_column_int(stmt, 3);
 
-        // Coordinates can be too large if the map was created
-        // and played on with higher CHUNK_WIDTH than now
-        if (x < CHUNK_WIDTH && y < CHUNK_HEIGHT && z < CHUNK_WIDTH)
-            c->blocks[XYZ(x, y, z)] = block;
+        c->blocks[XYZ(x, y, z)] = block;
     }
 
     mtx_unlock(&db_mtx);
@@ -264,7 +263,8 @@ void db_get_map_info()
     mtx_lock(&db_mtx);
 
     sqlite3_stmt* stmt = db_compile_statement(
-        "SELECT seed, curr_time FROM map_info"
+        "SELECT seed, curr_time, chunk_width, chunk_height "
+        "FROM map_info"
     );
 
     sqlite3_reset(stmt);
@@ -272,6 +272,21 @@ void db_get_map_info()
 
     int seed = sqlite3_column_int(stmt, 0);
     double curr_time = sqlite3_column_double(stmt, 1);
+    int width = sqlite3_column_int(stmt, 2);
+    int height = sqlite3_column_int(stmt, 3);
+
+    if (width != CHUNK_WIDTH || height != CHUNK_HEIGHT)
+    {
+        fprintf(
+            stderr, 
+            "The map \"%s\" was created for use with CHUNK_WIDTH = %d, "
+            "CHUNK_HEIGHT = %d, and therefore incompatible with "
+            "current width and height (%d, %d). Use another map or "
+            "chunk dimensions!\n", 
+            MAP_NAME, width, height, CHUNK_WIDTH, CHUNK_HEIGHT
+        );
+        exit(EXIT_FAILURE);
+    }
 
     map_set_seed(seed);
     map_set_time(curr_time);

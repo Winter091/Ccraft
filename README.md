@@ -150,7 +150,8 @@ SQLlite database is used for it. The database has 3 tables, "blocks", "map_info"
 
 All block changes are stored in "blocks" table. The format is "chunk_x, chunk_z, block_x, block_y, block_z, block_type".
 
-"map_info" stores 2 values, current map time and map seed.
+"map_info" stores 4 values: current map time, map seed, and chunk width and height that were used when the map was created.
+Storing width and height allows to compare it to the current CHUNK_WIDTH and CHUNK_HEIGHT during load (so to check the compatability).
 
 "player_info" stores 3 coordinates for player position, camera's pitch and yaw, and current build block (the block player has in hands). Internally, player's 
 hand is also just a block, but you can't access it in game.
