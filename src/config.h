@@ -35,6 +35,7 @@ extern float       EVENING_LIGHT;
 extern float       NIGHT_LIGHT;
 
 // [CORE]
+extern int NUM_WORKERS;
 extern int CHUNK_WIDTH;
 extern int CHUNK_HEIGHT;
 extern float BLOCK_SIZE;

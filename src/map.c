@@ -134,9 +134,14 @@ void map_init()
     map->seed = 0;
     db_get_map_info();
 
-    map->num_workers = MAX(1, thread_hardware_concurrency() - 1);
-    map->workers = malloc(map->num_workers * sizeof(Worker));
+    if (NUM_WORKERS)
+        map->num_workers = NUM_WORKERS;
+    else
+        map->num_workers = MAX(1, thread_hardware_concurrency() - 1);
     
+    fprintf(stdout, "Using %d worker(s)\n", map->num_workers);
+
+    map->workers = malloc(map->num_workers * sizeof(Worker));
     for (int i = 0; i < map->num_workers; i++) 
         worker_create(&map->workers[i], worker_loop);
 }

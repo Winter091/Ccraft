@@ -56,8 +56,8 @@ void gen_cube_vertices(Vertex* vertices, int* curr_vertex_count, int x, int y, i
     };
 
     // Cactus is a bit smaller than other blocks
-    float const a = 0.0625f;
-    float const b = 1.0f - a;
+#define a 0.0625f
+#define b (1.0f - a)
     static const float pos_cactus[6][4][3] =
     {
         { {a, 0, 0}, {a, 0, 1}, {a, 1, 0}, {a, 1, 1} }, // left
