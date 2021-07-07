@@ -172,11 +172,12 @@ we use these 4 blocks: (-8, -8), (-8, 0), (0, -8), (0, 0); to generate height fo
 
 #### Collision testing
 
-Collision is actually now broken a bit: if player's speed is too big, he can clip into ground. TODO!
-
 Collision testing is implemented using axis-aligned bounding boxes (aabb). Every frame motion vector is generated (how much in each direction player should move),
-and then for each of 3 coordinates the motion vectors' component is added to player's position and collision with all surrounding blocks is checked. If there's 
-a collision, just pull out player from the block player collides with.
+and then for each of 3 coordinates the motion vector's component is added to player's position and collision with all surrounding blocks is checked. If there's a collision, just pull out player from the block player collides with.
 
+If the motion vector magnitude is comparable to the size of a block, the cossision detection may not actually detect anything:
+imagine a 1-block-width wall and player with huge speed heading into the wall: the player will just get through. 
 
+To counter this, the "adding motion vector to player's position" is done in a loop, where the actual value added is much less than size
+of a block.
 

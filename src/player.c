@@ -200,83 +200,106 @@ for (int y = -3; y <= 3; y++)                                   \
 
 #define FOREACH_SOLID_BLOCK_AROUND_END() }}
 
-// Add components of frame_motion to camera's position one 
-// by one for each of 3 coordinates and check for collision 
-// with map, move player out of a block if there's a collision
-static void collide_with_map(Player* p)
+static void collision_x(Player* p, vec3 block_hitbox[2])
 {
-    // true if player moves towards +coord
-    int moving_towards_x = p->cam->speed_horizontal[0] >= 0;
-    int moving_towards_y = p->cam->speed_vertical >= 0;
-    int moving_towards_z = p->cam->speed_horizontal[1] >= 0;
+    int const moving_to_plus_x = (p->cam->speed_horizontal[0] >= 0);
     
+    if (moving_to_plus_x)
+        p->cam->pos[0] -= (p->hitbox[1][0] - block_hitbox[0][0]) + 0.00001f;
+    else
+        p->cam->pos[0] += (block_hitbox[1][0] - p->hitbox[0][0]) + 0.00001f;
+    
+    p->cam->speed_horizontal[0] = 0.0;
+}
+
+static void collision_y(Player* p, vec3 block_hitbox[2])
+{
+    int const moving_to_plus_y = (p->cam->speed_vertical >= 0);
+    
+    if (moving_to_plus_y)
+        p->cam->pos[1] -= (p->hitbox[1][1] - block_hitbox[0][1]) + 0.00001f;
+    else
+    {
+        p->cam->pos[1] += (block_hitbox[1][1] - p->hitbox[0][1]) + 0.00001f;
+        p->on_ground = 1;
+    }
+
+    p->cam->speed_vertical = 0.0f;
+}
+
+static void collision_z(Player* p, vec3 block_hitbox[2])
+{
+    int const moving_to_plus_z = (p->cam->speed_horizontal[1] >= 0);
+    
+    if (moving_to_plus_z)
+        p->cam->pos[2] -= (p->hitbox[1][2] - block_hitbox[0][2]) + 0.00001f;
+    else
+        p->cam->pos[2] += (block_hitbox[1][2] - p->hitbox[0][2]) + 0.00001f;
+
+    p->cam->speed_horizontal[1] = 0.0;
+}
+
+static int collide_one_axis(void (*collision_handler)
+                            (Player*, vec3 block_hitbox[2]), Player* p)
+{
     int cam_x = (int)blocked(p->cam->pos[0]);
     int cam_y = (int)blocked(p->cam->pos[1]);
     int cam_z = (int)blocked(p->cam->pos[2]);
 
-    // Handle Y collision
-    p->cam->pos[1] += p->cam->frame_motion[1];
     update_hitbox(p);
-    p->on_ground = 0;
 
     FOREACH_SOLID_BLOCK_AROUND()
         if (aabb_collide(p->hitbox, block_hitbox))
         {
-            if (moving_towards_y)
-                p->cam->pos[1] -= (p->hitbox[1][1] - block_hitbox[0][1]) + 0.00001f;
-            else
-            {
-                p->cam->pos[1] += (block_hitbox[1][1] - p->hitbox[0][1]) + 0.00001f;
-                p->on_ground = 1;
-            }
-
-            p->cam->speed_vertical = 0.0f;
+            collision_handler(p, block_hitbox);
             update_hitbox(p);
-
-            goto CHECK_X;
+            return 1;
         }
     FOREACH_SOLID_BLOCK_AROUND_END()
 
-CHECK_X:
-    p->cam->pos[0] += p->cam->frame_motion[0];
-    update_hitbox(p);
-    cam_x = (int)blocked(p->cam->pos[0]);
-
-    FOREACH_SOLID_BLOCK_AROUND()
-        if (aabb_collide(p->hitbox, block_hitbox))
-        {            
-            if (moving_towards_x)
-                p->cam->pos[0] -= (p->hitbox[1][0] - block_hitbox[0][0]) + 0.00001f;
-            else
-                p->cam->pos[0] += (block_hitbox[1][0] - p->hitbox[0][0]) + 0.00001f;
-            
-            p->cam->speed_horizontal[0] = 0;
-            update_hitbox(p);
-            goto CHECK_Z;
-        }
-    FOREACH_SOLID_BLOCK_AROUND_END()
-
-CHECK_Z:
-    p->cam->pos[2] += p->cam->frame_motion[2];
-    update_hitbox(p);
-    cam_z = (int)blocked(p->cam->pos[2]);
-
-    FOREACH_SOLID_BLOCK_AROUND()
-        if (aabb_collide(p->hitbox, block_hitbox))
-        {
-            if (moving_towards_z)
-                p->cam->pos[2] -= (p->hitbox[1][2] - block_hitbox[0][2]) + 0.00001f;
-            else
-                p->cam->pos[2] += (block_hitbox[1][2] - p->hitbox[0][2]) + 0.00001f;
-
-            p->cam->speed_horizontal[1] = 0;
-            update_hitbox(p);
-            return;
-        }
-    FOREACH_SOLID_BLOCK_AROUND_END()
+    return 0;
 }
 
-static void gen_motion_vector_walk(Player* p, double dt)
+static void collide_all_axes(Player* p, vec3 motion, ivec3 do_collide)
+{
+    if (do_collide[1])
+    {
+        p->on_ground = 0;
+        p->cam->pos[1] += motion[1];
+        do_collide[1] = !collide_one_axis(collision_y, p);
+    }
+    if (do_collide[0])
+    {
+        p->cam->pos[0] += motion[0];
+        do_collide[0] = !collide_one_axis(collision_x, p);
+    }
+    if (do_collide[2])
+    {
+        p->cam->pos[2] += motion[2];
+        do_collide[2] = !collide_one_axis(collision_z, p);
+    }
+}
+
+static void collide_with_map(Player* p, vec3 motion)
+{
+    float const max_step_size = 0.25f * BLOCK_SIZE;
+
+    float magnitude = glm_vec3_norm(motion);
+    int num_steps = 1 + (magnitude / max_step_size);
+    float step_size = magnitude / num_steps;
+
+    vec3 step_motion;
+    glm_vec3_copy(motion, step_motion);
+    glm_vec3_scale(step_motion, (1.0f / magnitude) * step_size, step_motion);
+
+    ivec3 do_collide;
+    my_glm_ivec3_set(do_collide, 1, 1, 1);
+
+    for (int i = 0; i < num_steps; i++)
+        collide_all_axes(p, step_motion, do_collide);
+}
+
+static void gen_motion_vector_walk(Player* p, double dt, vec3 res)
 {
     int key_w     = (glfwGetKey(g_window->glfw, GLFW_KEY_W)          == GLFW_PRESS);
     int key_s     = (glfwGetKey(g_window->glfw, GLFW_KEY_S)          == GLFW_PRESS);
@@ -400,13 +423,13 @@ static void gen_motion_vector_walk(Player* p, double dt)
     }
 
     // Don't move player yet, just save values we need to move with
-    p->cam->frame_motion[0] = p->cam->speed_horizontal[0];
-    p->cam->frame_motion[1] = p->cam->speed_vertical;
-    p->cam->frame_motion[2] = p->cam->speed_horizontal[1];
-    glm_vec3_scale(p->cam->frame_motion, dt, p->cam->frame_motion);
+    res[0] = p->cam->speed_horizontal[0];
+    res[1] = p->cam->speed_vertical;
+    res[2] = p->cam->speed_horizontal[1];
+    glm_vec3_scale(res, dt, res);
 }
 
-static void gen_motion_vector_fly(Player* p, double dt)
+static void gen_motion_vector_fly(Player* p, double dt, vec3 res)
 {   
     int key_w     = glfwGetKey(g_window->glfw, GLFW_KEY_W) == GLFW_PRESS;
     int key_s     = glfwGetKey(g_window->glfw, GLFW_KEY_S) == GLFW_PRESS;
@@ -443,8 +466,8 @@ static void gen_motion_vector_fly(Player* p, double dt)
     p->cam->speed_vertical = total_move[1];
     p->cam->speed_horizontal[1] = total_move[2];
 
-    glm_vec3_copy(total_move, p->cam->frame_motion);
-    glm_vec3_scale(p->cam->frame_motion, dt * p->cam->fly_speed, p->cam->frame_motion);
+    glm_vec3_copy(total_move, res);
+    glm_vec3_scale(res, dt * p->cam->fly_speed, res);
 }
 
 static void check_if_in_water(Player* p)
@@ -493,18 +516,20 @@ void player_update(Player* p, double dt)
     camera_update_view_dir(p->cam);
     camera_update_parameters(p->cam, dt);
     check_if_in_water(p);
+
+    vec3 motion;
     
     if (p->cam->is_fly_mode)
     {
-        gen_motion_vector_fly(p, dt);
-        glm_vec3_add(p->cam->pos, p->cam->frame_motion, p->cam->pos);
+        gen_motion_vector_fly(p, dt, motion);
+        glm_vec3_add(p->cam->pos, motion, p->cam->pos);
     }
     else
     {
-        gen_motion_vector_walk(p, dt);
-        collide_with_map(p);
+        gen_motion_vector_walk(p, dt, motion);
+        collide_with_map(p, motion);
     }
-    
+
     update_block_pointing_at(p);
     camera_update_matrices(p->cam);
 }

@@ -14,7 +14,6 @@ typedef struct
     vec3 pos;
     vec3 prev_pos;
 
-    vec3 frame_motion;
     vec2 speed_horizontal;
     float speed_vertical;
 
