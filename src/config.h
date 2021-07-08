@@ -41,17 +41,20 @@ extern int CHUNK_HEIGHT;
 extern float BLOCK_SIZE;
 
 // [PHYSICS]
+extern float MAX_RUN_SPEED;
 extern float MAX_MOVE_SPEED;
-extern float MAX_MOVE_SPEED_SNEAK;
+extern float MAX_SNEAK_SPEED;
 extern float MAX_SWIM_SPEED;
 extern float MAX_FALL_SPEED;
 extern float MAX_DIVE_SPEED;
 extern float MAX_EMERGE_SPEED;
+extern float JUMP_POWER;
+
+extern float ACCELERATION_WATER_EMERGE;
 extern float ACCELERATION_HORIZONTAL;
 extern float DECELERATION_HORIZONTAL;
-extern float DECELERATION_VERTICAL;
-extern float JUMP_POWER;
 extern float GRAVITY;
+extern float GRAVITY_WATER;
 
 // Internal values, cannot be set using ini file
 extern int   OPENGL_VERSION_MAJOR_REQUIRED;

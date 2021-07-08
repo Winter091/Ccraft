@@ -45,17 +45,20 @@ int   CHUNK_HEIGHT = 256;
 float BLOCK_SIZE   = 0.1f;
 
 // [PHYSICS] (default values)
+float MAX_RUN_SPEED           = 8.0f;
 float MAX_MOVE_SPEED          = 5.6f;
-float MAX_MOVE_SPEED_SNEAK    = 1.3f;
+float MAX_SNEAK_SPEED         = 1.3f;
 float MAX_SWIM_SPEED          = 3.0f;
 float MAX_FALL_SPEED          = 100.0f;
 float MAX_DIVE_SPEED          = 4.0f;
 float MAX_EMERGE_SPEED        = 6.0f;
-float ACCELERATION_HORIZONTAL = 40.0f;
-float DECELERATION_HORIZONTAL = 50.0f;
-float DECELERATION_VERTICAL   = 10.0f;
 float JUMP_POWER              = 8.2f;
-float GRAVITY                 = 25.0f;
+
+float ACCELERATION_WATER_EMERGE = 10.0f;
+float ACCELERATION_HORIZONTAL   = 40.0f;
+float DECELERATION_HORIZONTAL   = 50.0f;
+float GRAVITY                   = 25.0f;
+float GRAVITY_WATER             = 10.0f;
 
 // Internal values, cannot be set using ini file
 int   OPENGL_VERSION_MAJOR_REQUIRED = 3;
@@ -163,39 +166,44 @@ static void create_default_cfg_file()
     "block_size = 0.1\n\n"
 
     "[PHYSICS]\n"
-    "; Everything except gravity is in blocks per second\n"
-    "max_move_speed          = 5.6\n"
-    "max_move_speed_sneak    = 1.3\n"
-    "max_swim_speed          = 3.0\n"
-    "max_fall_speed          = 100.0\n"
-    "max_dive_speed          = 4.0\n"
-    "max_emerge_speed        = 6.0\n"
-    "acceleration_horizontal = 40.0\n"
-    "deceleration_horizontal = 50.0\n"
-    "deceleration_vertical   = 10.0\n"
-    "jump_power              = 8.2\n"
-    "gravity                 = 25.0\n";
+    "; Blocks per second\n"
+    "max_run_speed    = 5.612\n"
+    "max_move_speed   = 4.317\n"
+    "max_sneak_speed  = 1.31\n"
+    "max_swim_speed   = 3.5\n"
+    "max_fall_speed   = 57.46\n"
+    "max_dive_speed   = 8.0\n"
+    "max_emerge_speed = 10.0\n"
+    "jump_power       = 8.3\n"
+
+    "; Blocks per second^2\n"
+    "acceleration_water_emerge = 20.0\n"
+    "acceleration_horizontal   = 40.0\n"
+    "deceleration_horizontal   = 40.0\n"
+    "gravity                   = 27.44\n"
+    "gravity_water             = 9.14\n";
 
     printf("Creating new '%s' file...\n", "config.ini");
     fprintf(f, "%s", content);
     fclose(f);
 }
 
-// Translate physics values from "some units per second"
-// to "blocks per second"
 static void normalize_player_physics()
 {
+    MAX_RUN_SPEED           *= BLOCK_SIZE;
     MAX_MOVE_SPEED          *= BLOCK_SIZE;
-    MAX_MOVE_SPEED_SNEAK    *= BLOCK_SIZE;
+    MAX_SNEAK_SPEED         *= BLOCK_SIZE;
     MAX_SWIM_SPEED          *= BLOCK_SIZE;
     MAX_FALL_SPEED          *= BLOCK_SIZE;
     MAX_DIVE_SPEED          *= BLOCK_SIZE;
     MAX_EMERGE_SPEED        *= BLOCK_SIZE;
-    ACCELERATION_HORIZONTAL *= BLOCK_SIZE;
-    DECELERATION_HORIZONTAL *= BLOCK_SIZE;
-    DECELERATION_VERTICAL   *= BLOCK_SIZE;
     JUMP_POWER              *= BLOCK_SIZE;
-    GRAVITY                 *= BLOCK_SIZE;
+
+    ACCELERATION_WATER_EMERGE *= BLOCK_SIZE;
+    ACCELERATION_HORIZONTAL   *= BLOCK_SIZE;
+    DECELERATION_HORIZONTAL   *= BLOCK_SIZE;
+    GRAVITY                   *= BLOCK_SIZE;
+    GRAVITY_WATER             *= BLOCK_SIZE;
 }
 
 static void try_load(const char* section, const char* key, const char* fmt, void* dst)
@@ -266,17 +274,20 @@ void config_load()
     try_load("CORE", "chunk_height", "%d", &CHUNK_HEIGHT);
     try_load("CORE", "block_size", "%f", &BLOCK_SIZE);
 
+    try_load("PHYSICS", "max_run_speed", "%f", &MAX_RUN_SPEED);
     try_load("PHYSICS", "max_move_speed", "%f", &MAX_MOVE_SPEED);
-    try_load("PHYSICS", "max_move_speed_sneak", "%f", &MAX_MOVE_SPEED_SNEAK);
+    try_load("PHYSICS", "max_sneak_speed", "%f", &MAX_SNEAK_SPEED);
     try_load("PHYSICS", "max_swim_speed", "%f", &MAX_SWIM_SPEED);
     try_load("PHYSICS", "max_fall_speed", "%f", &MAX_FALL_SPEED);
     try_load("PHYSICS", "max_dive_speed", "%f", &MAX_DIVE_SPEED);
     try_load("PHYSICS", "max_emerge_speed", "%f", &MAX_EMERGE_SPEED);
+    try_load("PHYSICS", "jump_power", "%f", &JUMP_POWER);
+
+    try_load("PHYSICS", "acceleration_water_emerge", "%f", &ACCELERATION_WATER_EMERGE);
     try_load("PHYSICS", "acceleration_horizontal", "%f", &ACCELERATION_HORIZONTAL);
     try_load("PHYSICS", "deceleration_horizontal", "%f", &DECELERATION_HORIZONTAL);
-    try_load("PHYSICS", "deceleration_vertical", "%f", &DECELERATION_VERTICAL);
-    try_load("PHYSICS", "jump_power", "%f", &JUMP_POWER);
     try_load("PHYSICS", "gravity", "%f", &GRAVITY);
+    try_load("PHYSICS", "gravity_water", "%f", &GRAVITY_WATER);
 
     normalize_player_physics();
 

@@ -17,6 +17,8 @@ typedef struct
 
     int on_ground;
     int in_water;
+    int is_sneaking;
+    int is_running;
 
     GLuint VAO_item;
     GLuint VBO_item;

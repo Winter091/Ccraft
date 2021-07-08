@@ -87,6 +87,8 @@ Player* player_create()
 
     p->on_ground = 0;
     p->in_water = 0;
+    p->is_sneaking = 0;
+    p->is_running = 0;
 
     p->VAO_item = 0;
     p->VBO_item = 0;
@@ -202,19 +204,19 @@ for (int y = -3; y <= 3; y++)                                   \
 
 static void collision_x(Player* p, vec3 block_hitbox[2])
 {
-    int const moving_to_plus_x = (p->cam->speed_horizontal[0] >= 0);
+    int const moving_to_plus_x = (p->cam->speed[0] >= 0);
     
     if (moving_to_plus_x)
         p->cam->pos[0] -= (p->hitbox[1][0] - block_hitbox[0][0]) + 0.00001f;
     else
         p->cam->pos[0] += (block_hitbox[1][0] - p->hitbox[0][0]) + 0.00001f;
     
-    p->cam->speed_horizontal[0] = 0.0;
+    p->cam->speed[0] = 0.0f;
 }
 
 static void collision_y(Player* p, vec3 block_hitbox[2])
 {
-    int const moving_to_plus_y = (p->cam->speed_vertical >= 0);
+    int const moving_to_plus_y = (p->cam->speed[1] >= 0);
     
     if (moving_to_plus_y)
         p->cam->pos[1] -= (p->hitbox[1][1] - block_hitbox[0][1]) + 0.00001f;
@@ -224,19 +226,19 @@ static void collision_y(Player* p, vec3 block_hitbox[2])
         p->on_ground = 1;
     }
 
-    p->cam->speed_vertical = 0.0f;
+    p->cam->speed[1] = 0.0f;
 }
 
 static void collision_z(Player* p, vec3 block_hitbox[2])
 {
-    int const moving_to_plus_z = (p->cam->speed_horizontal[1] >= 0);
+    int const moving_to_plus_z = (p->cam->speed[2] >= 0);
     
     if (moving_to_plus_z)
         p->cam->pos[2] -= (p->hitbox[1][2] - block_hitbox[0][2]) + 0.00001f;
     else
         p->cam->pos[2] += (block_hitbox[1][2] - p->hitbox[0][2]) + 0.00001f;
 
-    p->cam->speed_horizontal[1] = 0.0;
+    p->cam->speed[2] = 0.0f;
 }
 
 static int collide_one_axis(void (*collision_handler)
@@ -282,9 +284,13 @@ static void collide_all_axes(Player* p, vec3 motion, ivec3 do_collide)
 
 static void collide_with_map(Player* p, vec3 motion)
 {
+    
     float const max_step_size = 0.25f * BLOCK_SIZE;
 
     float magnitude = glm_vec3_norm(motion);
+    if (magnitude < 0.00001f)
+        return;
+    
     int num_steps = 1 + (magnitude / max_step_size);
     float step_size = magnitude / num_steps;
 
@@ -299,144 +305,202 @@ static void collide_with_map(Player* p, vec3 motion)
         collide_all_axes(p, step_motion, do_collide);
 }
 
-static void gen_motion_vector_walk(Player* p, double dt, vec3 res)
+static void decelerate(Player* p, vec3 frame_accel)
 {
-    int key_w     = (glfwGetKey(g_window->glfw, GLFW_KEY_W)          == GLFW_PRESS);
-    int key_s     = (glfwGetKey(g_window->glfw, GLFW_KEY_S)          == GLFW_PRESS);
-    int key_a     = (glfwGetKey(g_window->glfw, GLFW_KEY_A)          == GLFW_PRESS);
-    int key_d     = (glfwGetKey(g_window->glfw, GLFW_KEY_D)          == GLFW_PRESS);
-    int key_space = (glfwGetKey(g_window->glfw, GLFW_KEY_SPACE)      == GLFW_PRESS);
-    int key_shift = (glfwGetKey(g_window->glfw, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS);
+    vec3 accel;
 
-    vec3 front, right, up;
+    glm_vec3_copy(p->cam->speed, accel);
+    accel[1] = 0.0f;
+    glm_vec3_normalize(accel);
+    glm_vec3_scale(accel, -1.0f, accel);
+    glm_vec3_scale(accel, DECELERATION_HORIZONTAL, accel);
 
-    // generate front, right, up vectors
+    glm_vec3_add(frame_accel, accel, frame_accel);
+}
+
+static void accelerate_wasd(Player* p, vec3 frame_accel)
+{
+    int const key_w = window_is_key_pressed(GLFW_KEY_W);
+    int const key_s = window_is_key_pressed(GLFW_KEY_S);
+    int const key_a = window_is_key_pressed(GLFW_KEY_A);
+    int const key_d = window_is_key_pressed(GLFW_KEY_D);
+
+    // generate front & right vectors
+    vec3 front, right;
     front[0] = cosf(glm_rad(p->cam->yaw));
     front[1] = 0.0f;
     front[2] = sinf(glm_rad(p->cam->yaw));
     glm_vec3_normalize(front);
     glm_vec3_crossn(front, p->cam->up, right);
-    glm_vec3_copy(p->cam->up, up);
 
-    vec2 frame_speed_horizontal = {0.0f, 0.0f};
-    float frame_speed_vertical = 0.0f;
-
-    if (key_w || key_s || key_a || key_d)
+    vec3 accel = {0.0f};
+    
+    if (key_w || key_s)
     {
-        if (key_w || key_s)
-        {
-            vec2 move = {front[0], front[2]};
-            if (key_s) glm_vec2_negate(move);
+        vec3 a = {front[0], 0.0f, front[2]};
+        if (key_s) glm_vec3_negate(a);
 
-            glm_vec2_add(frame_speed_horizontal, move, frame_speed_horizontal);
-        }
-
-        if (key_a || key_d)
-        {
-            vec2 move = {right[0], right[2]};
-            if (key_a) glm_vec2_negate(move);
-            
-            glm_vec2_add(frame_speed_horizontal, move, frame_speed_horizontal);
-        }
+        glm_vec3_add(accel, a, accel);
     }
-    // No motion keys are pressed at this frame, decelerate
+
+    if (key_a || key_d)
+    {
+        vec3 a = {right[0], 0.0f, right[2]};
+        if (key_a) glm_vec3_negate(a);
+        
+        glm_vec3_add(accel, a, accel);
+    }
+
+    float s = ACCELERATION_HORIZONTAL;
+    if (!p->on_ground && !p->in_water)
+        s = ACCELERATION_HORIZONTAL / 6.0f;
+    glm_vec3_scale(accel, s, accel);
+
+    glm_vec3_add(frame_accel, accel, frame_accel);
+}
+
+static void gen_motion_vector_walk(Player* p, double dt, vec3 res)
+{
+    int const key_w     = window_is_key_pressed(GLFW_KEY_W);
+    int const key_s     = window_is_key_pressed(GLFW_KEY_S);
+    int const key_a     = window_is_key_pressed(GLFW_KEY_A);
+    int const key_d     = window_is_key_pressed(GLFW_KEY_D);
+    int const key_space = window_is_key_pressed(GLFW_KEY_SPACE);
+    int const key_shift = window_is_key_pressed(GLFW_KEY_LEFT_SHIFT);
+    int const key_ctrl  = window_is_key_pressed(GLFW_KEY_LEFT_CONTROL);
+
+    vec3 frame_accel = {0.0f};
+    vec3 frame_speed = {0.0f};
+    static int done_decelerating_sneak = 0;
+    static int done_decelerating_run = 0;
+    int decelerated_no_keys = 0;
+
+    p->is_sneaking = key_shift;
+    p->is_running = key_ctrl;
+
+    if (p->is_sneaking && p->is_running)
+        p->is_running = 0;
+
+    float xz_speed = glm_vec2_norm((vec2){ p->cam->speed[0], 
+                                   p->cam->speed[2] });
+
+    if (p->is_sneaking && xz_speed > MAX_SNEAK_SPEED 
+        && !done_decelerating_sneak && p->on_ground)
+    {
+        decelerate(p, frame_accel);
+    }
+    else if (!p->is_running && xz_speed > MAX_MOVE_SPEED
+             && !done_decelerating_run && p->on_ground)
+    {
+        decelerate(p, frame_accel);
+    }
+    else if (key_w || key_s || key_a || key_d)
+    {
+        accelerate_wasd(p, frame_accel);
+    }
+    else if (p->on_ground || p->in_water)
+    {
+        decelerate(p, frame_accel);
+        decelerated_no_keys = 1;
+    }
+
+    // Sneak & run logic
+    if (!done_decelerating_sneak && xz_speed <= MAX_SNEAK_SPEED)
+        done_decelerating_sneak = 1;
+    else if (done_decelerating_sneak && !key_shift)
+        done_decelerating_sneak = 0;
+    
+    if (!done_decelerating_run && xz_speed <= MAX_MOVE_SPEED)
+        done_decelerating_run = 1;
+    else if (done_decelerating_run && p->is_running)
+        done_decelerating_run = 0;
+
+    // Gravity, jumps
+    if (p->in_water)
+        frame_accel[1] -= GRAVITY_WATER;
     else
-    {
-        if (p->on_ground || p->in_water)
-        {
-            float speed = glm_vec2_norm(p->cam->speed_horizontal);
-            // Remove possible div by zero error
-            speed += 0.00001f;
-
-            glm_vec2_scale(p->cam->speed_horizontal, 
-                           1.0f / (1.0f + (dt * DECELERATION_HORIZONTAL / speed)), 
-                           p->cam->speed_horizontal);
-        }
-    }
-
-    // Jump / emerge from water
+        frame_accel[1] -= GRAVITY;
+    
     if (key_space)
     {
         if (p->on_ground)
-            p->cam->speed_vertical = JUMP_POWER;
+            frame_speed[1] = JUMP_POWER;
         else if (p->in_water)
-            p->cam->speed_vertical += JUMP_POWER * dt * 3.0f;
+            frame_accel[1] += ACCELERATION_WATER_EMERGE;
     }
 
-    // Smooth transition from run speed to sneak speed
-    float horizontal_speed = glm_vec2_norm(p->cam->speed_horizontal);
-    if (key_shift && horizontal_speed > MAX_MOVE_SPEED_SNEAK)
-    {
-        // Main goal is to decelerate, so don't mind
-        // wasd key presses until we're slowed
-        glm_vec2_fill(frame_speed_horizontal, 0.0f);
+    // Calculate frame speed, add it to camera's speed
+    vec3 speed_from_accel;
+    glm_vec3_copy(frame_accel, speed_from_accel);
+    glm_vec3_scale(speed_from_accel, dt, speed_from_accel);
+    glm_vec3_add(speed_from_accel, frame_speed, frame_speed);
+
+    vec3 old_cam_speed;
+    glm_vec3_copy(p->cam->speed, old_cam_speed);
+    glm_vec3_add(frame_speed, p->cam->speed, p->cam->speed);
+
+    // Stop player completely if he was decelerating and
+    // speed has changed its direction almost by 180 degrees
+    float angle = glm_vec3_angle(
+        (vec3){p->cam->speed[0], 0.0f, p->cam->speed[2]},
+        (vec3){old_cam_speed[0], 0.0f, old_cam_speed[2]});
     
-        // Remove possible div by zero error
-        horizontal_speed += 0.00001f;
-
-        glm_vec2_scale(p->cam->speed_horizontal, 
-                       1.0f / (1.0f + (dt * DECELERATION_HORIZONTAL / horizontal_speed)), 
-                       p->cam->speed_horizontal);
+    float const margin = GLM_PIf / 16.0f;
+    if (angle > GLM_PIf - margin && angle < GLM_PIf + margin
+        && decelerated_no_keys)
+    {
+        glm_vec3_zero(p->cam->speed);
     }
 
+    // Clamp horizontal speed
+    float max_xz_speed;
     if (p->in_water)
-        frame_speed_vertical -= GRAVITY / 3.0f;
+        max_xz_speed = MAX_SWIM_SPEED;
+    else if (p->is_running || !done_decelerating_run)
+        max_xz_speed = MAX_RUN_SPEED;
+    else if (p->is_sneaking && done_decelerating_sneak)
+        max_xz_speed = MAX_SNEAK_SPEED;
     else
-        frame_speed_vertical -= GRAVITY;
+        max_xz_speed = MAX_MOVE_SPEED;
 
-    glm_vec2_scale(frame_speed_horizontal, 
-                   dt * ACCELERATION_HORIZONTAL, 
-                   frame_speed_horizontal);
-    frame_speed_vertical *= dt;
-    
-    // Apply generated horizontal motion
-    glm_vec2_add(p->cam->speed_horizontal, frame_speed_horizontal, 
-                 p->cam->speed_horizontal);
-
-    horizontal_speed = glm_vec2_norm(p->cam->speed_horizontal);
-
-    float max_hor_speed = (p->in_water ? MAX_SWIM_SPEED : MAX_MOVE_SPEED);
-
-    if (horizontal_speed > max_hor_speed)
+    xz_speed = glm_vec2_norm((vec2){ p->cam->speed[0], 
+                             p->cam->speed[2] });
+    if (xz_speed > max_xz_speed)
     {
-        glm_vec2_scale(p->cam->speed_horizontal, max_hor_speed / horizontal_speed, 
-                       p->cam->speed_horizontal);
-    }
-    else if (horizontal_speed < 0.001f)
-    {
-        glm_vec2_fill(p->cam->speed_horizontal, 0.0f);
+        float const s = max_xz_speed / xz_speed;
+        p->cam->speed[0] *= s;
+        p->cam->speed[2] *= s;
     }
 
-    // Apply and clamp vertical speed
-    p->cam->speed_vertical += frame_speed_vertical;
+    // Clamp vertical speed
     if (p->in_water)
     {
-        if (p->cam->speed_vertical > MAX_EMERGE_SPEED)
-            p->cam->speed_vertical = MAX_EMERGE_SPEED;
-        else if (p->cam->speed_vertical < -MAX_DIVE_SPEED)
-            p->cam->speed_vertical = -MAX_DIVE_SPEED;
+        if (p->cam->speed[1] > MAX_EMERGE_SPEED)
+            p->cam->speed[1] = MAX_EMERGE_SPEED;
+        else if (p->cam->speed[1] < -MAX_DIVE_SPEED)
+            p->cam->speed[1] = -MAX_DIVE_SPEED;
     }
     else
     {
-        if (p->cam->speed_vertical < -MAX_FALL_SPEED)
-            p->cam->speed_vertical = -MAX_FALL_SPEED;
+        if (p->cam->speed[1] < -MAX_FALL_SPEED)
+            p->cam->speed[1] = -MAX_FALL_SPEED;
     }
 
-    // Don't move player yet, just save values we need to move with
-    res[0] = p->cam->speed_horizontal[0];
-    res[1] = p->cam->speed_vertical;
-    res[2] = p->cam->speed_horizontal[1];
-    glm_vec3_scale(res, dt, res);
+    // Calculate frame motion, add it to camera's position
+    vec3 frame_motion;
+    glm_vec3_copy(p->cam->speed, frame_motion);
+    glm_vec3_scale(frame_motion, dt, frame_motion);
+    glm_vec3_copy(frame_motion, res);
 }
 
 static void gen_motion_vector_fly(Player* p, double dt, vec3 res)
 {   
-    int key_w     = glfwGetKey(g_window->glfw, GLFW_KEY_W) == GLFW_PRESS;
-    int key_s     = glfwGetKey(g_window->glfw, GLFW_KEY_S) == GLFW_PRESS;
-    int key_a     = glfwGetKey(g_window->glfw, GLFW_KEY_A) == GLFW_PRESS;
-    int key_d     = glfwGetKey(g_window->glfw, GLFW_KEY_D) == GLFW_PRESS;
-    int key_shift = glfwGetKey(g_window->glfw, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
-    int key_ctrl  = glfwGetKey(g_window->glfw, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
+    int const key_w     = window_is_key_pressed(GLFW_KEY_W);
+    int const key_s     = window_is_key_pressed(GLFW_KEY_S);
+    int const key_a     = window_is_key_pressed(GLFW_KEY_A);
+    int const key_d     = window_is_key_pressed(GLFW_KEY_D);
+    int const key_shift = window_is_key_pressed(GLFW_KEY_LEFT_SHIFT);
+    int const key_ctrl  = window_is_key_pressed(GLFW_KEY_LEFT_CONTROL);
 
     vec3 front, right, up;
 
@@ -462,10 +526,7 @@ static void gen_motion_vector_fly(Player* p, double dt, vec3 res)
     if (key_ctrl)
         glm_vec3_sub(total_move, up, total_move);
     
-    p->cam->speed_horizontal[0] = total_move[0];
-    p->cam->speed_vertical = total_move[1];
-    p->cam->speed_horizontal[1] = total_move[2];
-
+    glm_vec3_copy(total_move, p->cam->speed);
     glm_vec3_copy(total_move, res);
     glm_vec3_scale(res, dt * p->cam->fly_speed, res);
 }
