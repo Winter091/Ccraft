@@ -18,9 +18,7 @@ Camera* camera_create()
 
     glm_vec3_fill(cam->pos, 0.0f);
     glm_vec3_fill(cam->prev_pos, 0.0f);
-
-    glm_vec2_fill(cam->speed_horizontal, 0.0f);
-    cam->speed_vertical = 0.0f;
+    glm_vec3_fill(cam->speed, 0.0f);
 
     my_glm_vec3_set(cam->front, 0.0f, 0.0f, -1.0f);
     my_glm_vec3_set(cam->up,    0.0f, 1.0f,  0.0f);

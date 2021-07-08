@@ -202,19 +202,19 @@ for (int y = -3; y <= 3; y++)                                   \
 
 static void collision_x(Player* p, vec3 block_hitbox[2])
 {
-    int const moving_to_plus_x = (p->cam->speed_horizontal[0] >= 0);
+    int const moving_to_plus_x = (p->cam->speed[0] >= 0);
     
     if (moving_to_plus_x)
         p->cam->pos[0] -= (p->hitbox[1][0] - block_hitbox[0][0]) + 0.00001f;
     else
         p->cam->pos[0] += (block_hitbox[1][0] - p->hitbox[0][0]) + 0.00001f;
     
-    p->cam->speed_horizontal[0] = 0.0;
+    p->cam->speed[0] = 0.0f;
 }
 
 static void collision_y(Player* p, vec3 block_hitbox[2])
 {
-    int const moving_to_plus_y = (p->cam->speed_vertical >= 0);
+    int const moving_to_plus_y = (p->cam->speed[1] >= 0);
     
     if (moving_to_plus_y)
         p->cam->pos[1] -= (p->hitbox[1][1] - block_hitbox[0][1]) + 0.00001f;
@@ -224,19 +224,19 @@ static void collision_y(Player* p, vec3 block_hitbox[2])
         p->on_ground = 1;
     }
 
-    p->cam->speed_vertical = 0.0f;
+    p->cam->speed[1] = 0.0f;
 }
 
 static void collision_z(Player* p, vec3 block_hitbox[2])
 {
-    int const moving_to_plus_z = (p->cam->speed_horizontal[1] >= 0);
+    int const moving_to_plus_z = (p->cam->speed[2] >= 0);
     
     if (moving_to_plus_z)
         p->cam->pos[2] -= (p->hitbox[1][2] - block_hitbox[0][2]) + 0.00001f;
     else
         p->cam->pos[2] += (block_hitbox[1][2] - p->hitbox[0][2]) + 0.00001f;
 
-    p->cam->speed_horizontal[1] = 0.0;
+    p->cam->speed[2] = 0.0f;
 }
 
 static int collide_one_axis(void (*collision_handler)
@@ -282,9 +282,13 @@ static void collide_all_axes(Player* p, vec3 motion, ivec3 do_collide)
 
 static void collide_with_map(Player* p, vec3 motion)
 {
+    
     float const max_step_size = 0.25f * BLOCK_SIZE;
 
     float magnitude = glm_vec3_norm(motion);
+    if (magnitude < 0.00001f)
+        return;
+    
     int num_steps = 1 + (magnitude / max_step_size);
     float step_size = magnitude / num_steps;
 
@@ -318,25 +322,24 @@ static void gen_motion_vector_walk(Player* p, double dt, vec3 res)
     glm_vec3_crossn(front, p->cam->up, right);
     glm_vec3_copy(p->cam->up, up);
 
-    vec2 frame_speed_horizontal = {0.0f, 0.0f};
-    float frame_speed_vertical = 0.0f;
+    vec3 frame_speed = {0.0f};
 
     if (key_w || key_s || key_a || key_d)
     {
         if (key_w || key_s)
         {
-            vec2 move = {front[0], front[2]};
-            if (key_s) glm_vec2_negate(move);
+            vec3 move = {front[0], 0.0f, front[2]};
+            if (key_s) glm_vec3_negate(move);
 
-            glm_vec2_add(frame_speed_horizontal, move, frame_speed_horizontal);
+            glm_vec3_add(frame_speed, move, frame_speed);
         }
 
         if (key_a || key_d)
         {
-            vec2 move = {right[0], right[2]};
-            if (key_a) glm_vec2_negate(move);
+            vec3 move = {right[0], 0.0f, right[2]};
+            if (key_a) glm_vec3_negate(move);
             
-            glm_vec2_add(frame_speed_horizontal, move, frame_speed_horizontal);
+            glm_vec3_add(frame_speed, move, frame_speed);
         }
     }
     // No motion keys are pressed at this frame, decelerate
@@ -344,13 +347,13 @@ static void gen_motion_vector_walk(Player* p, double dt, vec3 res)
     {
         if (p->on_ground || p->in_water)
         {
-            float speed = glm_vec2_norm(p->cam->speed_horizontal);
+            float xz_speed = glm_vec2_norm((vec2){ p->cam->speed[0], p->cam->speed[2] });
             // Remove possible div by zero error
-            speed += 0.00001f;
+            xz_speed += 0.00001f;
 
-            glm_vec2_scale(p->cam->speed_horizontal, 
-                           1.0f / (1.0f + (dt * DECELERATION_HORIZONTAL / speed)), 
-                           p->cam->speed_horizontal);
+            float const s = 1.0f / (1.0f + (dt * DECELERATION_HORIZONTAL / xz_speed));
+            p->cam->speed[0] *= s;
+            p->cam->speed[2] *= s;
         }
     }
 
@@ -358,74 +361,74 @@ static void gen_motion_vector_walk(Player* p, double dt, vec3 res)
     if (key_space)
     {
         if (p->on_ground)
-            p->cam->speed_vertical = JUMP_POWER;
+            p->cam->speed[1] = JUMP_POWER;
         else if (p->in_water)
-            p->cam->speed_vertical += JUMP_POWER * dt * 3.0f;
+            p->cam->speed[1] += JUMP_POWER * dt * 3.0f;
     }
 
     // Smooth transition from run speed to sneak speed
-    float horizontal_speed = glm_vec2_norm(p->cam->speed_horizontal);
-    if (key_shift && horizontal_speed > MAX_MOVE_SPEED_SNEAK)
+    float xz_speed = glm_vec2_norm((vec2){ p->cam->speed[0], p->cam->speed[2] });
+    if (key_shift && xz_speed > MAX_MOVE_SPEED_SNEAK)
     {
         // Main goal is to decelerate, so don't mind
         // wasd key presses until we're slowed
-        glm_vec2_fill(frame_speed_horizontal, 0.0f);
+        frame_speed[0] = 0.0f;
+        frame_speed[2] = 0.0f;
     
         // Remove possible div by zero error
-        horizontal_speed += 0.00001f;
+        xz_speed += 0.00001f;
 
-        glm_vec2_scale(p->cam->speed_horizontal, 
-                       1.0f / (1.0f + (dt * DECELERATION_HORIZONTAL / horizontal_speed)), 
-                       p->cam->speed_horizontal);
+        float const s = 1.0f / (1.0f + (dt * DECELERATION_HORIZONTAL / xz_speed));
+        p->cam->speed[0] *= s;
+        p->cam->speed[2] *= s;
     }
 
     if (p->in_water)
-        frame_speed_vertical -= GRAVITY / 3.0f;
+        frame_speed[1] -= GRAVITY / 3.0f;
     else
-        frame_speed_vertical -= GRAVITY;
+        frame_speed[1] -= GRAVITY;
 
-    glm_vec2_scale(frame_speed_horizontal, 
-                   dt * ACCELERATION_HORIZONTAL, 
-                   frame_speed_horizontal);
-    frame_speed_vertical *= dt;
+    frame_speed[0] *= dt * ACCELERATION_HORIZONTAL;
+    frame_speed[1] *= dt;
+    frame_speed[2] *= dt * ACCELERATION_HORIZONTAL;
     
     // Apply generated horizontal motion
-    glm_vec2_add(p->cam->speed_horizontal, frame_speed_horizontal, 
-                 p->cam->speed_horizontal);
+    p->cam->speed[0] += frame_speed[0];
+    p->cam->speed[2] += frame_speed[2];
 
-    horizontal_speed = glm_vec2_norm(p->cam->speed_horizontal);
+    xz_speed = glm_vec2_norm((vec2){ p->cam->speed[0], p->cam->speed[2] });
 
-    float max_hor_speed = (p->in_water ? MAX_SWIM_SPEED : MAX_MOVE_SPEED);
+    float max_xz_speed = (p->in_water ? MAX_SWIM_SPEED : MAX_MOVE_SPEED);
 
-    if (horizontal_speed > max_hor_speed)
+    if (xz_speed > max_xz_speed)
     {
-        glm_vec2_scale(p->cam->speed_horizontal, max_hor_speed / horizontal_speed, 
-                       p->cam->speed_horizontal);
+        float const s = max_xz_speed / xz_speed;
+        p->cam->speed[0] *= s;
+        p->cam->speed[2] *= s;
     }
-    else if (horizontal_speed < 0.001f)
+    else if (xz_speed < 0.001f)
     {
-        glm_vec2_fill(p->cam->speed_horizontal, 0.0f);
+        p->cam->speed[0] = 0.0f;
+        p->cam->speed[2] = 0.0f;
     }
 
     // Apply and clamp vertical speed
-    p->cam->speed_vertical += frame_speed_vertical;
+    p->cam->speed[1] += frame_speed[1];
     if (p->in_water)
     {
-        if (p->cam->speed_vertical > MAX_EMERGE_SPEED)
-            p->cam->speed_vertical = MAX_EMERGE_SPEED;
-        else if (p->cam->speed_vertical < -MAX_DIVE_SPEED)
-            p->cam->speed_vertical = -MAX_DIVE_SPEED;
+        if (p->cam->speed[1] > MAX_EMERGE_SPEED)
+            p->cam->speed[1] = MAX_EMERGE_SPEED;
+        else if (p->cam->speed[1] < -MAX_DIVE_SPEED)
+            p->cam->speed[1] = -MAX_DIVE_SPEED;
     }
     else
     {
-        if (p->cam->speed_vertical < -MAX_FALL_SPEED)
-            p->cam->speed_vertical = -MAX_FALL_SPEED;
+        if (p->cam->speed[1] < -MAX_FALL_SPEED)
+            p->cam->speed[1] = -MAX_FALL_SPEED;
     }
 
     // Don't move player yet, just save values we need to move with
-    res[0] = p->cam->speed_horizontal[0];
-    res[1] = p->cam->speed_vertical;
-    res[2] = p->cam->speed_horizontal[1];
+    glm_vec3_copy(p->cam->speed, res);
     glm_vec3_scale(res, dt, res);
 }
 
@@ -462,10 +465,7 @@ static void gen_motion_vector_fly(Player* p, double dt, vec3 res)
     if (key_ctrl)
         glm_vec3_sub(total_move, up, total_move);
     
-    p->cam->speed_horizontal[0] = total_move[0];
-    p->cam->speed_vertical = total_move[1];
-    p->cam->speed_horizontal[1] = total_move[2];
-
+    glm_vec3_copy(total_move, p->cam->speed);
     glm_vec3_copy(total_move, res);
     glm_vec3_scale(res, dt * p->cam->fly_speed, res);
 }
