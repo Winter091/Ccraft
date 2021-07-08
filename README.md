@@ -28,8 +28,8 @@ These features are implemented:
 
 * WASD                - Move player
 * Tab                 - Toggle fly mode
-* Shift               - Slow movement / fly up
-* Ctrl                - Fly down
+* Shift               - Sneak mode / fly up
+* Ctrl                - Run / fly down
 * Page up/down (hold) - Increase/decrease fly camera speed
 * C                   - Zoom camera
 * Left mouse button   - Destroy block
