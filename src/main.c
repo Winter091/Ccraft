@@ -138,8 +138,8 @@ static float get_current_dof_depth(float dt)
 
 void update(Player* p, float dt)
 {
-    map_update(p->cam);
     player_update(p, dt);
+    map_update(p->cam);
 }
 
 void render_game(Player* p)
