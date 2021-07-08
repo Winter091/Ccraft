@@ -32,6 +32,8 @@ void window_init();
 
 void window_init_fb();
 
+int window_is_key_pressed(int glfw_keycode);
+
 void window_destroy();
 
 #endif

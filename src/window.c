@@ -153,6 +153,11 @@ void window_init_fb()
     g_window->fb = framebuffers_init(WINDOW_WIDTH, WINDOW_HEIGHT);
 }
 
+int window_is_key_pressed(int glfw_keycode)
+{
+    return glfwGetKey(g_window->glfw, glfw_keycode) == GLFW_PRESS;
+}
+
 void window_destroy()
 {
     framebuffers_destroy(g_window->fb);

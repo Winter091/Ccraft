@@ -91,10 +91,10 @@ void camera_update_parameters(Camera* cam, float dt)
     if (!cam->is_active)
         return;
 
-    int key_c        = (glfwGetKey(g_window->glfw, GLFW_KEY_C)         == GLFW_PRESS);
-    int key_pageup   = (glfwGetKey(g_window->glfw, GLFW_KEY_PAGE_UP)   == GLFW_PRESS);
-    int key_pagedown = (glfwGetKey(g_window->glfw, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS);
-    int key_tab      = (glfwGetKey(g_window->glfw, GLFW_KEY_TAB)       == GLFW_PRESS);
+    int const key_c        = window_is_key_pressed(GLFW_KEY_C);
+    int const key_pageup   = window_is_key_pressed(GLFW_KEY_PAGE_UP);
+    int const key_pagedown = window_is_key_pressed(GLFW_KEY_PAGE_DOWN);
+    int const key_tab      = window_is_key_pressed(GLFW_KEY_TAB);
     static int tab_already_pressed = 0;
 
     // Handle fly speed
