@@ -53,13 +53,16 @@ static void db_insert_default_map_info()
     sqlite3_stmt* stmt = db_compile_statement(
         "INSERT INTO "
         "map_info (seed, curr_time, chunk_width, chunk_height) "
-        "VALUES (?, 0, 32, 256)"
+        "VALUES (?, 0, ?, ?)"
     );
 
     int seed = rand();
-    printf("Created new map with seed: %d\n", seed);
+    printf("Created new map with seed: %d, chunk_width = %d and "
+           "chunk_height = %d\n", seed, CHUNK_WIDTH, CHUNK_HEIGHT);
 
     sqlite3_bind_int(stmt, 1, seed);
+    sqlite3_bind_int(stmt, 2, CHUNK_WIDTH);
+    sqlite3_bind_int(stmt, 3, CHUNK_HEIGHT);
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);
 }
