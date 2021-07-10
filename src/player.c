@@ -46,6 +46,49 @@ static void regenerate_item_buffer(Player* p)
     free(vertices);
 }
 
+static void regenerate_item_model_matrix(Player* p)
+{
+    glm_mat4_identity(p->model_mat_item);
+    
+    if (p->build_block == BLOCK_PLAYER_HAND)
+    {
+        glm_translate(p->model_mat_item, (vec3){0.3f, -0.3f, 0.34f});
+        glm_rotate(p->model_mat_item, -1.0f,  (vec3){1.0f, 0.0f, 0.0f});
+        glm_rotate(p->model_mat_item,  0.48f, (vec3){0.0f, 1.0f, 0.0f});
+        glm_rotate(p->model_mat_item, -0.18f, (vec3){0.0f, 0.0f, 1.0f});
+        glm_scale(p->model_mat_item, (vec3){0.125f, 0.3f, 0.1f});
+    }
+    else if (block_is_plant(p->build_block))
+    {
+        glm_translate(p->model_mat_item, (vec3){0.11f, -0.08f, 0.77f});
+        glm_rotate(p->model_mat_item, 0.2f,  (vec3){1.0f, 0.0f, 0.0f});
+        glm_rotate(p->model_mat_item, 0.5f,  (vec3){0.0f, 1.0f, 0.0f});
+        glm_rotate(p->model_mat_item, 0.12f, (vec3){0.0f, 0.0f, 1.0f});
+        glm_scale(p->model_mat_item, (vec3){0.1f, 0.1f, 0.1f});
+    }
+    else
+    {
+        glm_translate(p->model_mat_item, (vec3){0.14f, -0.13f, 0.73f});
+        //glm_rotate(p->model_mat_item, 0.0f, (vec3){1.0f, 0.0f, 0.0f});
+        glm_rotate(p->model_mat_item, 1.0f, (vec3){0.0f, 1.0f, 0.0f});
+        //glm_rotate(p->model_mat_item, 0.0f, (vec3){0.0f, 0.0f, 1.0f});
+        glm_scale(p->model_mat_item, (vec3){0.1f, 0.1f, 0.1f});
+    }
+
+    // Matrix multuplication order is reversed in code, so it's 
+    // the first operation what's below.
+    // Firstly translate current item by (-0.5, -0.5, -0.5) to 
+    // put the center of an item into the center of coordinates
+    // (for correct rotation)
+    glm_translate(p->model_mat_item, (vec3){-0.5f, -0.5f, -0.5f});
+}
+
+static void regenerate_item(Player* p)
+{
+    regenerate_item_buffer(p);
+    regenerate_item_model_matrix(p);
+}
+
 static void update_hitbox(Player* p)
 {
     p->hitbox[0][0] = p->cam->pos[0] - BLOCK_SIZE * 0.3f;
@@ -92,7 +135,7 @@ Player* player_create()
 
     p->VAO_item = 0;
     p->VBO_item = 0;
-    regenerate_item_buffer(p);
+    regenerate_item(p);
 
     return p;
 }
@@ -169,7 +212,7 @@ void player_set_build_block(Player* p, int new_block)
         new_block++;
 
     p->build_block = new_block;
-    regenerate_item_buffer(p);
+    regenerate_item(p);
 }
 
 // Almost like glm_aabb_aabb(), but >= and <= are replaced with > and <
@@ -663,34 +706,6 @@ void player_handle_right_mouse_click(Player* p)
 
 void player_render_item(Player* p)
 {
-    mat4 model;
-    glm_mat4_identity(model);
-
-    if (p->build_block == BLOCK_PLAYER_HAND)
-    {
-        glm_rotate(model, -1.092f, (vec3){1.0f, 0.0f, 0.0f});
-        glm_rotate(model, 0.336f, (vec3){0.0f, 1.0f, 0.0f});
-        glm_rotate(model, -0.154f, (vec3){0.0f, 0.0f, 1.0f});
-        glm_scale(model, (vec3){0.1f, 0.3f, 0.1f});
-        glm_translate(model, (vec3){2.76f, -1.98f, 0.16f});
-    }
-    else if (block_is_plant(p->build_block))
-    {
-        glm_rotate(model, 0.063f, (vec3){1.0f, 0.0f, 0.0f});
-        glm_rotate(model, 0.364f, (vec3){0.0f, 1.0f, 0.0f});
-        glm_rotate(model, 0.000f, (vec3){0.0f, 0.0f, 1.0f});
-        glm_scale(model, (vec3){0.1f, 0.1f, 0.1f});
-        glm_translate(model, (vec3){-1.98f, -0.80f, 7.01f});
-    }
-    else
-    {
-        glm_rotate(model, 0.154f, (vec3){1.0f, 0.0f, 0.0f});
-        glm_rotate(model, 0.448f, (vec3){0.0f, 1.0f, 0.0f});
-        glm_rotate(model, 0.049f, (vec3){0.0f, 0.0f, 1.0f});
-        glm_scale(model, (vec3){0.1f, 0.1f, 0.1f});
-        glm_translate(model, (vec3){-2.4f, -0.57f, 6.78f});
-    }
-
     // Render item using additional camera created here;
     // The camera is at (0, 0, -1) and looks at (0, 0, 0)
     mat4 view, projection;
@@ -699,7 +714,7 @@ void player_render_item(Player* p)
     glm_perspective(glm_rad(50.0f), p->cam->aspect_ratio, 0.01f, 2.0f, projection);
 
     mat4 mvp;
-    glm_mat4_mulN((mat4* []){&projection, &view, &model}, 3, mvp);
+    glm_mat4_mulN((mat4* []){&projection, &view, &p->model_mat_item}, 3, mvp);
 
     glUseProgram(shader_block);
     shader_set_mat4(shader_block, "mvp_matrix", mvp);

@@ -22,6 +22,7 @@ typedef struct
 
     GLuint VAO_item;
     GLuint VBO_item;
+    mat4 model_mat_item;
 }
 Player;
 
