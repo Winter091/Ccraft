@@ -179,9 +179,13 @@ static float map_get_blocks_light()
 static void map_get_fog_color(float* r, float* g, float* b)
 {    
     float time = (float)map_get_time();
-    static vec3 day_color     = {0.5f, 0.6f, 0.7f}; 
-    static vec3 evening_color = {1.0f, 0.9f, 0.7f}; 
-    static vec3 night_color   = {0.2f, 0.2f, 0.2f}; 
+
+    // These colors are taken from skybox colors,
+    // in order for fog to blend perfectly
+    static vec3 day_color     = {0.310f, 0.535f, 0.783f}; 
+    static vec3 evening_color = {0.812f, 0.532f, 0.240f}; 
+    static vec3 night_color   = {0.0f,   0.0f,   0.0f}; 
+
     vec3 color;
 
     if (time < EVN_TO_NIGHT_START)
@@ -285,6 +289,10 @@ void map_render_sky(Camera* cam)
     shader_set_float1(shader_skybox, "evn_to_night_start", EVN_TO_NIGHT_START);
     shader_set_float1(shader_skybox, "night_start", NIGHT_START);
     shader_set_float1(shader_skybox, "night_to_day_start", NIGHT_TO_DAY_START);
+
+    vec3 fog_col;
+    map_get_fog_color(&fog_col[0], &fog_col[1], &fog_col[2]);
+    shader_set_float3(shader_skybox, "fog_color", fog_col);
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_ALWAYS);

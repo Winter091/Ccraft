@@ -4,6 +4,7 @@ layout (location = 0) in vec3 a_pos;
 
 out vec3 v_texcoord;
 out vec3 v_texcoord_night;
+out vec3 v_pos;
 
 uniform mat4 mvp_matrix;
 uniform float time;
@@ -17,6 +18,7 @@ void main()
     vec4 pos = mvp_matrix * vec4(a_pos, 1.0);
     gl_Position = pos.xyww;
     v_texcoord = a_pos;
+    v_pos = a_pos;
 
     float sint = sin(2 * PI * time);
     float cost = cos(2 * PI * time);

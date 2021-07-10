@@ -18,9 +18,8 @@ void main()
         discard;
         
     color.rgb -= 0.35 * v_ao;
-
-    color = mix(color, vec4(fog_color * block_light, 1.0), v_fog_amount);
     color.rgb *= block_light;
+    color.rgb = mix(color.rgb, fog_color, v_fog_amount);
 
     out_color = color;
 }
