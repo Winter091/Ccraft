@@ -18,6 +18,6 @@ void db_insert_map_info();
 
 void db_get_map_info();
 
-void db_close();
+void db_free();
 
 #endif

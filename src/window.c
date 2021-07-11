@@ -150,7 +150,7 @@ void window_init()
 
 void window_init_fb()
 {
-    g_window->fb = framebuffers_init(WINDOW_WIDTH, WINDOW_HEIGHT);
+    g_window->fb = framebuffers_create(WINDOW_WIDTH, WINDOW_HEIGHT);
 }
 
 int window_is_key_pressed(int glfw_keycode)
@@ -158,7 +158,7 @@ int window_is_key_pressed(int glfw_keycode)
     return glfwGetKey(g_window->glfw, glfw_keycode) == GLFW_PRESS;
 }
 
-void window_destroy()
+void window_free()
 {
     framebuffers_destroy(g_window->fb);
     

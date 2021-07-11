@@ -158,3 +158,18 @@ void ui_render_block_wireframe(Player* p)
     glLineWidth(2);
     glDrawArrays(GL_LINES, 0, 24);
 }
+
+void ui_free()
+{
+    if (ui == NULL)
+        return;
+    
+    glDeleteVertexArrays(2, (GLuint[2]){ ui->VAO_crosshair, 
+                                         ui->VAO_block_wireframe });
+    
+    glDeleteBuffers(2, (GLuint[2]){ ui->VBO_crosshair, 
+                                    ui->VBO_block_wireframe });
+
+    free(ui);
+    ui = NULL;
+}

@@ -5,13 +5,12 @@
 
 #include "texture.h"
 
-// Global variables for ease-of-access from other files
-GLuint shader_block = 0;
-GLuint shader_line = 0;
-GLuint shader_skybox = 0;
-GLuint shader_sun = 0;
-GLuint shader_deferred1 = 0;
-GLuint shader_deferred2 = 0;
+GLuint shader_block;
+GLuint shader_line;
+GLuint shader_skybox;
+GLuint shader_sun;
+GLuint shader_deferred1;
+GLuint shader_deferred2;
 
 static char* get_file_data(const char* path)
 {
@@ -61,7 +60,7 @@ static GLuint compile_shader(const char* path, GLenum shader_type)
     return shader_id;
 }
 
-GLuint create_shader_program(const char* vs_path, const char* fs_path)
+static GLuint create_shader_program(const char* vs_path, const char* fs_path)
 {
     GLuint vs_id = compile_shader(vs_path, GL_VERTEX_SHADER);
     GLuint fs_id = compile_shader(fs_path, GL_FRAGMENT_SHADER);
@@ -90,7 +89,7 @@ GLuint create_shader_program(const char* vs_path, const char* fs_path)
     return shader_prog;
 }
 
-void shaders_load()
+void shaders_init()
 {
     shader_block = create_shader_program(
         "shaders/block_vertex.glsl",
@@ -172,4 +171,23 @@ void shader_set_texture_skybox(GLuint shader, char* name, GLuint texture, int sl
 void shader_use(GLuint shader)
 {
     glUseProgram(shader);
+}
+
+static void shader_free(GLuint* shader)
+{
+    if (*shader)
+    {
+        glDeleteProgram(*shader);
+        *shader = 0;
+    }
+}
+
+void shaders_free()
+{
+    shader_free(&shader_block);
+    shader_free(&shader_line);
+    shader_free(&shader_skybox);
+    shader_free(&shader_sun);
+    shader_free(&shader_deferred1);
+    shader_free(&shader_deferred2);
 }

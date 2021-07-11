@@ -13,4 +13,6 @@ void ui_render_crosshair();
 
 void ui_render_block_wireframe(Player* p);
 
+void ui_free();
+
 #endif

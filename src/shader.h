@@ -4,6 +4,7 @@
 #include "glad/glad.h"
 #include "cglm/cglm.h"
 
+// Global variables for other files to access
 extern GLuint shader_block;
 extern GLuint shader_line;
 extern GLuint shader_skybox;
@@ -11,7 +12,7 @@ extern GLuint shader_sun;
 extern GLuint shader_deferred1;
 extern GLuint shader_deferred2;
 
-void shaders_load();
+void shaders_init();
 
 void shader_set_int1(GLuint shader, char* name, int value);
 
@@ -28,5 +29,7 @@ void shader_set_texture_array(GLuint shader, char* name, GLuint texture, int slo
 void shader_set_texture_skybox(GLuint shader, char* name, GLuint texture, int slot);
 
 void shader_use(GLuint shader);
+
+void shaders_free();
 
 #endif

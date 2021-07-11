@@ -297,7 +297,7 @@ void db_get_map_info()
     mtx_unlock(&db_mtx);
 }
 
-void db_close()
+void db_free()
 {
     sqlite3_close(db);
 }

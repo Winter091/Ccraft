@@ -14,7 +14,7 @@ GLuint texture_skybox_night;
 GLuint texture_sun;
 GLuint texture_moon;
 
-void exit_if_not_loaded_or_wrong_channels(const char* path, unsigned char* data, 
+static void exit_if_not_loaded_or_wrong_channels(const char* path, unsigned char* data, 
                                           int channels, int channels_required)
 {
     if (!data)
@@ -32,7 +32,7 @@ void exit_if_not_loaded_or_wrong_channels(const char* path, unsigned char* data,
     }
 }
 
-GLuint texture_init(GLuint target)
+static GLuint texture_init(GLuint target)
 {
     GLuint texture;
     glGenTextures(1, &texture);
@@ -40,7 +40,7 @@ GLuint texture_init(GLuint target)
     return texture;
 }
 
-void texture_load_from_file(GLuint target, const char* path, int desired_channels)
+static void texture_load_from_file(GLuint target, const char* path, int desired_channels)
 {
     int w, h, channels;
     unsigned char* data = stbi_load(path, &w, &h, &channels, 0);
@@ -54,7 +54,7 @@ void texture_load_from_file(GLuint target, const char* path, int desired_channel
     stbi_image_free(data);
 }
 
-GLuint texture_2d_create(const char* path)
+static GLuint texture_2d_create(const char* path)
 {
     GLuint texture = texture_init(GL_TEXTURE_2D);
     texture_load_from_file(GL_TEXTURE_2D, path, 4);
@@ -68,7 +68,7 @@ GLuint texture_2d_create(const char* path)
     return texture;
 }
 
-GLuint texture_array_create(const char* path)
+static GLuint texture_array_create(const char* path)
 {
     GLuint texture = texture_init(GL_TEXTURE_2D_ARRAY);
 
@@ -129,7 +129,7 @@ GLuint texture_array_create(const char* path)
     return texture;
 }
 
-GLuint texture_skybox_create(const char* paths[6])
+static GLuint texture_skybox_create(const char* paths[6])
 {
     GLuint texture = texture_init(GL_TEXTURE_CUBE_MAP);
 
@@ -148,7 +148,7 @@ GLuint texture_skybox_create(const char* paths[6])
     return texture;
 }
 
-void textures_load()
+void textures_init()
 {
     texture_blocks = texture_array_create("textures/blocks.png");
 
@@ -235,4 +235,23 @@ void texture_skybox_bind(GLuint texture, int slot)
 {
     glActiveTexture(GL_TEXTURE0 + slot);
     glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
+}
+
+static void texture_free(GLuint* texture)
+{
+    if (*texture) 
+    {
+        glDeleteTextures(1, texture);
+        *texture = 0;
+    }
+}
+
+void textures_free()
+{
+    texture_free(&texture_blocks);
+    texture_free(&texture_skybox_day);
+    texture_free(&texture_skybox_evening);
+    texture_free(&texture_skybox_night);
+    texture_free(&texture_sun);
+    texture_free(&texture_moon);
 }

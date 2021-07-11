@@ -33,7 +33,7 @@ typedef struct
 }
 Framebuffers;
 
-Framebuffers* framebuffers_init(int window_w, int window_h);
+Framebuffers* framebuffers_create(int window_w, int window_h);
 
 void framebuffers_rebuild(Framebuffers* fb, int new_window_w, int new_window_h);
 

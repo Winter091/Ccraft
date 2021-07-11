@@ -35,7 +35,7 @@ static void delete_gbuf(Framebuffers* fb)
     glDeleteFramebuffers(1, &fb->gbuf_fbo);
 }
 
-Framebuffers* framebuffers_init(int window_w, int window_h)
+Framebuffers* framebuffers_create(int window_w, int window_h)
 {
     Framebuffers* fb = malloc(sizeof(Framebuffers));
 

@@ -734,7 +734,7 @@ void player_save(Player* p)
     db_insert_player_info(p);
 }
 
-void player_exit(Player* p)
+void player_destroy(Player* p)
 {
     player_save(p);
     free(p->cam);

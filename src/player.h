@@ -40,6 +40,6 @@ void player_render_item(Player* p);
 
 void player_save(Player* p);
 
-void player_exit(Player* p);
+void player_destroy(Player* p);
 
 #endif

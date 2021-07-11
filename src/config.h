@@ -73,6 +73,8 @@ extern int   CHUNK_RENDER_RADIUS2;
 extern int   CHUNK_WIDTH_REAL;
 extern int   CHUNK_HEIGHT_REAL;
 
-void config_load();
+void config_init();
+
+void config_free();
 
 #endif

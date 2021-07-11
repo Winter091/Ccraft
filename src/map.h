@@ -36,6 +36,6 @@ int map_get_highest_block(int x, int z);
 
 void map_save();
 
-void map_exit();
+void map_free();
 
 #endif

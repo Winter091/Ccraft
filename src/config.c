@@ -77,7 +77,7 @@ int   CHUNK_RENDER_RADIUS2          = 16 * 16;
 int   CHUNK_WIDTH_REAL              = 32 + 2;
 int   CHUNK_HEIGHT_REAL             = 256 + 2;
 
-ini_t* cfg = NULL;
+static ini_t* cfg;
 
 static void create_default_cfg_file()
 {
@@ -222,7 +222,7 @@ static void try_load(const char* section, const char* key, const char* fmt, void
     }
 }
 
-void config_load()
+void config_init()
 {
     cfg = ini_load("config.ini");
     if (!cfg)
@@ -304,4 +304,13 @@ void config_load()
     CHUNK_HEIGHT_REAL = CHUNK_HEIGHT + 2;
 
     printf("Loaded everything.\n");
+}
+
+void config_free()
+{
+    if (cfg)
+    {
+        ini_free(cfg);
+        cfg = NULL;
+    }
 }

@@ -260,7 +260,7 @@ int main()
 {
     srand(time(0));
     
-    config_load();
+    config_init();
     window_init();
     
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -304,8 +304,8 @@ int main()
 
     window_init_fb();
     db_init();
-    shaders_load();
-    textures_load();
+    shaders_init();
+    textures_init();
     map_init();
     ui_init((float)WINDOW_WIDTH / WINDOW_HEIGHT);
 
@@ -330,11 +330,16 @@ int main()
         glfwPollEvents();
     }
 
-    map_exit();
-    player_exit(player);
-    db_close();
+    player_destroy(player);
 
-    window_destroy();
+    ui_free();
+    map_free();
+    textures_free();
+    shaders_free();
+    db_free();
+
+    window_free();
+    config_free();
 
     return 0;
 }
