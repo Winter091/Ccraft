@@ -112,8 +112,8 @@ static void create_default_cfg_file()
     "; Low performance hit if amount\n"
     "; of samples is moderate\n"
     "motion_blur_enabled  = 1\n"
-    "motion_blur_strength = 0.0005\n"
-    "motion_blur_samples  = 7\n\n"
+    "motion_blur_strength = 0.0035\n"
+    "motion_blur_samples  = 12\n\n"
 
     "; Medium performance hit if not a smooth\n"
     "; variant; Smooth DoF is much more expensive\n"
@@ -174,7 +174,7 @@ static void create_default_cfg_file()
     "max_fall_speed   = 57.46\n"
     "max_dive_speed   = 8.0\n"
     "max_emerge_speed = 10.0\n"
-    "jump_power       = 8.3\n"
+    "jump_power       = 8.3\n\n"
 
     "; Blocks per second^2\n"
     "acceleration_water_emerge = 20.0\n"

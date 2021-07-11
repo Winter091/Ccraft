@@ -40,14 +40,13 @@ vec3 motion_blur(vec3 rgb)
 	frag_prev_pos = u_projection_matrix * frag_prev_pos;
 	frag_prev_pos /= frag_prev_pos.w;
 
-	vec2 velocity = (curr_pos - frag_prev_pos).xy * u_strength / u_dt;
-	vec2 coord = v_texcoord.xy + velocity;
+	vec2 offset = (curr_pos - frag_prev_pos).xy * u_strength / u_dt;
+	vec2 small_step = offset / u_samples;
+	vec2 coord = v_texcoord.xy + small_step;
 
     vec3 color = rgb;
-	for (int i = 1; i < u_samples; i++, coord += velocity) 
-	{
+	for (int i = 1; i < u_samples; i++, coord += small_step) 
 		color += texture(texture_color, coord).xyz;
-	}
 
 	return color / u_samples;
 }
