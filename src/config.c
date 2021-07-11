@@ -45,20 +45,20 @@ int   CHUNK_HEIGHT = 256;
 float BLOCK_SIZE   = 0.1f;
 
 // [PHYSICS] (default values)
-float MAX_RUN_SPEED           = 8.0f;
-float MAX_MOVE_SPEED          = 5.6f;
-float MAX_SNEAK_SPEED         = 1.3f;
-float MAX_SWIM_SPEED          = 3.0f;
-float MAX_FALL_SPEED          = 100.0f;
-float MAX_DIVE_SPEED          = 4.0f;
-float MAX_EMERGE_SPEED        = 6.0f;
-float JUMP_POWER              = 8.2f;
+float MAX_RUN_SPEED           = 5.612f;
+float MAX_MOVE_SPEED          = 4.317f;
+float MAX_SNEAK_SPEED         = 1.31f;
+float MAX_SWIM_SPEED          = 3.5f;
+float MAX_FALL_SPEED          = 57.46f;
+float MAX_DIVE_SPEED          = 8.0f;
+float MAX_EMERGE_SPEED        = 10.0f;
+float JUMP_POWER              = 8.3f;
 
-float ACCELERATION_WATER_EMERGE = 10.0f;
+float ACCELERATION_WATER_EMERGE = 20.0f;
 float ACCELERATION_HORIZONTAL   = 40.0f;
-float DECELERATION_HORIZONTAL   = 50.0f;
-float GRAVITY                   = 25.0f;
-float GRAVITY_WATER             = 10.0f;
+float DECELERATION_HORIZONTAL   = 40.0f;
+float GRAVITY                   = 27.44f;
+float GRAVITY_WATER             = 9.14f;
 
 // Internal values, cannot be set using ini file
 int   OPENGL_VERSION_MAJOR_REQUIRED = 3;

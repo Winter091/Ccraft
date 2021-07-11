@@ -150,7 +150,7 @@ void map_init()
 double map_get_time()
 {
     if (DISABLE_TIME_FLOW)
-        return 0.6;
+        return 0.1;
     else
         return 0.5 + remainder(glfwGetTime(), DAY_LENGTH) / (double)DAY_LENGTH;
 }
