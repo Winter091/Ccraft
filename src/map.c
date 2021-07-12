@@ -11,6 +11,7 @@
 #include "db.h"
 #include "block.h"
 #include "thread_worker.h"
+#include "window.h"
 
 // Define data structures for chunks
 LINKEDLIST_DECLARATION(Chunk*, chunks);
@@ -301,7 +302,7 @@ void map_render_sky(Camera* cam)
     glDepthFunc(GL_LESS);
 }
 
-void map_render_chunks(Camera* cam)
+void map_render_chunks(Camera* cam, mat4 light_matrix)
 {    
     glUseProgram(shader_block);
 
@@ -316,6 +317,10 @@ void map_render_chunks(Camera* cam)
     float r, g, b;
     map_get_fog_color(&r, &g, &b);
     shader_set_float3(shader_block, "fog_color", (vec3){r, g, b});
+
+    shader_set_mat4(shader_block, "u_light_matrix", light_matrix);
+    shader_set_texture_2d(shader_block, "u_shadow_map", 
+        g_window->fb->gbuf_shadow_tex_depth, 1);
 
     // Everything except water doesn't need blending
     glDepthFunc(GL_LESS);
@@ -342,6 +347,20 @@ void map_render_chunks(Camera* cam)
     glDepthMask(GL_TRUE);
 
     list_chunks_clear(map->chunks_to_render);
+}
+
+void map_render_chunks_raw()
+{
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+    glDepthFunc(GL_LESS);
+    glDisable(GL_BLEND);
+    LIST_FOREACH_CHUNK_BEGIN(map->chunks_to_render, c)
+    {
+        glBindVertexArray(c->VAO_land);
+        glDrawArrays(GL_TRIANGLES, 0, c->vertex_land_count);
+    }
+    LIST_FOREACH_CHUNK_END()
 }
 
 unsigned char map_get_block(int bx, int by, int bz)
@@ -561,7 +580,8 @@ static void add_chunks_to_render_list(Camera* cam)
 {
     MAP_FOREACH_ACTIVE_CHUNK_BEGIN(c)
     {
-        if (c->is_generated && chunk_is_visible(c->x, c->z, cam->frustum_planes))
+        //if (c->is_generated && chunk_is_visible(c->x, c->z, cam->frustum_planes))
+        if (c->is_generated)
             list_chunks_push_front(map->chunks_to_render, c);
     }
     MAP_FOREACH_ACTIVE_CHUNK_END()

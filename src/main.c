@@ -142,8 +142,56 @@ void update(Player* p, float dt)
     map_update(p->cam);
 }
 
+mat4 light_matrix;
+
+void render_shadow_depth(Player* p)
+{
+    float near_plane = -100.0f * BLOCK_SIZE;
+    float far_plane  =  100.0f * BLOCK_SIZE;
+
+    float left   = -50.0f * BLOCK_SIZE;
+    float right  =  50.0f * BLOCK_SIZE;
+    float bottom = -50.0f * BLOCK_SIZE;
+    float top    =  50.0f * BLOCK_SIZE;
+
+    //vec3 offset = { 1.0f * BLOCK_SIZE, 1.0f * BLOCK_SIZE, 1.0f * BLOCK_SIZE };
+    float time = (float)glfwGetTime() * 0.1f;
+    vec3 offset = { 1.0f * BLOCK_SIZE * cosf(time), 1.0f * BLOCK_SIZE,1.0f * BLOCK_SIZE * sinf(time) };
+
+    // ============== Create MVP matrix ===================
+    mat4 proj;
+    glm_ortho(left, right, bottom, top, near_plane, far_plane, proj);
+
+    vec3 light_pos;
+    glm_vec3_copy(p->cam->pos, light_pos);
+    glm_vec3_add(light_pos, offset, light_pos);
+
+    vec3 view_dir;
+    glm_vec3_sub(p->cam->pos, light_pos, view_dir);
+
+    mat4 view;
+    glm_look(light_pos, view_dir, p->cam->up, view);
+
+    glm_mat4_mul(proj, view, light_matrix);
+    
+    // ============== Prepare shader ===================
+    shader_use(shader_shadow);
+    shader_set_mat4(shader_shadow, "mvp_matrix", light_matrix);
+    shader_set_texture_array(shader_shadow, "u_blocks_texture", texture_blocks, 0);
+
+    // ============== Prepare framebuffer ===================
+    glViewport(0, 0, g_window->fb->shadow_map_w, g_window->fb->shadow_map_h);
+    framebuffer_use(g_window->fb, FBTYPE_SHADOW);
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+    // ============== Render terrain ===================
+    map_render_chunks_raw();
+}
+
 void render_game(Player* p)
 {
+    glViewport(0, 0, g_window->width, g_window->height);
+    
     framebuffer_use(g_window->fb, FBTYPE_TEXTURE);
     glClear(GL_DEPTH_BUFFER_BIT);
 
@@ -151,7 +199,7 @@ void render_game(Player* p)
     {
         map_render_sky(p->cam);
         map_render_sun_moon(p->cam);
-        map_render_chunks(p->cam);
+        map_render_chunks(p->cam, light_matrix);
     }
 
     framebuffer_use_texture(TEX_UI);
@@ -246,12 +294,20 @@ void render_second_pass(Player* p, float dt)
     glBindVertexArray(g_window->fb->quad_vao);
     glDepthFunc(GL_ALWAYS);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    // =============== Picture in picture ==================
+    shader_use(shader_pip);
+    shader_set_texture_2d(shader_pip, "u_texture", g_window->fb->gbuf_shadow_tex_depth, 0);
+    int w = 400;
+    int h = 275;
+    glViewport(g_window->width - w - 10, g_window->height - h - 10, w, h);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 }
 
 void render(Player* p, float dt)
 {
+    render_shadow_depth(p);
     render_game(p);
-
     render_first_pass(dt);
     render_second_pass(p, dt);
 }

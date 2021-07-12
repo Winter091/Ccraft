@@ -11,6 +11,8 @@ extern GLuint shader_skybox;
 extern GLuint shader_sun;
 extern GLuint shader_deferred1;
 extern GLuint shader_deferred2;
+extern GLuint shader_shadow;
+extern GLuint shader_pip;
 
 void shaders_init();
 

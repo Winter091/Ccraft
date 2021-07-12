@@ -14,6 +14,11 @@ uniform mat4 mvp_matrix;
 uniform vec3 cam_pos;
 uniform float fog_dist;
 
+// =================================
+out vec4 v_frag_pos_light_space;
+uniform mat4 u_light_matrix;
+// =================================
+
 void main()
 {
     gl_Position = mvp_matrix * vec4(a_pos, 1.0);
@@ -23,4 +28,6 @@ void main()
 
     float dist_to_cam = distance(cam_pos.xz, a_pos.xz);
     v_fog_amount = pow(clamp(dist_to_cam / fog_dist, 0.0, 1.0), 4.0);
+
+    v_frag_pos_light_space = u_light_matrix * vec4(a_pos, 1.0);
 }

@@ -16,7 +16,9 @@ void map_render_sun_moon(Camera* cam);
 
 void map_render_sky(Camera* cam);
 
-void map_render_chunks(Camera* cam);
+void map_render_chunks(Camera* cam, mat4 light_matrix);
+
+void map_render_chunks_raw();
 
 void map_force_chunks_near_player(Camera* cam);
 

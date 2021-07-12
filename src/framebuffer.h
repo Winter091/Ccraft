@@ -6,7 +6,8 @@
 typedef enum
 {
     FBTYPE_DEFAULT,
-    FBTYPE_TEXTURE
+    FBTYPE_TEXTURE,
+    FBTYPE_SHADOW
 }
 FbType;
 
@@ -30,6 +31,11 @@ typedef struct
     GLuint gbuf_tex_color_ui;
     GLuint gbuf_tex_color_pass_1;
     GLuint gbuf_tex_depth;
+
+    GLuint gbuf_shadow;
+    GLuint gbuf_shadow_tex_depth;
+    int shadow_map_w;
+    int shadow_map_h;
 }
 Framebuffers;
 

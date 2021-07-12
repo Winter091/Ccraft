@@ -11,6 +11,8 @@ GLuint shader_skybox;
 GLuint shader_sun;
 GLuint shader_deferred1;
 GLuint shader_deferred2;
+GLuint shader_shadow;
+GLuint shader_pip;
 
 static char* get_file_data(const char* path)
 {
@@ -120,13 +122,23 @@ void shaders_init()
         "shaders/deferred2_vertex.glsl",
         "shaders/deferred2_fragment.glsl"
     );
+
+    shader_shadow = create_shader_program(
+        "shaders/shadow_vertex.glsl",
+        "shaders/shadow_fragment.glsl"
+    );
+
+    shader_pip = create_shader_program(
+        "shaders/pip_vertex.glsl",
+        "shaders/pip_fragment.glsl"
+    );
 }
 
 static GLint get_attrib_location(GLuint shader, char* name)
 {
     GLint location = glGetUniformLocation(shader, name);
-    if (location == -1)
-        fprintf(stderr, "Shader attrib location is -1: %s\n", name);
+    //if (location == -1)
+    //    fprintf(stderr, "Shader attrib location is -1: %s\n", name);
     return location;
 }
 
@@ -190,4 +202,6 @@ void shaders_free()
     shader_free(&shader_sun);
     shader_free(&shader_deferred1);
     shader_free(&shader_deferred2);
+    shader_free(&shader_shadow);
+    shader_free(&shader_pip);
 }
