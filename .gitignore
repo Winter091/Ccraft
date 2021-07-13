@@ -2,3 +2,4 @@
 *build*
 *.exe
 textures/blocks2.png
+shaders_mc

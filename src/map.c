@@ -336,14 +336,12 @@ void map_render_chunks(Camera* cam, mat4 light_matrix)
     // to see water from underneath we have to disable face culling
     glDepthMask(GL_FALSE);
     glEnable(GL_BLEND);
-    glDisable(GL_CULL_FACE);
     LIST_FOREACH_CHUNK_BEGIN(map->chunks_to_render, c)
     {
         glBindVertexArray(c->VAO_water);
         glDrawArrays(GL_TRIANGLES, 0, c->vertex_water_count);
     }
     LIST_FOREACH_CHUNK_END()
-    glEnable(GL_CULL_FACE);
     glDepthMask(GL_TRUE);
 
     list_chunks_clear(map->chunks_to_render);
@@ -355,6 +353,7 @@ void map_render_chunks_raw()
     glDepthMask(GL_TRUE);
     glDepthFunc(GL_LESS);
     glDisable(GL_BLEND);
+
     LIST_FOREACH_CHUNK_BEGIN(map->chunks_to_render, c)
     {
         glBindVertexArray(c->VAO_land);

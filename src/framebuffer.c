@@ -63,8 +63,8 @@ Framebuffers* framebuffers_create(int window_w, int window_h)
 
     fb->gbuf_shadow = opengl_create_fbo();
 
-    fb->shadow_map_w = 4096;
-    fb->shadow_map_h = 4096;
+    fb->shadow_map_w = 2048;
+    fb->shadow_map_h = 2048;
     fb->gbuf_shadow_tex_depth = framebuffer_depth_texture_create(fb->shadow_map_w, fb->shadow_map_h);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);

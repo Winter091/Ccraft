@@ -146,17 +146,34 @@ mat4 light_matrix;
 
 void render_shadow_depth(Player* p)
 {
-    float near_plane = -100.0f * BLOCK_SIZE;
-    float far_plane  =  100.0f * BLOCK_SIZE;
+    static float n = -50.0f;
+    static float f =  50.0f;
+    static float s =  10.0f;
+    static float yaw = -142.0f, pitch = -38.0f;
 
-    float left   = -50.0f * BLOCK_SIZE;
-    float right  =  50.0f * BLOCK_SIZE;
-    float bottom = -50.0f * BLOCK_SIZE;
-    float top    =  50.0f * BLOCK_SIZE;
+    float const delta = 0.1f;
+    float const delta2 = 0.25f;
 
-    //vec3 offset = { 1.0f * BLOCK_SIZE, 1.0f * BLOCK_SIZE, 1.0f * BLOCK_SIZE };
-    float time = (float)glfwGetTime() * 0.1f;
-    vec3 offset = { 1.0f * BLOCK_SIZE * cosf(time), 1.0f * BLOCK_SIZE,1.0f * BLOCK_SIZE * sinf(time) };
+    if (window_is_key_pressed(GLFW_KEY_R)) f += delta;
+    if (window_is_key_pressed(GLFW_KEY_F)) f -= delta;
+    if (window_is_key_pressed(GLFW_KEY_T)) n += delta;
+    if (window_is_key_pressed(GLFW_KEY_G)) n -= delta;
+    if (window_is_key_pressed(GLFW_KEY_Y)) s += delta;
+    if (window_is_key_pressed(GLFW_KEY_H)) s -= delta;
+
+    if (window_is_key_pressed(GLFW_KEY_J)) yaw += delta2;
+    if (window_is_key_pressed(GLFW_KEY_L)) yaw -= delta2;
+    if (window_is_key_pressed(GLFW_KEY_I)) pitch += delta2;
+    if (window_is_key_pressed(GLFW_KEY_K)) pitch -= delta2;
+
+    printf("n: %8.4f f: %8.4f s: %8.4f yaw: %8.4f pitch: %8.4f\n", n, f, s, yaw, pitch);
+    
+    float near_plane = n * BLOCK_SIZE;
+    float far_plane  = f * BLOCK_SIZE;
+    float left   = -s * BLOCK_SIZE;
+    float right  = s * BLOCK_SIZE;
+    float bottom = -s * BLOCK_SIZE;
+    float top    = s * BLOCK_SIZE;
 
     // ============== Create MVP matrix ===================
     mat4 proj;
@@ -164,10 +181,12 @@ void render_shadow_depth(Player* p)
 
     vec3 light_pos;
     glm_vec3_copy(p->cam->pos, light_pos);
-    glm_vec3_add(light_pos, offset, light_pos);
 
     vec3 view_dir;
-    glm_vec3_sub(p->cam->pos, light_pos, view_dir);
+    view_dir[0] = cosf(glm_rad(yaw)) * cosf(glm_rad(pitch));
+    view_dir[1] = sinf(glm_rad(pitch));
+    view_dir[2] = sinf(glm_rad(yaw)) * cosf(glm_rad(pitch));
+    glm_vec3_normalize(view_dir);
 
     mat4 view;
     glm_look(light_pos, view_dir, p->cam->up, view);
@@ -330,9 +349,8 @@ int main()
     glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
     glEnable(GL_BLEND);
+    glEnable(GL_CULL_FACE);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
