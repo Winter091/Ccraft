@@ -61,11 +61,10 @@ Framebuffers* framebuffers_create(int window_w, int window_h)
 
     create_gbuf(fb, window_w, window_h);
 
-    fb->gbuf_shadow = opengl_create_fbo();
+    fb->gbuf_shadow_near = opengl_create_fbo();
 
-    fb->shadow_map_w = 2048;
-    fb->shadow_map_h = 2048;
-    fb->gbuf_shadow_tex_depth = framebuffer_depth_texture_create(fb->shadow_map_w, fb->shadow_map_h);
+    fb->near_shadowmap_w = 2048;
+    fb->gbuf_shadow_near_map = framebuffer_depth_texture_create(fb->near_shadowmap_w, fb->near_shadowmap_w);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
@@ -73,7 +72,7 @@ Framebuffers* framebuffers_create(int window_w, int window_h)
     float border_color[] = {1.0f, 1.0f, 1.0f, 1.0f};
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color);
 
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,  GL_TEXTURE_2D, fb->gbuf_shadow_tex_depth, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,  GL_TEXTURE_2D, fb->gbuf_shadow_near_map, 0);
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
 
@@ -111,7 +110,7 @@ void framebuffer_use(Framebuffers* fb, FbType type)
             glBindFramebuffer(GL_FRAMEBUFFER, fb->gbuf_fbo);
             break;
         case FBTYPE_SHADOW:
-            glBindFramebuffer(GL_FRAMEBUFFER, fb->gbuf_shadow);
+            glBindFramebuffer(GL_FRAMEBUFFER, fb->gbuf_shadow_near);
             break;
         default:
             printf("How did we get here?\n");

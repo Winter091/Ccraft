@@ -320,7 +320,7 @@ void map_render_chunks(Camera* cam, mat4 light_matrix)
 
     shader_set_mat4(shader_block, "u_light_matrix", light_matrix);
     shader_set_texture_2d(shader_block, "u_shadow_map", 
-        g_window->fb->gbuf_shadow_tex_depth, 1);
+        g_window->fb->gbuf_shadow_near_map, 1);
 
     // Everything except water doesn't need blending
     glDepthFunc(GL_LESS);

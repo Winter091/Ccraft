@@ -32,10 +32,9 @@ typedef struct
     GLuint gbuf_tex_color_pass_1;
     GLuint gbuf_tex_depth;
 
-    GLuint gbuf_shadow;
-    GLuint gbuf_shadow_tex_depth;
-    int shadow_map_w;
-    int shadow_map_h;
+    GLuint gbuf_shadow_near;
+    GLuint gbuf_shadow_near_map;
+    int near_shadowmap_w;
 }
 Framebuffers;
 

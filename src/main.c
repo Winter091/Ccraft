@@ -166,7 +166,7 @@ void render_shadow_depth(Player* p)
     if (window_is_key_pressed(GLFW_KEY_I)) pitch += delta2;
     if (window_is_key_pressed(GLFW_KEY_K)) pitch -= delta2;
 
-    printf("n: %8.4f f: %8.4f s: %8.4f yaw: %8.4f pitch: %8.4f\n", n, f, s, yaw, pitch);
+    //printf("n: %8.4f f: %8.4f s: %8.4f yaw: %8.4f pitch: %8.4f\n", n, f, s, yaw, pitch);
     
     float near_plane = n * BLOCK_SIZE;
     float far_plane  = f * BLOCK_SIZE;
@@ -176,22 +176,101 @@ void render_shadow_depth(Player* p)
     float top    = s * BLOCK_SIZE;
 
     // ============== Create MVP matrix ===================
-    mat4 proj;
-    glm_ortho(left, right, bottom, top, near_plane, far_plane, proj);
+    vec3 light_dir;
+    {
+        light_dir[0] = cosf(glm_rad(yaw)) * cosf(glm_rad(pitch));
+        light_dir[1] = sinf(glm_rad(pitch));
+        light_dir[2] = sinf(glm_rad(yaw)) * cosf(glm_rad(pitch));
+        glm_vec3_normalize(light_dir);
+    }
 
+    // mat4 near_cam_proj_mat;
+    // glm_perspective(
+    //    glm_rad(p->cam->fov), 
+    //    (float)g_window->width / g_window->height,
+    //    p->cam->clip_near, p->cam->clip_far / 20.0f,
+    //    near_cam_proj_mat
+    // );
+
+    vec4 cam_frust_corners[8];
+    {
+        mat4 cam_vp_inv_mat;
+        glm_mat4_inv(p->cam->vp_matrix, cam_vp_inv_mat);
+        glm_frustum_corners(cam_vp_inv_mat, cam_frust_corners);
+    }
+
+    //float cam_clip_dist = p->cam->clip_far - p->cam->clip_near;
+
+    vec4 near_frust_corners[8];
+    {
+        vec4 new_far_corners[4];
+        glm_frustum_corners_at(
+            cam_frust_corners, 
+            p->cam->clip_near + BLOCK_SIZE * 13.0f,
+            //p->cam->clip_far,
+            p->cam->clip_far, new_far_corners);
+
+        for (int i = 0; i < 8; i++)
+        {
+            if (i < 4)
+                glm_vec4_copy(cam_frust_corners[i], 
+                              near_frust_corners[i]);
+            else
+                glm_vec4_copy(new_far_corners[i - 4],
+                              near_frust_corners[i]);
+        }
+        //printf("%8.4f %8.4f\n", cam_frust_corners[6][1], 
+        //                        new_far_corners[2][1]);
+    }
+
+    vec3 near_frust_center;
+    {
+        vec4 frust_center_4;
+        glm_frustum_center(near_frust_corners, frust_center_4);
+        glm_vec3(frust_center_4, near_frust_center);
+        //printf("%8.4f %8.4f %8.4f\n", near_frust_center[0],
+        //    near_frust_center[1], near_frust_center[2]);
+    }
+
+    float light_offset_mul = 0.0f * BLOCK_SIZE;
+    vec3 light_offset;
     vec3 light_pos;
-    glm_vec3_copy(p->cam->pos, light_pos);
+    {
+        glm_vec3_copy(near_frust_center, light_pos);
+        glm_vec3_copy(light_dir, light_offset);
+        glm_vec3_scale(light_offset, light_offset_mul, light_offset);
+        glm_vec3_sub(light_pos, light_offset, light_pos);
+    }
 
-    vec3 view_dir;
-    view_dir[0] = cosf(glm_rad(yaw)) * cosf(glm_rad(pitch));
-    view_dir[1] = sinf(glm_rad(pitch));
-    view_dir[2] = sinf(glm_rad(yaw)) * cosf(glm_rad(pitch));
-    glm_vec3_normalize(view_dir);
+    mat4 light_view_mat;
+    glm_look(light_pos, light_dir, 
+             p->cam->up, light_view_mat);
 
-    mat4 view;
-    glm_look(light_pos, view_dir, p->cam->up, view);
+    vec3 near_frust_box[2];
+    glm_frustum_box(near_frust_corners, 
+                    light_view_mat, near_frust_box);
+    
+    float box_left = near_frust_box[0][0];
+    float box_bott = near_frust_box[0][1];
+    float box_near = near_frust_box[0][2];
+    float box_righ = near_frust_box[1][0];
+    float box_topp = near_frust_box[1][1];
+    float box_farr = near_frust_box[1][2];
 
-    glm_mat4_mul(proj, view, light_matrix);
+    //printf("n: %8.4f f: %8.4f\n", box_left, box_righ);
+
+    mat4 light_proj_mat;
+    //glm_ortho(left, right, bottom, top, near_plane, 
+    //          far_plane, light_proj_mat);
+    glm_ortho(box_left, box_righ, box_bott, box_topp, 
+        box_near - 30.0f * BLOCK_SIZE, 
+             box_farr, light_proj_mat);
+
+    printf("box: %8.4f %8.4f \tmy: %8.4f %8.4f\n", box_near, box_farr, 
+          near_plane, far_plane);
+    
+
+    glm_mat4_mul(light_proj_mat, light_view_mat, light_matrix);
     
     // ============== Prepare shader ===================
     shader_use(shader_shadow);
@@ -199,7 +278,7 @@ void render_shadow_depth(Player* p)
     shader_set_texture_array(shader_shadow, "u_blocks_texture", texture_blocks, 0);
 
     // ============== Prepare framebuffer ===================
-    glViewport(0, 0, g_window->fb->shadow_map_w, g_window->fb->shadow_map_h);
+    glViewport(0, 0, g_window->fb->near_shadowmap_w, g_window->fb->near_shadowmap_w);
     framebuffer_use(g_window->fb, FBTYPE_SHADOW);
     glClear(GL_DEPTH_BUFFER_BIT);
 
@@ -316,7 +395,7 @@ void render_second_pass(Player* p, float dt)
 
     // =============== Picture in picture ==================
     shader_use(shader_pip);
-    shader_set_texture_2d(shader_pip, "u_texture", g_window->fb->gbuf_shadow_tex_depth, 0);
+    shader_set_texture_2d(shader_pip, "u_texture", g_window->fb->gbuf_shadow_near_map, 0);
     int w = 400;
     int h = 275;
     glViewport(g_window->width - w - 10, g_window->height - h - 10, w, h);
