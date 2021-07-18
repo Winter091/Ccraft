@@ -48,8 +48,7 @@ void worker_destroy(Worker* worker)
     mtx_unlock(&worker->data.state_mtx);
     cnd_signal(&worker->data.cond_var);
 
-    int res;
-    thrd_join(worker->thread, &res);
+    thrd_join(worker->thread, NULL);
     mtx_destroy(&worker->data.state_mtx);
     cnd_destroy(&worker->data.cond_var);
 }

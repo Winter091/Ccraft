@@ -11,5 +11,5 @@ void main()
     if (color.a < 0.5)
         discard;
 
-    gl_FragDepth = gl_FragCoord.z;
+    //gl_FragDepth = gl_FragCoord.z;
 }

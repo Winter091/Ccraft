@@ -302,7 +302,7 @@ void map_render_sky(Camera* cam)
     glDepthFunc(GL_LESS);
 }
 
-void map_render_chunks(Camera* cam, mat4 light_matrix)
+void map_render_chunks(Camera* cam, mat4 near_light_mat, mat4 far_light_mat)
 {    
     glUseProgram(shader_block);
 
@@ -318,9 +318,16 @@ void map_render_chunks(Camera* cam, mat4 light_matrix)
     map_get_fog_color(&r, &g, &b);
     shader_set_float3(shader_block, "fog_color", (vec3){r, g, b});
 
-    shader_set_mat4(shader_block, "u_light_matrix", light_matrix);
-    shader_set_texture_2d(shader_block, "u_shadow_map", 
+    shader_set_mat4(shader_block, "u_near_light_matrix", near_light_mat);
+    shader_set_mat4(shader_block, "u_far_light_matrix", far_light_mat);
+
+    shader_set_texture_2d(shader_block, "u_near_shadow_map", 
         g_window->fb->gbuf_shadow_near_map, 1);
+    shader_set_texture_2d(shader_block, "u_far_shadow_map", 
+        g_window->fb->gbuf_shadow_far_map, 2);
+
+    shader_set_float1(shader_block, "u_near_plane", cam->clip_near);
+    shader_set_float1(shader_block, "u_far_plane", cam->clip_far);
 
     // Everything except water doesn't need blending
     glDepthFunc(GL_LESS);

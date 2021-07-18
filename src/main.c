@@ -142,38 +142,25 @@ void update(Player* p, float dt)
     map_update(p->cam);
 }
 
-mat4 light_matrix;
+mat4 near_light_mat;
+mat4 far_light_mat;
 
 void render_shadow_depth(Player* p)
 {
-    static float n = -50.0f;
-    static float f =  50.0f;
-    static float s =  10.0f;
     static float yaw = -142.0f, pitch = -38.0f;
 
-    float const delta = 0.1f;
+    float const delta = 0.01f;
     float const delta2 = 0.25f;
 
-    if (window_is_key_pressed(GLFW_KEY_R)) f += delta;
-    if (window_is_key_pressed(GLFW_KEY_F)) f -= delta;
-    if (window_is_key_pressed(GLFW_KEY_T)) n += delta;
-    if (window_is_key_pressed(GLFW_KEY_G)) n -= delta;
-    if (window_is_key_pressed(GLFW_KEY_Y)) s += delta;
-    if (window_is_key_pressed(GLFW_KEY_H)) s -= delta;
+    float const near_depth = 13.0f * BLOCK_SIZE;
+    float const far_depth  = 100.0f * BLOCK_SIZE;
 
     if (window_is_key_pressed(GLFW_KEY_J)) yaw += delta2;
     if (window_is_key_pressed(GLFW_KEY_L)) yaw -= delta2;
     if (window_is_key_pressed(GLFW_KEY_I)) pitch += delta2;
     if (window_is_key_pressed(GLFW_KEY_K)) pitch -= delta2;
 
-    //printf("n: %8.4f f: %8.4f s: %8.4f yaw: %8.4f pitch: %8.4f\n", n, f, s, yaw, pitch);
-    
-    float near_plane = n * BLOCK_SIZE;
-    float far_plane  = f * BLOCK_SIZE;
-    float left   = -s * BLOCK_SIZE;
-    float right  = s * BLOCK_SIZE;
-    float bottom = -s * BLOCK_SIZE;
-    float top    = s * BLOCK_SIZE;
+    //printf("yaw: %8.4f pitch: %8.4f dist: %8.4f\n", yaw, pitch);
 
     // ============== Create MVP matrix ===================
     vec3 light_dir;
@@ -184,14 +171,6 @@ void render_shadow_depth(Player* p)
         glm_vec3_normalize(light_dir);
     }
 
-    // mat4 near_cam_proj_mat;
-    // glm_perspective(
-    //    glm_rad(p->cam->fov), 
-    //    (float)g_window->width / g_window->height,
-    //    p->cam->clip_near, p->cam->clip_far / 20.0f,
-    //    near_cam_proj_mat
-    // );
-
     vec4 cam_frust_corners[8];
     {
         mat4 cam_vp_inv_mat;
@@ -199,17 +178,13 @@ void render_shadow_depth(Player* p)
         glm_frustum_corners(cam_vp_inv_mat, cam_frust_corners);
     }
 
-    //float cam_clip_dist = p->cam->clip_far - p->cam->clip_near;
-
     vec4 near_frust_corners[8];
     {
         vec4 new_far_corners[4];
         glm_frustum_corners_at(
             cam_frust_corners, 
-            p->cam->clip_near + BLOCK_SIZE * 13.0f,
-            //p->cam->clip_far,
+            p->cam->clip_near + near_depth,
             p->cam->clip_far, new_far_corners);
-
         for (int i = 0; i < 8; i++)
         {
             if (i < 4)
@@ -219,8 +194,26 @@ void render_shadow_depth(Player* p)
                 glm_vec4_copy(new_far_corners[i - 4],
                               near_frust_corners[i]);
         }
-        //printf("%8.4f %8.4f\n", cam_frust_corners[6][1], 
-        //                        new_far_corners[2][1]);
+    }
+
+    vec4 far_frust_corners[8];
+    {
+        vec4 new_far_corners[4];
+
+        glm_frustum_corners_at(
+            cam_frust_corners, 
+            p->cam->clip_near + far_depth,
+            p->cam->clip_far, new_far_corners);
+        
+        for (int i = 0; i < 8; i++)
+        {
+            if (i < 4)
+                glm_vec4_copy(near_frust_corners[i + 4], 
+                              far_frust_corners[i]);
+            else
+                glm_vec4_copy(new_far_corners[i - 4],
+                              far_frust_corners[i]);
+        }
     }
 
     vec3 near_frust_center;
@@ -228,61 +221,96 @@ void render_shadow_depth(Player* p)
         vec4 frust_center_4;
         glm_frustum_center(near_frust_corners, frust_center_4);
         glm_vec3(frust_center_4, near_frust_center);
-        //printf("%8.4f %8.4f %8.4f\n", near_frust_center[0],
-        //    near_frust_center[1], near_frust_center[2]);
     }
 
-    float light_offset_mul = 0.0f * BLOCK_SIZE;
-    vec3 light_offset;
-    vec3 light_pos;
+    vec3 far_frust_center;
     {
-        glm_vec3_copy(near_frust_center, light_pos);
-        glm_vec3_copy(light_dir, light_offset);
-        glm_vec3_scale(light_offset, light_offset_mul, light_offset);
-        glm_vec3_sub(light_pos, light_offset, light_pos);
+        vec4 frust_center_4;
+        glm_frustum_center(far_frust_corners, frust_center_4);
+        glm_vec3(frust_center_4, far_frust_center);
     }
 
-    mat4 light_view_mat;
-    glm_look(light_pos, light_dir, 
-             p->cam->up, light_view_mat);
+    vec3 near_light_pos;
+    glm_vec3_copy(near_frust_center, near_light_pos);
+
+    vec3 far_light_pos;
+    glm_vec3_copy(far_frust_center, far_light_pos);
+
+    mat4 near_light_view_mat;
+    glm_look(near_light_pos, light_dir, 
+             p->cam->up, near_light_view_mat);
+
+    mat4 far_light_view_mat;
+    glm_look(far_light_pos, light_dir, 
+             p->cam->up, far_light_view_mat);
 
     vec3 near_frust_box[2];
     glm_frustum_box(near_frust_corners, 
-                    light_view_mat, near_frust_box);
+                    near_light_view_mat, near_frust_box);
+
+    vec3 far_frust_box[2];
+    glm_frustum_box(far_frust_corners, 
+                    far_light_view_mat, far_frust_box);
     
-    float box_left = near_frust_box[0][0];
-    float box_bott = near_frust_box[0][1];
-    float box_near = near_frust_box[0][2];
-    float box_righ = near_frust_box[1][0];
-    float box_topp = near_frust_box[1][1];
-    float box_farr = near_frust_box[1][2];
+    float near_left = near_frust_box[0][0];
+    float near_bott = near_frust_box[0][1];
+    float near_near = near_frust_box[0][2];
+    float near_righ = near_frust_box[1][0];
+    float near_topp = near_frust_box[1][1];
+    float near_farr = near_frust_box[1][2];
 
-    //printf("n: %8.4f f: %8.4f\n", box_left, box_righ);
+    float far_left = far_frust_box[0][0];
+    float far_bott = far_frust_box[0][1];
+    float far_near = far_frust_box[0][2];
+    float far_righ = far_frust_box[1][0];
+    float far_topp = far_frust_box[1][1];
+    float far_farr = far_frust_box[1][2];
 
-    mat4 light_proj_mat;
-    //glm_ortho(left, right, bottom, top, near_plane, 
-    //          far_plane, light_proj_mat);
-    glm_ortho(box_left, box_righ, box_bott, box_topp, 
-        box_near - 30.0f * BLOCK_SIZE, 
-             box_farr, light_proj_mat);
+    float max_height_near = CHUNK_HEIGHT * BLOCK_SIZE - p->cam->pos[1];
+    float light_angle_cos = glm_vec3_dot(light_dir, (vec3){ light_dir[0], 0.0f, light_dir[2] });
+    float light_angle_sin = sqrtf(1.0f - glm_pow2(light_angle_cos));
+    float max_depth_near  = -MIN(max_height_near / light_angle_sin, CHUNK_LOAD_RADIUS * CHUNK_SIZE);
 
-    printf("box: %8.4f %8.4f \tmy: %8.4f %8.4f\n", box_near, box_farr, 
-          near_plane, far_plane);
+    //printf("max height: %8.4f cos: %8.4f sin: %8.4f depth: %8.4f\n", max_height_near, light_angle_cos, light_angle_sin, max_depth_near);
+
+    mat4 near_light_proj_mat;
+    glm_ortho(near_left, near_righ, near_bott, near_topp, 
+        max_depth_near, near_farr, near_light_proj_mat);
+
+    mat4 far_light_proj_mat;
+    glm_ortho(far_left, far_righ, far_bott, far_topp, 
+        far_near - 200.0f * BLOCK_SIZE, far_farr, far_light_proj_mat);
+
+    //printf("box: %8.4f %8.4f \tmy: %8.4f %8.4f\n", box_near, box_farr, box_near - 30.0f * BLOCK_SIZE, box_farr);
     
+    glm_mat4_mul(near_light_proj_mat, near_light_view_mat, near_light_mat);
 
-    glm_mat4_mul(light_proj_mat, light_view_mat, light_matrix);
+    glm_mat4_mul(far_light_proj_mat, far_light_view_mat, far_light_mat);
     
-    // ============== Prepare shader ===================
+    // ============== Prepare shader near ===================
     shader_use(shader_shadow);
-    shader_set_mat4(shader_shadow, "mvp_matrix", light_matrix);
+    shader_set_mat4(shader_shadow, "mvp_matrix", near_light_mat);
     shader_set_texture_array(shader_shadow, "u_blocks_texture", texture_blocks, 0);
 
-    // ============== Prepare framebuffer ===================
+    // ============== Prepare framebuffer near ===================
     glViewport(0, 0, g_window->fb->near_shadowmap_w, g_window->fb->near_shadowmap_w);
-    framebuffer_use(g_window->fb, FBTYPE_SHADOW);
+    framebuffer_use(g_window->fb, FBTYPE_SHADOW_NEAR);
     glClear(GL_DEPTH_BUFFER_BIT);
 
-    // ============== Render terrain ===================
+    // ============== Render terrain near ===================
+    map_render_chunks_raw();
+
+    // ============== Prepare shader far ===================
+    shader_use(shader_shadow);
+    shader_set_mat4(shader_shadow, "mvp_matrix", far_light_mat);
+    shader_set_texture_array(shader_shadow, "u_blocks_texture", texture_blocks, 0);
+
+    // ============== Prepare framebuffer far ===================
+    glViewport(0, 0, g_window->fb->far_shadowmap_w, g_window->fb->far_shadowmap_w);
+    framebuffer_use(g_window->fb, FBTYPE_SHADOW_FAR);
+    glClear(GL_DEPTH_BUFFER_BIT);
+
+    // ============== Render terrain far ===================
     map_render_chunks_raw();
 }
 
@@ -297,7 +325,7 @@ void render_game(Player* p)
     {
         map_render_sky(p->cam);
         map_render_sun_moon(p->cam);
-        map_render_chunks(p->cam, light_matrix);
+        map_render_chunks(p->cam, near_light_mat, far_light_mat);
     }
 
     framebuffer_use_texture(TEX_UI);
@@ -398,6 +426,10 @@ void render_second_pass(Player* p, float dt)
     shader_set_texture_2d(shader_pip, "u_texture", g_window->fb->gbuf_shadow_near_map, 0);
     int w = 400;
     int h = 275;
+    glViewport(10, g_window->height - h - 10, w, h);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    shader_set_texture_2d(shader_pip, "u_texture", g_window->fb->gbuf_shadow_far_map, 0);
     glViewport(g_window->width - w - 10, g_window->height - h - 10, w, h);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 }
