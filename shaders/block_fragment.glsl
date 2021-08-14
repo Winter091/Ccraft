@@ -37,6 +37,21 @@ float calculate_shadow(vec4 frag_pos_light_space, sampler2D shadow_map)
     return shadow_factor;
 }
 
+float get_depth_diff(vec4 frag_pos_light_space, sampler2D shadow_map)
+{
+    vec3 proj_coords = frag_pos_light_space.xyz / frag_pos_light_space.w;
+    proj_coords = (proj_coords + 1.0) / 2.0;
+
+    if (proj_coords.z > 1.0)
+        return 0.0;
+
+    float closest_depth = texture(shadow_map, proj_coords.xy).r;
+    float curr_depth = proj_coords.z;
+
+    float bias = 0.005;
+    return curr_depth - bias - closest_depth;
+}
+
 float linearize_depth(float depth)
 {
     float z = depth * 2.0 - 1.0; // Back to NDC 
@@ -54,10 +69,23 @@ void main()
     frag_depth = linearize_depth(frag_depth);
 
     float shadow_factor = 0.0;
-    if (frag_depth < 0.02)
-        shadow_factor = calculate_shadow(v_frag_pos_near_light_space, u_near_shadow_map);
-    else
-        shadow_factor = calculate_shadow(v_frag_pos_far_light_space, u_far_shadow_map);
+
+    if (frag_depth < 0.05) 
+    {
+        float depth_diff_far = get_depth_diff(v_frag_pos_far_light_space,  u_far_shadow_map);
+
+        if (depth_diff_far >= 0.01)
+            shadow_factor = 1.0;
+        else 
+        {
+            float shadow_near = calculate_shadow(v_frag_pos_near_light_space, u_near_shadow_map);
+            shadow_factor = shadow_near;
+        }
+    } else 
+    {
+        float shadow_far = calculate_shadow(v_frag_pos_far_light_space,  u_far_shadow_map);
+        shadow_factor = shadow_far;
+    }
 
     color *= (1.0 - shadow_factor / 2.0);
 
