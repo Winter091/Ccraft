@@ -132,6 +132,7 @@ void gen_cube_vertices(Vertex* vertices, int* curr_vertex_count, int x, int y, i
             vertices[i].tex_coord[1] = uvs[f][index][1];
             vertices[i].ao           = ao[f][index];
             vertices[i].tile         = block_textures[block_type][f];
+            vertices[i].normal       = f;
         }
     }
 }
@@ -173,6 +174,7 @@ void gen_plant_vertices(Vertex* vertices, int* curr_vertex_count, int x, int y, 
         vertices[i].tex_coord[1] = uvs[index][1];
         vertices[i].ao           = 0.0f;
         vertices[i].tile         = block_textures[block_type][f];
+        vertices[i].normal       = 6;
     }
 }
 

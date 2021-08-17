@@ -145,10 +145,25 @@ void update(Player* p, float dt)
 mat4 near_light_mat;
 mat4 far_light_mat;
 
+vec3 light_dir;
+
 void render_shadow_depth(Player* p)
 {
+    float const near_size = 25.0f * BLOCK_SIZE;
+    float const far_size  = 8 * CHUNK_WIDTH * BLOCK_SIZE;
+    
+    static float my_near   = -1.50f;
+    static float my_far    =  1.50f;
     static float yaw = -142.0f, pitch = -38.0f;
+
+    float const delta = 0.1f;
     float const delta2 = 0.25f;
+
+    if (window_is_key_pressed(GLFW_KEY_R)) my_near += delta;
+    if (window_is_key_pressed(GLFW_KEY_F)) my_near -= delta;
+
+    if (window_is_key_pressed(GLFW_KEY_T)) my_far += delta;
+    if (window_is_key_pressed(GLFW_KEY_G)) my_far -= delta;
 
     if (window_is_key_pressed(GLFW_KEY_J)) yaw += delta2;
     if (window_is_key_pressed(GLFW_KEY_L)) yaw -= delta2;
@@ -158,7 +173,6 @@ void render_shadow_depth(Player* p)
     //printf("yaw: %8.4f pitch: %8.4f dist: %8.4f\n", yaw, pitch);
 
     // ============== Create MVP matrix ===================
-    vec3 light_dir;
     {
         light_dir[0] = cosf(glm_rad(yaw)) * cosf(glm_rad(pitch));
         light_dir[1] = sinf(glm_rad(pitch));
@@ -180,12 +194,9 @@ void render_shadow_depth(Player* p)
     glm_look(far_light_pos, light_dir, 
              p->cam->up, far_light_view_mat);
 
-    float const near_size = 25.0f * BLOCK_SIZE;
-    float const far_size  = 8 * CHUNK_WIDTH * BLOCK_SIZE;
-
     float near_left = -near_size;
     float near_bott = -near_size;
-    float near_near = -near_size - 15.0f * BLOCK_SIZE;
+    float near_near = -near_size * 3.0f;
     float near_righ =  near_size;
     float near_topp =  near_size;
     float near_farr =  near_size;
@@ -199,7 +210,10 @@ void render_shadow_depth(Player* p)
 
     mat4 near_light_proj_mat;
     glm_ortho(near_left, near_righ, near_bott, near_topp, 
-        near_near, near_farr, near_light_proj_mat);
+       near_near, near_farr, near_light_proj_mat);
+    // glm_ortho(near_left, near_righ, near_bott, near_topp, 
+    //    my_near, my_far, near_light_proj_mat);
+
 
     mat4 far_light_proj_mat;
     glm_ortho(far_left, far_righ, far_bott, far_topp, 
@@ -360,7 +374,9 @@ void render_second_pass(Player* p, float dt)
 
 void render(Player* p, float dt)
 {
+    glEnable(GL_DEPTH_CLAMP);
     render_shadow_depth(p);
+    glDisable(GL_DEPTH_CLAMP);
     render_game(p);
     render_first_pass(dt);
     render_second_pass(p, dt);

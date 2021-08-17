@@ -187,19 +187,21 @@ void chunk_upload_mesh_to_gpu(Chunk* c)
     c->VBO_land = opengl_create_vbo(c->generated_mesh_terrain, c->vertex_land_count * sizeof(Vertex));
     free(c->generated_mesh_terrain);
     c->generated_mesh_terrain = NULL;
-    opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-    opengl_vbo_layout(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 3 * sizeof(float));
-    opengl_vbo_layout(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), 5 * sizeof(float));
-    opengl_vbo_layout(2, 1, GL_UNSIGNED_BYTE, GL_FALSE,  sizeof(Vertex), 6 * sizeof(float));
+    opengl_vbo_layout(0, 3, GL_FLOAT,         GL_FALSE, sizeof(Vertex), 0);
+    opengl_vbo_layout(1, 2, GL_FLOAT,         GL_FALSE, sizeof(Vertex), 3 * sizeof(float));
+    opengl_vbo_layout(2, 1, GL_FLOAT,         GL_FALSE, sizeof(Vertex), 5 * sizeof(float));
+    opengl_vbo_layout(3, 1, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(Vertex), 6 * sizeof(float));
+    opengl_vbo_layout(4, 1, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(Vertex), 6 * sizeof(float) + 1);
 
     c->VAO_water = opengl_create_vao();
     c->VBO_water = opengl_create_vbo(c->generated_mesh_water, c->vertex_water_count * sizeof(Vertex));
     free(c->generated_mesh_water);
     c->generated_mesh_water = NULL;
-    opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-    opengl_vbo_layout(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 3 * sizeof(float));
-    opengl_vbo_layout(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), 5 * sizeof(float));
-    opengl_vbo_layout(2, 1, GL_UNSIGNED_BYTE, GL_FALSE,  sizeof(Vertex), 6 * sizeof(float));
+    opengl_vbo_layout(0, 3, GL_FLOAT,         GL_FALSE, sizeof(Vertex), 0);
+    opengl_vbo_layout(1, 2, GL_FLOAT,         GL_FALSE, sizeof(Vertex), 3 * sizeof(float));
+    opengl_vbo_layout(2, 1, GL_FLOAT,         GL_FALSE, sizeof(Vertex), 5 * sizeof(float));
+    opengl_vbo_layout(3, 1, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(Vertex), 6 * sizeof(float));
+    opengl_vbo_layout(4, 1, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(Vertex), 6 * sizeof(float) + 1);
 
     c->is_generated = 1;
 }

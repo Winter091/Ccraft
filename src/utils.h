@@ -25,6 +25,7 @@ typedef struct
     float tex_coord[2];
     float ao;
     unsigned char tile;
+    unsigned char normal;
 }
 Vertex;
 

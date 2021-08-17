@@ -2,8 +2,9 @@
 
 layout (location = 0) in vec3 a_pos;
 layout (location = 1) in vec2 a_texcoord;
-layout (location = 3) in float a_ao;
-layout (location = 2) in uint a_tile;
+layout (location = 2) in float a_ao;
+layout (location = 3) in uint a_tile;
+layout (location = 4) in uint a_normal;
 
 out vec2 v_texcoord;
 flat out uint v_tile;

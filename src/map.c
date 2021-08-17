@@ -210,6 +210,27 @@ static void map_get_fog_color(float* r, float* g, float* b)
     *b = color[2];
 }
 
+static void map_get_light_dir(vec3 res)
+{
+    float time = (float)map_get_time();
+
+    // apply offset to current time to synchronize
+    // light level with sun presence in the sky
+    float offset = 0.1f;
+    time += offset;
+    if (time > 1.0f)
+        time -= 1.0f;
+    
+    // sun and moon are always on the opposite
+    // parts of the sky
+    float angle_sun = time * GLM_PI * 2;
+    float angle_moon = angle_sun + GLM_PI;
+
+    res[0] = 0.0f;
+    res[1] = sin(angle_moon);
+    res[2] = -cos(angle_moon);
+}
+
 void map_render_sun_moon(Camera* cam)
 {
     mat4 model_sun, model_moon;
@@ -302,6 +323,8 @@ void map_render_sky(Camera* cam)
     glDepthFunc(GL_LESS);
 }
 
+extern vec3 light_dir;
+
 void map_render_chunks(Camera* cam, mat4 near_light_mat, mat4 far_light_mat)
 {    
     glUseProgram(shader_block);
@@ -328,6 +351,20 @@ void map_render_chunks(Camera* cam, mat4 near_light_mat, mat4 far_light_mat)
 
     shader_set_float1(shader_block, "u_near_plane", cam->clip_near);
     shader_set_float1(shader_block, "u_far_plane", cam->clip_far);
+
+    shader_set_float3(shader_block, "u_light_dir", light_dir);
+
+    static float u_shadow_blend_dist = 0.1f;
+    if (window_is_key_pressed(GLFW_KEY_SEMICOLON))
+        u_shadow_blend_dist -= 0.0005f;
+    else if (window_is_key_pressed(GLFW_KEY_P))
+        u_shadow_blend_dist += 0.0005f;
+    //printf("%8.3f\n", u_shadow_blend_dist);
+    shader_set_float1(shader_block, "u_near_shadow_dist", 2.0f);
+    shader_set_float1(shader_block, "u_shadow_blend_dist", 0.1f);
+
+    shader_set_float3(shader_block, "u_player_pos", cam->pos);
+    
 
     // Everything except water doesn't need blending
     glDepthFunc(GL_LESS);
@@ -360,13 +397,15 @@ void map_render_chunks_raw()
     glDepthMask(GL_TRUE);
     glDepthFunc(GL_LESS);
     glDisable(GL_BLEND);
-
-    LIST_FOREACH_CHUNK_BEGIN(map->chunks_to_render, c)
+    MAP_FOREACH_ACTIVE_CHUNK_BEGIN(c)
     {
-        glBindVertexArray(c->VAO_land);
-        glDrawArrays(GL_TRIANGLES, 0, c->vertex_land_count);
+        if (c->is_generated) 
+        {
+            glBindVertexArray(c->VAO_land);
+            glDrawArrays(GL_TRIANGLES, 0, c->vertex_land_count);
+        }
     }
-    LIST_FOREACH_CHUNK_END()
+    MAP_FOREACH_ACTIVE_CHUNK_END()
 }
 
 unsigned char map_get_block(int bx, int by, int bz)
@@ -586,8 +625,7 @@ static void add_chunks_to_render_list(Camera* cam)
 {
     MAP_FOREACH_ACTIVE_CHUNK_BEGIN(c)
     {
-        //if (c->is_generated && chunk_is_visible(c->x, c->z, cam->frustum_planes))
-        if (c->is_generated)
+        if (c->is_generated && chunk_is_visible(c->x, c->z, cam->frustum_planes))
             list_chunks_push_front(map->chunks_to_render, c);
     }
     MAP_FOREACH_ACTIVE_CHUNK_END()
@@ -595,6 +633,9 @@ static void add_chunks_to_render_list(Camera* cam)
 
 void map_update(Camera* cam)
 {
+    //printf("%8.3f\n", (float)map_get_time());
+    //map_get_light_dir(light_dir);
+
     try_delete_far_chunks(cam);
     handle_workers(cam);
     map_force_chunks_near_player(cam);
