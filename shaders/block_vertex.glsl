@@ -46,7 +46,7 @@ void main()
     float dist_to_cam = distance(cam_pos.xz, a_pos.xz);
     v_fog_amount = pow(clamp(dist_to_cam / fog_dist, 0.0, 1.0), 4.0);
 
-    v_frag_pos_near_light_space = u_near_light_matrix * vec4(a_pos + u_light_dir * 0.04, 1.0);
+    v_frag_pos_near_light_space = u_near_light_matrix * vec4(a_pos, 1.0);
     v_frag_pos_far_light_space = u_far_light_matrix * vec4(a_pos, 1.0);
 
     v_normal = normals[a_normal];

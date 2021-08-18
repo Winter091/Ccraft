@@ -24,6 +24,9 @@ uniform vec3  u_light_dir;
 uniform float u_near_shadow_dist;
 uniform float u_shadow_blend_dist;
 uniform vec3 u_player_pos;
+uniform mat4 u_near_light_matrix;
+uniform mat4 u_far_light_matrix;
+uniform float u_shadow_multiplier;
 // =================================
 
 vec2 poisson_disk[16] = vec2[]( 
@@ -60,9 +63,6 @@ float calculate_shadow(vec4 frag_pos_light_space, sampler2DShadow shadow_map, fl
     if (proj_coords.z > 1.0)
         return 0.0;
 
-    const float bias = 0.005;
-    proj_coords.z -= bias;
-
     float shadow_factor = 0.0;
     for (int i = 0; i < 9; i++) 
     {
@@ -86,7 +86,6 @@ void main()
     vec4 color = texture(texture_sampler, vec3(v_texcoord, v_tile));
     if (color.a < 0.5)
         discard;
-    
 
     float shadow_factor = 0.0;
 
@@ -112,16 +111,25 @@ void main()
             float shadow_near = calculate_shadow(v_frag_pos_near_light_space, u_near_shadow_map, 3000.0);
             float shadow_far  = calculate_shadow(v_frag_pos_far_light_space,  u_far_shadow_map,  1500.0);
 
-            float mix_factor  = (frag_dist - (u_near_shadow_dist - u_shadow_blend_dist)) / (2 * u_shadow_blend_dist);
+            float mix_factor = (frag_dist - (u_near_shadow_dist - u_shadow_blend_dist)) / (2 * u_shadow_blend_dist);
             shadow_factor = mix(shadow_near, shadow_far, mix_factor);
         }
     }
+
+    // Smooth shadowing on small angles
+    float cos_angle = max(0.0, dot(-u_light_dir, v_normal));
+    float start = 0.2;
+    shadow_factor += (1.0 - smoothstep(0.0, start, cos_angle));
+
+    shadow_factor *= u_shadow_multiplier;
+    shadow_factor = clamp(shadow_factor, 0.0, 1.0);
 
     color.rgb *= (1.0 - shadow_factor / 2.0);
     color.a += shadow_factor / 3.0;
 
     color.rgb -= 0.35 * v_ao;
     color.rgb *= block_light;
+
     color.rgb = mix(color.rgb, fog_color, v_fog_amount);
 
     out_color = color;

@@ -150,10 +150,25 @@ void map_init()
 // [0.0 - 1.0)
 double map_get_time()
 {
-    if (DISABLE_TIME_FLOW)
-        return 0.1;
-    else
-        return 0.5 + remainder(glfwGetTime(), DAY_LENGTH) / (double)DAY_LENGTH;
+    //if (DISABLE_TIME_FLOW)
+    //    return 0.1;
+    //else
+    //    return 0.5 + remainder(glfwGetTime(), DAY_LENGTH) / (double)DAY_LENGTH;
+
+    double static time = 0.0;
+
+    if (window_is_key_pressed(GLFW_KEY_P))
+        time += 0.0001;
+    else if (window_is_key_pressed(GLFW_KEY_SEMICOLON))
+        time -= 0.0001;
+
+    if (time < 0)
+        time += 1.0;
+    else if (time > 1.0)
+        time -= 1.0;
+    //printf("%8.3lf\n", time);
+
+    return time;
 }
 
 static float map_get_blocks_light()
@@ -210,7 +225,7 @@ static void map_get_fog_color(float* r, float* g, float* b)
     *b = color[2];
 }
 
-static void map_get_light_dir(vec3 res)
+static void get_light_dir(vec3 res)
 {
     float time = (float)map_get_time();
 
@@ -221,24 +236,21 @@ static void map_get_light_dir(vec3 res)
     if (time > 1.0f)
         time -= 1.0f;
     
-    // sun and moon are always on the opposite
-    // parts of the sky
-    float angle_sun = time * GLM_PI * 2;
-    float angle_moon = angle_sun + GLM_PI;
+    float angle = time * GLM_PIf * 2;
 
-    res[0] = 0.0f;
-    res[1] = sin(angle_moon);
-    res[2] = -cos(angle_moon);
+    // Light from moon instead of sun
+    if (time >= 0.5)
+        angle += GLM_PIf;
+
+    my_glm_vec3_set(res, 0.0f, sinf(angle), cosf(angle));
+    glm_vec3_rotate(res, GLM_PIf / 4.0f, (vec3){ 0.0f, 0.0f, 1.0f });
+    glm_vec3_rotate(res, GLM_PIf / 6.0f, (vec3){ 0.0f, 1.0f, 0.0f });
+
+    glm_vec3_negate(res);
 }
 
 void map_render_sun_moon(Camera* cam)
 {
-    mat4 model_sun, model_moon;
-
-    glm_mat4_identity(model_sun);
-    glm_translate(model_sun, cam->pos);
-    glm_mat4_copy(model_sun, model_moon);
-
     float time = (float)map_get_time();
 
     // apply offset to current time to synchronize
@@ -246,31 +258,52 @@ void map_render_sun_moon(Camera* cam)
     float offset = 0.1f;
     time += offset;
     if (time > 1.0f)
-        time -= 1.0f;
+       time -= 1.0f;
     
     // sun and moon are always on the opposite
     // parts of the sky
     float angle_sun = time * GLM_PI * 2;
     float angle_moon = angle_sun + GLM_PI;
+    //printf("%8.3f %8.3f\n", time,  angle_sun);
 
     // distance to the quads sun and moon are rendered on
-    float dist = 5.0f;
+    float const dist = 5.0f;
 
-    // move quads around player
-    glm_translate(model_sun,  (vec3){0.0f, 0.0f, -dist * cosf(angle_sun)});
-    glm_translate(model_sun,  (vec3){0.0f, dist * sinf(angle_sun), 0.0f});
-    glm_translate(model_moon, (vec3){0.0f, 0.0f, -dist * cosf(angle_moon)});
-    glm_translate(model_moon, (vec3){0.0f, dist * sinf(angle_moon), 0.0f});
+    mat4 model_sun, model_moon;
+    glm_mat4_identity(model_sun);
+    glm_mat4_identity(model_moon);
+
+    // Move to player
+    glm_translate(model_sun, cam->pos);
+    glm_translate(model_moon, cam->pos);
+
+    // Rotate axis
+    glm_rotate(model_sun, GLM_PIf / 6.0f, (vec3){ 0.0f, 1.0f, 0.0f });
+    glm_rotate(model_sun, GLM_PIf / 4.0f, (vec3){ 0.0f, 0.0f, 1.0f });
+
+    glm_rotate(model_moon, GLM_PIf / 6.0f, (vec3){ 0.0f, 1.0f, 0.0f });
+    glm_rotate(model_moon, GLM_PIf / 4.0f, (vec3){ 0.0f, 0.0f, 1.0f });
+
+    // Place on circle in the right spot
+    glm_translate(model_sun, (vec3){ 0.0f, 0.0f, dist * cosf(angle_sun) });
+    glm_translate(model_sun, (vec3){ 0.0f, dist * sinf(angle_sun), 0.0f });
+
+    glm_translate(model_moon, (vec3){ 0.0f, 0.0f, dist * cosf(angle_moon) });
+    glm_translate(model_moon, (vec3){ 0.0f, dist * sinf(angle_moon), 0.0f });
 
     // rotate quads so sun and moon are always looking at player
-    glm_rotate(model_sun,  angle_sun,  (vec3){1.0f, 0.0f, 0.0f});
-    glm_rotate(model_moon, angle_moon, (vec3){1.0f, 0.0f, 0.0f});
+    glm_rotate(model_sun,  -angle_sun,  (vec3){1.0f, 0.0f, 0.0f});
+    glm_rotate(model_sun,  GLM_PIf / 4.0f,  (vec3){0.0f, 0.0f, 1.0f});
+
+    glm_rotate(model_moon,  -angle_moon,  (vec3){1.0f, 0.0f, 0.0f});
+    glm_rotate(model_moon,  GLM_PIf / 4.0f,  (vec3){0.0f, 0.0f, 1.0f});
 
     glUseProgram(shader_sun);
     glBindVertexArray(map->VAO_sun_moon);
 
     glDepthFunc(GL_ALWAYS);
     glEnable(GL_BLEND);
+    glDisable(GL_CULL_FACE);
 
     mat4 mvp_matrix;
     glm_mat4_mul(cam->vp_matrix, model_sun, mvp_matrix);
@@ -284,6 +317,7 @@ void map_render_sun_moon(Camera* cam)
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
     glDepthFunc(GL_LESS);
+    glEnable(GL_CULL_FACE);
 }
 
 void map_render_sky(Camera* cam)
@@ -325,6 +359,33 @@ void map_render_sky(Camera* cam)
 
 extern vec3 light_dir;
 
+static float get_shadow_multiplier()
+{
+    float time = (float)map_get_time();
+
+    float const start = 0.35f;
+    float const end   = 0.45f;
+    float const dur   = end - start;
+
+    float const start2 = 0.85f;
+    float const end2   = 0.95f;
+    float const dur2   = end2 - start2;
+
+    float res = 1.0f;
+
+    if (time >= start && time <= start + dur / 2)
+        res = 1.0f - glm_smoothstep(start, start + dur / 2, time);
+    else if (time >= start + dur / 2 && time <= end)
+        res = glm_smoothstep(start + dur / 2, end, time);
+
+    else if (time >= start2 && time <= start2 + dur2 / 2)
+        res = 1.0f - glm_smoothstep(start2, start2 + dur2 / 2, time);
+    else if (time >= start2 + dur2 / 2 && time <= end2)
+        res = glm_smoothstep(start2 + dur2 / 2, end2, time);
+
+    return res;
+}
+
 void map_render_chunks(Camera* cam, mat4 near_light_mat, mat4 far_light_mat)
 {    
     glUseProgram(shader_block);
@@ -354,17 +415,12 @@ void map_render_chunks(Camera* cam, mat4 near_light_mat, mat4 far_light_mat)
 
     shader_set_float3(shader_block, "u_light_dir", light_dir);
 
-    static float u_shadow_blend_dist = 0.1f;
-    if (window_is_key_pressed(GLFW_KEY_SEMICOLON))
-        u_shadow_blend_dist -= 0.0005f;
-    else if (window_is_key_pressed(GLFW_KEY_P))
-        u_shadow_blend_dist += 0.0005f;
-    //printf("%8.3f\n", u_shadow_blend_dist);
     shader_set_float1(shader_block, "u_near_shadow_dist", 2.0f);
     shader_set_float1(shader_block, "u_shadow_blend_dist", 0.1f);
 
     shader_set_float3(shader_block, "u_player_pos", cam->pos);
-    
+
+    shader_set_float1(shader_block, "u_shadow_multiplier", get_shadow_multiplier());
 
     // Everything except water doesn't need blending
     glDepthFunc(GL_LESS);
@@ -380,6 +436,7 @@ void map_render_chunks(Camera* cam, mat4 near_light_mat, mat4 far_light_mat)
     // to see water from underneath we have to disable face culling
     glDepthMask(GL_FALSE);
     glEnable(GL_BLEND);
+    glDisable(GL_CULL_FACE);
     LIST_FOREACH_CHUNK_BEGIN(map->chunks_to_render, c)
     {
         glBindVertexArray(c->VAO_water);
@@ -387,6 +444,7 @@ void map_render_chunks(Camera* cam, mat4 near_light_mat, mat4 far_light_mat)
     }
     LIST_FOREACH_CHUNK_END()
     glDepthMask(GL_TRUE);
+    glEnable(GL_CULL_FACE);
 
     list_chunks_clear(map->chunks_to_render);
 }
@@ -634,7 +692,7 @@ static void add_chunks_to_render_list(Camera* cam)
 void map_update(Camera* cam)
 {
     //printf("%8.3f\n", (float)map_get_time());
-    //map_get_light_dir(light_dir);
+    get_light_dir(light_dir);
 
     try_delete_far_chunks(cam);
     handle_workers(cam);

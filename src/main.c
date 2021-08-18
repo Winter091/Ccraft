@@ -174,9 +174,9 @@ void render_shadow_depth(Player* p)
 
     // ============== Create MVP matrix ===================
     {
-        light_dir[0] = cosf(glm_rad(yaw)) * cosf(glm_rad(pitch));
-        light_dir[1] = sinf(glm_rad(pitch));
-        light_dir[2] = sinf(glm_rad(yaw)) * cosf(glm_rad(pitch));
+        //light_dir[0] = cosf(glm_rad(yaw)) * cosf(glm_rad(pitch));
+        //light_dir[1] = sinf(glm_rad(pitch));
+        //light_dir[2] = sinf(glm_rad(yaw)) * cosf(glm_rad(pitch));
         glm_vec3_normalize(light_dir);
     }
 
@@ -236,6 +236,7 @@ void render_shadow_depth(Player* p)
     glClear(GL_DEPTH_BUFFER_BIT);
 
     // ============== Render terrain near ===================
+    glPolygonOffset(4.0f, 4.0f);
     map_render_chunks_raw();
 
     // ============== Prepare shader far ===================
@@ -249,6 +250,7 @@ void render_shadow_depth(Player* p)
     glClear(GL_DEPTH_BUFFER_BIT);
 
     // ============== Render terrain far ===================
+    glPolygonOffset(8.0f, 8.0f);
     map_render_chunks_raw();
 }
 
@@ -375,8 +377,11 @@ void render_second_pass(Player* p, float dt)
 void render(Player* p, float dt)
 {
     glEnable(GL_DEPTH_CLAMP);
+    glEnable(GL_POLYGON_OFFSET_FILL);
     render_shadow_depth(p);
+    glDisable(GL_POLYGON_OFFSET_FILL);
     glDisable(GL_DEPTH_CLAMP);
+
     render_game(p);
     render_first_pass(dt);
     render_second_pass(p, dt);
