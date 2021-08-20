@@ -225,30 +225,6 @@ static void map_get_fog_color(float* r, float* g, float* b)
     *b = color[2];
 }
 
-static void get_light_dir(vec3 res)
-{
-    float time = (float)map_get_time();
-
-    // apply offset to current time to synchronize
-    // light level with sun presence in the sky
-    float offset = 0.1f;
-    time += offset;
-    if (time > 1.0f)
-        time -= 1.0f;
-    
-    float angle = time * GLM_PIf * 2;
-
-    // Light from moon instead of sun
-    if (time >= 0.5)
-        angle += GLM_PIf;
-
-    my_glm_vec3_set(res, 0.0f, sinf(angle), cosf(angle));
-    glm_vec3_rotate(res, GLM_PIf / 4.0f, (vec3){ 0.0f, 0.0f, 1.0f });
-    glm_vec3_rotate(res, GLM_PIf / 6.0f, (vec3){ 0.0f, 1.0f, 0.0f });
-
-    glm_vec3_negate(res);
-}
-
 void map_render_sun_moon(Camera* cam)
 {
     float time = (float)map_get_time();
@@ -357,8 +333,6 @@ void map_render_sky(Camera* cam)
     glDepthFunc(GL_LESS);
 }
 
-extern vec3 light_dir;
-
 static float get_shadow_multiplier()
 {
     float time = (float)map_get_time();
@@ -413,6 +387,8 @@ void map_render_chunks(Camera* cam, mat4 near_light_mat, mat4 far_light_mat)
     shader_set_float1(shader_block, "u_near_plane", cam->clip_near);
     shader_set_float1(shader_block, "u_far_plane", cam->clip_far);
 
+    vec3 light_dir;
+    map_get_light_dir(light_dir);
     shader_set_float3(shader_block, "u_light_dir", light_dir);
 
     shader_set_float1(shader_block, "u_near_shadow_dist", 2.0f);
@@ -691,9 +667,6 @@ static void add_chunks_to_render_list(Camera* cam)
 
 void map_update(Camera* cam)
 {
-    //printf("%8.3f\n", (float)map_get_time());
-    get_light_dir(light_dir);
-
     try_delete_far_chunks(cam);
     handle_workers(cam);
     map_force_chunks_near_player(cam);
@@ -732,6 +705,30 @@ int map_get_highest_block(int bx, int bz)
     }
 
     return max_height;
+}
+
+void map_get_light_dir(vec3 res)
+{
+    float time = (float)map_get_time();
+
+    // apply offset to current time to synchronize
+    // light level with sun presence in the sky
+    float offset = 0.1f;
+    time += offset;
+    if (time > 1.0f)
+        time -= 1.0f;
+    
+    float angle = time * GLM_PIf * 2;
+
+    // Light from moon instead of sun
+    if (time >= 0.5)
+        angle += GLM_PIf;
+
+    my_glm_vec3_set(res, 0.0f, sinf(angle), cosf(angle));
+    glm_vec3_rotate(res, GLM_PIf / 4.0f, (vec3){ 0.0f, 0.0f, 1.0f });
+    glm_vec3_rotate(res, GLM_PIf / 6.0f, (vec3){ 0.0f, 1.0f, 0.0f });
+
+    glm_vec3_negate(res);
 }
 
 void map_save()

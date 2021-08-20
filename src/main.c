@@ -13,7 +13,7 @@
 #include "db.h"
 
 // Print OpenGL warnings and errors
-void opengl_debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity,
+static void opengl_debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity,
                            GLsizei length, const GLchar* message, const void* userParam)
 {
     char* _source;
@@ -136,125 +136,70 @@ static float get_current_dof_depth(float dt)
     return curr_depth;
 }
 
-void update(Player* p, float dt)
+static void update(Player* p, float dt)
 {
     player_update(p, dt);
     map_update(p->cam);
 }
 
-mat4 near_light_mat;
-mat4 far_light_mat;
+// Global for this file, ideally should be inside 
+// renderer file or be a part of renderer structure
+static mat4 near_light_mat;
+static mat4 far_light_mat;
 
-vec3 light_dir;
-
-void render_shadow_depth(Player* p)
+static void generate_light_mat(mat4 res, Camera* cam, float width_blocks)
 {
-    float const near_size = 25.0f * BLOCK_SIZE;
-    float const far_size  = 8 * CHUNK_WIDTH * BLOCK_SIZE;
-    
-    static float my_near   = -1.50f;
-    static float my_far    =  1.50f;
-    static float yaw = -142.0f, pitch = -38.0f;
+    vec3 light_dir;
+    map_get_light_dir(light_dir);
 
-    float const delta = 0.1f;
-    float const delta2 = 0.25f;
+    mat4 light_view_mat;
+    glm_look(cam->pos, light_dir, cam->up, light_view_mat);
 
-    if (window_is_key_pressed(GLFW_KEY_R)) my_near += delta;
-    if (window_is_key_pressed(GLFW_KEY_F)) my_near -= delta;
+    float const ortho_left   = -width_blocks / 2.0f * BLOCK_SIZE;
+    float const ortho_bottom = -width_blocks / 2.0f * BLOCK_SIZE;
+    float const ortho_near   = -width_blocks / 2.0f * BLOCK_SIZE;
+    float const ortho_right  =  width_blocks / 2.0f * BLOCK_SIZE;
+    float const ortho_top    =  width_blocks / 2.0f * BLOCK_SIZE;
+    float const ortho_far    =  width_blocks / 2.0f * BLOCK_SIZE;
 
-    if (window_is_key_pressed(GLFW_KEY_T)) my_far += delta;
-    if (window_is_key_pressed(GLFW_KEY_G)) my_far -= delta;
+    mat4 light_proj_mat;
+    glm_ortho(ortho_left, ortho_right, ortho_bottom, ortho_top, 
+       ortho_near, ortho_far, light_proj_mat);
 
-    if (window_is_key_pressed(GLFW_KEY_J)) yaw += delta2;
-    if (window_is_key_pressed(GLFW_KEY_L)) yaw -= delta2;
-    if (window_is_key_pressed(GLFW_KEY_I)) pitch += delta2;
-    if (window_is_key_pressed(GLFW_KEY_K)) pitch -= delta2;
+    glm_mat4_mul(light_proj_mat, light_view_mat, res);
+}
 
-    //printf("yaw: %8.4f pitch: %8.4f dist: %8.4f\n", yaw, pitch);
-
-    // ============== Create MVP matrix ===================
-    {
-        //light_dir[0] = cosf(glm_rad(yaw)) * cosf(glm_rad(pitch));
-        //light_dir[1] = sinf(glm_rad(pitch));
-        //light_dir[2] = sinf(glm_rad(yaw)) * cosf(glm_rad(pitch));
-        glm_vec3_normalize(light_dir);
-    }
-
-    vec3 near_light_pos;
-    glm_vec3_copy(p->cam->pos, near_light_pos);
-
-    vec3 far_light_pos;
-    glm_vec3_copy(p->cam->pos, far_light_pos);
-
-    mat4 near_light_view_mat;
-    glm_look(near_light_pos, light_dir, 
-             p->cam->up, near_light_view_mat);
-
-    mat4 far_light_view_mat;
-    glm_look(far_light_pos, light_dir, 
-             p->cam->up, far_light_view_mat);
-
-    float near_left = -near_size;
-    float near_bott = -near_size;
-    float near_near = -near_size * 3.0f;
-    float near_righ =  near_size;
-    float near_topp =  near_size;
-    float near_farr =  near_size;
-
-    float far_left = -far_size;
-    float far_bott = -far_size;
-    float far_near = -far_size - 30.0f * BLOCK_SIZE;
-    float far_righ =  far_size;
-    float far_topp =  far_size;
-    float far_farr =  far_size;
-
-    mat4 near_light_proj_mat;
-    glm_ortho(near_left, near_righ, near_bott, near_topp, 
-       near_near, near_farr, near_light_proj_mat);
-    // glm_ortho(near_left, near_righ, near_bott, near_topp, 
-    //    my_near, my_far, near_light_proj_mat);
-
-
-    mat4 far_light_proj_mat;
-    glm_ortho(far_left, far_righ, far_bott, far_topp, 
-        far_near, far_farr, far_light_proj_mat);
-
-    //printf("box: %8.4f %8.4f \tmy: %8.4f %8.4f\n", box_near, box_farr, box_near - 30.0f * BLOCK_SIZE, box_farr);
-    
-    glm_mat4_mul(near_light_proj_mat, near_light_view_mat, near_light_mat);
-
-    glm_mat4_mul(far_light_proj_mat, far_light_view_mat, far_light_mat);
-    
-    // ============== Prepare shader near ===================
+static void render_shadowmap(mat4 light_mat, int shadowmap_width, FbType fb_type, float polygon_offset)
+{
     shader_use(shader_shadow);
-    shader_set_mat4(shader_shadow, "mvp_matrix", near_light_mat);
+    shader_set_mat4(shader_shadow, "mvp_matrix", light_mat);
     shader_set_texture_array(shader_shadow, "u_blocks_texture", texture_blocks, 0);
 
-    // ============== Prepare framebuffer near ===================
-    glViewport(0, 0, g_window->fb->near_shadowmap_w, g_window->fb->near_shadowmap_w);
-    framebuffer_use(g_window->fb, FBTYPE_SHADOW_NEAR);
+    framebuffer_use(g_window->fb, fb_type);
+
     glClear(GL_DEPTH_BUFFER_BIT);
+    glViewport(0, 0, shadowmap_width, shadowmap_width);
+    glPolygonOffset(polygon_offset, polygon_offset);
 
-    // ============== Render terrain near ===================
-    glPolygonOffset(4.0f, 4.0f);
-    map_render_chunks_raw();
-
-    // ============== Prepare shader far ===================
-    shader_use(shader_shadow);
-    shader_set_mat4(shader_shadow, "mvp_matrix", far_light_mat);
-    shader_set_texture_array(shader_shadow, "u_blocks_texture", texture_blocks, 0);
-
-    // ============== Prepare framebuffer far ===================
-    glViewport(0, 0, g_window->fb->far_shadowmap_w, g_window->fb->far_shadowmap_w);
-    framebuffer_use(g_window->fb, FBTYPE_SHADOW_FAR);
-    glClear(GL_DEPTH_BUFFER_BIT);
-
-    // ============== Render terrain far ===================
-    glPolygonOffset(8.0f, 8.0f);
     map_render_chunks_raw();
 }
 
-void render_game(Player* p)
+static void render_all_shadowmaps(Player* p)
+{
+    generate_light_mat(near_light_mat, p->cam, 25.0f);
+    generate_light_mat(far_light_mat,  p->cam, 8.0f * CHUNK_WIDTH);
+    
+    glEnable(GL_DEPTH_CLAMP);
+    glEnable(GL_POLYGON_OFFSET_FILL);
+
+    render_shadowmap(near_light_mat, g_window->fb->near_shadowmap_w, FBTYPE_SHADOW_NEAR, 4.0f);
+    render_shadowmap(far_light_mat,  g_window->fb->far_shadowmap_w,  FBTYPE_SHADOW_FAR,  8.0f);
+
+    glDisable(GL_POLYGON_OFFSET_FILL);
+    glDisable(GL_DEPTH_CLAMP);
+}
+
+static void render_game(Player* p)
 {
     glViewport(0, 0, g_window->width, g_window->height);
     
@@ -278,7 +223,7 @@ void render_game(Player* p)
 }
 
 // Apply depth of field and render to texture
-void render_first_pass(float dt)
+static void render_first_pass(float dt)
 {
     shader_use(shader_deferred1);
 
@@ -287,20 +232,16 @@ void render_first_pass(float dt)
     shader_set_texture_2d(shader_deferred1, "texture_depth",
                           g_window->fb->gbuf_tex_depth, 1);
 
-    if (!DOF_ENABLED)
+    shader_set_int1(shader_deferred1, "u_dof_enabled", DOF_ENABLED);
+    if (DOF_ENABLED)
     {
-        shader_set_int1(shader_deferred1, "u_dof_enabled", 0);
-    }
-    else
-    {
-        float curr_depth = DOF_SMOOTH ? get_current_dof_depth(dt) : 0.0f;
-
-        shader_set_int1(shader_deferred1, "u_dof_enabled", 1);
         shader_set_int1(shader_deferred1, "u_dof_smooth", DOF_SMOOTH);
         shader_set_float1(shader_deferred1, "u_max_blur", DOF_MAX_BLUR);
         shader_set_float1(shader_deferred1, "u_aperture", DOF_APERTURE);
         shader_set_float1(shader_deferred1, "u_aspect_ratio", 
                           (float)g_window->width / g_window->height);
+
+        float curr_depth = DOF_SMOOTH ? get_current_dof_depth(dt) : 0.0f;
         shader_set_float1(shader_deferred1, "u_depth", curr_depth);
     }
 
@@ -311,7 +252,7 @@ void render_first_pass(float dt)
 }
 
 // Apply motion blur, gamma correction, saturation and render to screen
-void render_second_pass(Player* p, float dt)
+static void render_second_pass(Player* p, float dt)
 {
     shader_use(shader_deferred2);
 
@@ -322,14 +263,9 @@ void render_second_pass(Player* p, float dt)
     shader_set_texture_2d(shader_deferred2, "texture_depth",
                           g_window->fb->gbuf_tex_depth, 2);
 
-    if (!MOTION_BLUR_ENABLED)
+    shader_set_int1(shader_deferred2, "u_motion_blur_enabled", MOTION_BLUR_ENABLED);
+    if (MOTION_BLUR_ENABLED)
     {
-        shader_set_int1(shader_deferred2, "u_motion_blur_enabled", 0);
-    }
-    else
-    {
-        shader_set_int1(shader_deferred2, "u_motion_blur_enabled", 1);
-        
         mat4 matrix;
         glm_mat4_inv(p->cam->proj_matrix, matrix);
         shader_set_mat4(shader_deferred2, "u_projection_inv_matrix", matrix);
@@ -361,7 +297,8 @@ void render_second_pass(Player* p, float dt)
     glDepthFunc(GL_ALWAYS);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
-    // =============== Picture in picture ==================
+    // =============== Debug picture in picture shadowmaps ==================
+    /*
     shader_use(shader_pip);
     shader_set_texture_2d(shader_pip, "u_texture", g_window->fb->gbuf_shadow_near_map, 0);
     int w = 325;
@@ -372,16 +309,12 @@ void render_second_pass(Player* p, float dt)
     shader_set_texture_2d(shader_pip, "u_texture", g_window->fb->gbuf_shadow_far_map, 0);
     glViewport(g_window->width - w - 10, g_window->height - h - 10, w, h);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+    */
 }
 
-void render(Player* p, float dt)
-{
-    glEnable(GL_DEPTH_CLAMP);
-    glEnable(GL_POLYGON_OFFSET_FILL);
-    render_shadow_depth(p);
-    glDisable(GL_POLYGON_OFFSET_FILL);
-    glDisable(GL_DEPTH_CLAMP);
-
+static void render(Player* p, float dt)
+{ 
+    render_all_shadowmaps(p);
     render_game(p);
     render_first_pass(dt);
     render_second_pass(p, dt);
