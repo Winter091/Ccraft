@@ -120,6 +120,12 @@ void chunk_generate_mesh(Chunk* c)
     c->generated_mesh_water = malloc(
         CHUNK_WIDTH * CHUNK_WIDTH * CHUNK_HEIGHT * 36 * sizeof(Vertex));
 
+    if (!c->generated_mesh_terrain || !c->generated_mesh_water) 
+    {
+        fprintf(stderr, "Ran out of RAM, decrease amount of worker threads!\n");
+        exit(EXIT_FAILURE);
+    }
+
     int curr_vertex_land_count = 0;
     int curr_vertex_water_count = 0;
     
