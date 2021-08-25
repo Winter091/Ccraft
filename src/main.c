@@ -147,8 +147,8 @@ static void update(Player* p, float dt)
 static mat4 near_shadowmap_mat;
 static mat4 far_shadowmap_mat;
 
-static float near_shadowmap_size = 50.0f;
-static float far_shadowmap_size  = (8 + 3) * 32.0f;
+static float near_shadowmap_size;
+static float far_shadowmap_size;
 
 typedef enum
 {
@@ -223,6 +223,9 @@ static void render_shadowmap(mat4 light_mat, vec4 frustum_planes[6], int shadowm
 
 static void render_all_shadowmaps(Player* p)
 {
+    near_shadowmap_size = 50.0f;
+    far_shadowmap_size  = (CHUNK_RENDER_RADIUS + 3) * CHUNK_WIDTH;
+    
     gen_shadowmap_mat(near_shadowmap_mat, p->cam, near_shadowmap_size, NEARPLANE_DEFAULT);
     gen_shadowmap_mat(far_shadowmap_mat,  p->cam, far_shadowmap_size,  NEARPLANE_DEFAULT);
 

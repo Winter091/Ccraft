@@ -150,11 +150,13 @@ void map_init()
 // [0.0 - 1.0)
 double map_get_time()
 {
-    //if (DISABLE_TIME_FLOW)
-    //    return 0.1;
-    //else
-    //    return 0.5 + remainder(glfwGetTime(), DAY_LENGTH) / (double)DAY_LENGTH;
+    if (DISABLE_TIME_FLOW)
+       return 0.1;
+    else
+       return 0.5 + remainder(glfwGetTime(), DAY_LENGTH) / (double)DAY_LENGTH;
 
+    // Debug manual control
+    /*
     double static time = 0.0;
 
     if (window_is_key_pressed(GLFW_KEY_P))
@@ -169,6 +171,7 @@ double map_get_time()
     //printf("%8.3lf\n", time);
 
     return time;
+    */
 }
 
 float map_get_blocks_light()
