@@ -19,10 +19,10 @@ uniform float fog_dist;
 uniform vec3  u_light_dir;
 
 // =================================
-out vec4 v_frag_pos_near_light_space;
-out vec4 v_frag_pos_far_light_space;
-uniform mat4 u_near_light_matrix;
-uniform mat4 u_far_light_matrix;
+out vec4 v_near_shadowmap_coord;
+out vec4 v_far_shadowmap_coord;
+uniform mat4 u_near_shadowmap_mat;
+uniform mat4 u_far_shadowmap_mat;
 // =================================
 
 const vec3 normals[7] = {
@@ -46,8 +46,8 @@ void main()
     float dist_to_cam = distance(cam_pos.xz, a_pos.xz);
     v_fog_amount = pow(clamp(dist_to_cam / fog_dist, 0.0, 1.0), 4.0);
 
-    v_frag_pos_near_light_space = u_near_light_matrix * vec4(a_pos, 1.0);
-    v_frag_pos_far_light_space = u_far_light_matrix * vec4(a_pos, 1.0);
+    v_near_shadowmap_coord = u_near_shadowmap_mat * vec4(a_pos, 1.0);
+    v_far_shadowmap_coord  = u_far_shadowmap_mat  * vec4(a_pos, 1.0);
 
     v_normal = normals[a_normal];
 }

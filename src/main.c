@@ -144,10 +144,21 @@ static void update(Player* p, float dt)
 
 // Global for this file, ideally should be inside 
 // renderer file or be a part of renderer structure
-static mat4 near_light_mat;
-static mat4 far_light_mat;
+static mat4 near_shadowmap_mat;
+static mat4 far_shadowmap_mat;
 
-static void generate_light_mat(mat4 res, Camera* cam, float width_blocks)
+static float near_shadowmap_size = 50.0f;
+static float far_shadowmap_size  = (8 + 3) * 32.0f;
+
+typedef enum
+{
+    NEARPLANE_DEFAULT,
+    NEARPLANE_EXTENDED
+}
+NearPlaneType;
+
+static void gen_shadowmap_mat(mat4 res, Camera* cam, 
+                              float size_blocks, NearPlaneType near_choice)
 {
     vec3 light_dir;
     map_get_light_dir(light_dir);
@@ -155,12 +166,22 @@ static void generate_light_mat(mat4 res, Camera* cam, float width_blocks)
     mat4 light_view_mat;
     glm_look(cam->pos, light_dir, cam->up, light_view_mat);
 
-    float const ortho_left   = -width_blocks / 2.0f * BLOCK_SIZE;
-    float const ortho_bottom = -width_blocks / 2.0f * BLOCK_SIZE;
-    float const ortho_near   = -width_blocks / 2.0f * BLOCK_SIZE;
-    float const ortho_right  =  width_blocks / 2.0f * BLOCK_SIZE;
-    float const ortho_top    =  width_blocks / 2.0f * BLOCK_SIZE;
-    float const ortho_far    =  width_blocks / 2.0f * BLOCK_SIZE;
+    float ortho_right  =  size_blocks / 2.0f * BLOCK_SIZE;
+    float ortho_left   = -ortho_right;
+    float ortho_top    =  size_blocks / 2.0f * BLOCK_SIZE;
+    float ortho_bottom = -ortho_top;
+    float ortho_far    =  size_blocks / 2.0f * BLOCK_SIZE;
+    float ortho_near;
+
+    switch (near_choice)
+    {
+        case NEARPLANE_DEFAULT:    
+            ortho_near = -ortho_far; 
+            break;
+        case NEARPLANE_EXTENDED: 
+            ortho_near = -(CHUNK_RENDER_RADIUS + 3) * CHUNK_WIDTH * BLOCK_SIZE;
+            break;
+    }
 
     mat4 light_proj_mat;
     glm_ortho(ortho_left, ortho_right, ortho_bottom, ortho_top, 
@@ -169,7 +190,15 @@ static void generate_light_mat(mat4 res, Camera* cam, float width_blocks)
     glm_mat4_mul(light_proj_mat, light_view_mat, res);
 }
 
-static void render_shadowmap(mat4 light_mat, int shadowmap_width, FbType fb_type, float polygon_offset)
+static void gen_shadowmap_planes(vec4 res[6], Camera* cam, float size_blocks)
+{
+    mat4 light_mat;
+    gen_shadowmap_mat(light_mat, cam, size_blocks, NEARPLANE_EXTENDED);
+    glm_frustum_planes(light_mat, res);
+}
+
+static void render_shadowmap(mat4 light_mat, vec4 frustum_planes[6], int shadowmap_tex_width, 
+                             FbType fb_type, float polygon_offset)
 {
     shader_use(shader_shadow);
     shader_set_mat4(shader_shadow, "mvp_matrix", light_mat);
@@ -178,22 +207,26 @@ static void render_shadowmap(mat4 light_mat, int shadowmap_width, FbType fb_type
     framebuffer_use(g_window->fb, fb_type);
 
     glClear(GL_DEPTH_BUFFER_BIT);
-    glViewport(0, 0, shadowmap_width, shadowmap_width);
+    glViewport(0, 0, shadowmap_tex_width, shadowmap_tex_width);
     glPolygonOffset(polygon_offset, polygon_offset);
 
-    map_render_chunks_raw();
+    map_render_chunks_raw(frustum_planes);
 }
 
 static void render_all_shadowmaps(Player* p)
 {
-    generate_light_mat(near_light_mat, p->cam, 25.0f);
-    generate_light_mat(far_light_mat,  p->cam, 8.0f * CHUNK_WIDTH);
+    gen_shadowmap_mat(near_shadowmap_mat, p->cam, near_shadowmap_size, NEARPLANE_DEFAULT);
+    gen_shadowmap_mat(far_shadowmap_mat,  p->cam, far_shadowmap_size,  NEARPLANE_DEFAULT);
+
+    vec4 near_planes[6], far_planes[6];
+    gen_shadowmap_planes(near_planes, p->cam, near_shadowmap_size);
+    gen_shadowmap_planes(far_planes,  p->cam, far_shadowmap_size);
     
     glEnable(GL_DEPTH_CLAMP);
     glEnable(GL_POLYGON_OFFSET_FILL);
 
-    render_shadowmap(near_light_mat, g_window->fb->near_shadowmap_w, FBTYPE_SHADOW_NEAR, 4.0f);
-    render_shadowmap(far_light_mat,  g_window->fb->far_shadowmap_w,  FBTYPE_SHADOW_FAR,  8.0f);
+    render_shadowmap(near_shadowmap_mat, near_planes, g_window->fb->near_shadowmap_w, FBTYPE_SHADOW_NEAR, 4.0f);
+    render_shadowmap(far_shadowmap_mat,  far_planes,  g_window->fb->far_shadowmap_w,  FBTYPE_SHADOW_FAR,  8.0f);
 
     glDisable(GL_POLYGON_OFFSET_FILL);
     glDisable(GL_DEPTH_CLAMP);
@@ -210,7 +243,7 @@ static void render_game(Player* p)
     {
         map_render_sky(p->cam);
         map_render_sun_moon(p->cam);
-        map_render_chunks(p->cam, near_light_mat, far_light_mat);
+        map_render_chunks(p->cam, near_shadowmap_mat, far_shadowmap_mat);
     }
 
     framebuffer_use_texture(TEX_UI);
@@ -298,7 +331,7 @@ static void render_second_pass(Player* p, float dt)
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
     // =============== Debug picture in picture shadowmaps ==================
-    /*
+    
     shader_use(shader_pip);
     shader_set_texture_2d(shader_pip, "u_texture", g_window->fb->gbuf_shadow_near_map, 0);
     int w = 325;
@@ -309,7 +342,7 @@ static void render_second_pass(Player* p, float dt)
     shader_set_texture_2d(shader_pip, "u_texture", g_window->fb->gbuf_shadow_far_map, 0);
     glViewport(g_window->width - w - 10, g_window->height - h - 10, w, h);
     glDrawArrays(GL_TRIANGLES, 0, 6);
-    */
+    
 }
 
 static void render(Player* p, float dt)

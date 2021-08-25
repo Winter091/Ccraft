@@ -16,9 +16,9 @@ void map_render_sun_moon(Camera* cam);
 
 void map_render_sky(Camera* cam);
 
-void map_render_chunks(Camera* cam, mat4 near_light_mat, mat4 far_light_mat);
+void map_render_chunks(Camera* cam, mat4 near_shadowmap_mat, mat4 far_shadowmap_mat);
 
-void map_render_chunks_raw();
+void map_render_chunks_raw(vec4 frustum_planes[6]);
 
 void map_force_chunks_near_player(Camera* cam);
 

@@ -360,7 +360,7 @@ static float get_shadow_multiplier()
     return res;
 }
 
-void map_render_chunks(Camera* cam, mat4 near_light_mat, mat4 far_light_mat)
+void map_render_chunks(Camera* cam, mat4 near_shadowmap_mat, mat4 far_shadowmap_mat)
 {    
     glUseProgram(shader_block);
 
@@ -376,12 +376,12 @@ void map_render_chunks(Camera* cam, mat4 near_light_mat, mat4 far_light_mat)
     map_get_fog_color(&r, &g, &b);
     shader_set_float3(shader_block, "fog_color", (vec3){r, g, b});
 
-    shader_set_mat4(shader_block, "u_near_light_matrix", near_light_mat);
-    shader_set_mat4(shader_block, "u_far_light_matrix", far_light_mat);
+    shader_set_mat4(shader_block, "u_near_shadowmap_mat", near_shadowmap_mat);
+    shader_set_mat4(shader_block, "u_far_shadowmap_mat", far_shadowmap_mat);
 
-    shader_set_texture_2d(shader_block, "u_near_shadow_map", 
+    shader_set_texture_2d(shader_block, "u_near_shadowmap", 
         g_window->fb->gbuf_shadow_near_map, 1);
-    shader_set_texture_2d(shader_block, "u_far_shadow_map", 
+    shader_set_texture_2d(shader_block, "u_far_shadowmap", 
         g_window->fb->gbuf_shadow_far_map, 2);
 
     shader_set_float1(shader_block, "u_near_plane", cam->clip_near);
@@ -425,7 +425,7 @@ void map_render_chunks(Camera* cam, mat4 near_light_mat, mat4 far_light_mat)
     list_chunks_clear(map->chunks_to_render);
 }
 
-void map_render_chunks_raw()
+void map_render_chunks_raw(vec4 frustum_planes[6])
 {
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
@@ -433,7 +433,8 @@ void map_render_chunks_raw()
     glDisable(GL_BLEND);
     MAP_FOREACH_ACTIVE_CHUNK_BEGIN(c)
     {
-        if (c->is_generated) 
+        //if (c->is_generated) 
+        if (c->is_generated && chunk_is_visible(c->x, c->z, frustum_planes))
         {
             glBindVertexArray(c->VAO_land);
             glDrawArrays(GL_TRIANGLES, 0, c->vertex_land_count);
