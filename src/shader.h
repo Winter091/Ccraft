@@ -13,6 +13,7 @@ extern GLuint shader_deferred1;
 extern GLuint shader_deferred2;
 extern GLuint shader_shadow;
 extern GLuint shader_pip;
+extern GLuint shader_handitem;
 
 void shaders_init();
 

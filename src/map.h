@@ -34,6 +34,8 @@ double map_get_time();
 
 int map_get_seed();
 
+float map_get_blocks_light();
+
 int map_get_highest_block(int x, int z);
 
 void map_get_light_dir(vec3 res);

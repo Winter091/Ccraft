@@ -171,7 +171,7 @@ double map_get_time()
     return time;
 }
 
-static float map_get_blocks_light()
+float map_get_blocks_light()
 {    
     float time = (float)map_get_time();
 

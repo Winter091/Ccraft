@@ -717,13 +717,10 @@ void player_render_item(Player* p)
     mat4 mvp;
     glm_mat4_mulN((mat4* []){&projection, &view, &p->model_mat_item}, 3, mvp);
 
-    glUseProgram(shader_block);
-    shader_set_mat4(shader_block, "mvp_matrix", mvp);
-    shader_set_texture_array(shader_block, "texture_sampler", texture_blocks, 0);
-
-    // Remove fog effect
-    shader_set_float3(shader_block, "cam_pos", (vec3){0.0f, 0.0f, 0.0f});
-    shader_set_float1(shader_block, "fog_dist", 100000.0f);
+    glUseProgram(shader_handitem);
+    shader_set_mat4(shader_handitem, "mvp_matrix", mvp);
+    shader_set_texture_array(shader_handitem, "texture_sampler", texture_blocks, 0);
+    shader_set_float1(shader_handitem, "block_light", map_get_blocks_light());
 
     glDisable(GL_BLEND);
     glBindVertexArray(p->VAO_item);

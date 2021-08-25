@@ -13,6 +13,7 @@ GLuint shader_deferred1;
 GLuint shader_deferred2;
 GLuint shader_shadow;
 GLuint shader_pip;
+GLuint shader_handitem;
 
 static char* get_file_data(const char* path)
 {
@@ -132,6 +133,11 @@ void shaders_init()
         "shaders/pip_vertex.glsl",
         "shaders/pip_fragment.glsl"
     );
+
+    shader_handitem = create_shader_program(
+        "shaders/handitem_vertex.glsl",
+        "shaders/handitem_fragment.glsl"
+    );
 }
 
 static GLint get_attrib_location(GLuint shader, char* name)
@@ -204,4 +210,5 @@ void shaders_free()
     shader_free(&shader_deferred2);
     shader_free(&shader_shadow);
     shader_free(&shader_pip);
+    shader_free(&shader_handitem);
 }
