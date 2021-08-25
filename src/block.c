@@ -158,8 +158,10 @@ void gen_plant_vertices(Vertex* vertices, int* curr_vertex_count, int x, int y, 
         {0, 0}, {1, 0}, {1, 1}, {0, 1}
     };
 
+    static const int normals[4] = { 0, 1, 5, 4 };
+
     // Plant consists of 2 quads, but 4 are needed
-    // in order to correctly handle face culling
+    // in order to fight face culling
     for (int f = 0; f < 4; f++)
     for (int v = 0; v < 6; v++)
     {
@@ -174,7 +176,7 @@ void gen_plant_vertices(Vertex* vertices, int* curr_vertex_count, int x, int y, 
         vertices[i].tex_coord[1] = uvs[index][1];
         vertices[i].ao           = 0.0f;
         vertices[i].tile         = block_textures[block_type][f];
-        vertices[i].normal       = 6;
+        vertices[i].normal       = normals[f];
     }
 }
 
