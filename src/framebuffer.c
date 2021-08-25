@@ -61,6 +61,49 @@ Framebuffers* framebuffers_create(int window_w, int window_h)
 
     create_gbuf(fb, window_w, window_h);
 
+    fb->gbuf_shadow_near = opengl_create_fbo();
+
+    fb->near_shadowmap_w = 2048;
+    fb->gbuf_shadow_near_map = framebuffer_depth_texture_create(fb->near_shadowmap_w, fb->near_shadowmap_w);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float border_color[] = {1.0f, 1.0f, 1.0f, 1.0f};
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,  GL_TEXTURE_2D, fb->gbuf_shadow_near_map, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        fprintf(stderr, "Near Shadow Framebuffer is incomplete!\n");
+    
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    fb->gbuf_shadow_far = opengl_create_fbo();
+
+    fb->far_shadowmap_w = 2048;
+    fb->gbuf_shadow_far_map = framebuffer_depth_texture_create(fb->far_shadowmap_w, fb->far_shadowmap_w);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
+
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,  GL_TEXTURE_2D, fb->gbuf_shadow_far_map, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        fprintf(stderr, "Far Shadow Framebuffer is incomplete!\n");
+    
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
     return fb;
 }
 
@@ -88,6 +131,12 @@ void framebuffer_use(Framebuffers* fb, FbType type)
             break;
         case FBTYPE_TEXTURE:
             glBindFramebuffer(GL_FRAMEBUFFER, fb->gbuf_fbo);
+            break;
+        case FBTYPE_SHADOW_NEAR:
+            glBindFramebuffer(GL_FRAMEBUFFER, fb->gbuf_shadow_near);
+            break;
+        case FBTYPE_SHADOW_FAR:
+            glBindFramebuffer(GL_FRAMEBUFFER, fb->gbuf_shadow_far);
             break;
         default:
             printf("How did we get here?\n");

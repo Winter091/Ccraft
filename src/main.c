@@ -13,7 +13,7 @@
 #include "db.h"
 
 // Print OpenGL warnings and errors
-void opengl_debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity,
+static void opengl_debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity,
                            GLsizei length, const GLchar* message, const void* userParam)
 {
     char* _source;
@@ -136,14 +136,117 @@ static float get_current_dof_depth(float dt)
     return curr_depth;
 }
 
-void update(Player* p, float dt)
+static void update(Player* p, float dt)
 {
     player_update(p, dt);
     map_update(p->cam);
 }
 
-void render_game(Player* p)
+// Global for this file, ideally should be inside 
+// renderer file or be a part of renderer structure
+static mat4 near_shadowmap_mat;
+static mat4 far_shadowmap_mat;
+
+static float near_shadowmap_size;
+static float far_shadowmap_size;
+
+typedef enum
 {
+    NEARPLANE_DEFAULT,
+    NEARPLANE_EXTENDED
+}
+NearPlaneType;
+
+static void gen_shadowmap_mat(mat4 res, Camera* cam, 
+                              float size_blocks, NearPlaneType near_choice)
+{
+    vec3 light_dir;
+    map_get_light_dir(light_dir);
+
+    vec3 light_pos;
+    glm_vec3_copy(cam->pos, light_pos);
+
+    // Minigate shadow edge flickering
+    float const discrete_step = BLOCK_SIZE / 2.0f;
+    for (int i = 0; i < 3; i++)
+        light_pos[i] = roundf(light_pos[i] / discrete_step) * discrete_step;
+
+    mat4 light_view_mat;
+    glm_look(light_pos, light_dir, cam->up, light_view_mat);
+
+    float ortho_right  =  size_blocks / 2.0f * BLOCK_SIZE;
+    float ortho_left   = -ortho_right;
+    float ortho_top    =  size_blocks / 2.0f * BLOCK_SIZE;
+    float ortho_bottom = -ortho_top;
+    float ortho_far    =  size_blocks / 2.0f * BLOCK_SIZE;
+    float ortho_near;
+
+    switch (near_choice)
+    {
+        case NEARPLANE_DEFAULT:    
+            ortho_near = -ortho_far; 
+            break;
+        case NEARPLANE_EXTENDED: 
+            ortho_near = -(CHUNK_RENDER_RADIUS + 3) * CHUNK_WIDTH * BLOCK_SIZE;
+            break;
+    }
+
+    mat4 light_proj_mat;
+    glm_ortho(ortho_left, ortho_right, ortho_bottom, ortho_top, 
+       ortho_near, ortho_far, light_proj_mat);
+
+    glm_mat4_mul(light_proj_mat, light_view_mat, res);
+}
+
+static void gen_shadowmap_planes(vec4 res[6], Camera* cam, float size_blocks)
+{
+    mat4 light_mat;
+    gen_shadowmap_mat(light_mat, cam, size_blocks, NEARPLANE_EXTENDED);
+    glm_frustum_planes(light_mat, res);
+}
+
+static void render_shadowmap(mat4 light_mat, vec4 frustum_planes[6], int shadowmap_tex_width, 
+                             FbType fb_type, float polygon_offset)
+{
+    shader_use(shader_shadow);
+    shader_set_mat4(shader_shadow, "mvp_matrix", light_mat);
+    shader_set_texture_array(shader_shadow, "u_blocks_texture", texture_blocks, 0);
+
+    framebuffer_use(g_window->fb, fb_type);
+
+    glClear(GL_DEPTH_BUFFER_BIT);
+    glViewport(0, 0, shadowmap_tex_width, shadowmap_tex_width);
+    glPolygonOffset(polygon_offset, polygon_offset);
+
+    map_render_chunks_raw(frustum_planes);
+}
+
+static void render_all_shadowmaps(Player* p)
+{
+    near_shadowmap_size = 50.0f;
+    far_shadowmap_size  = (CHUNK_RENDER_RADIUS + 3) * CHUNK_WIDTH;
+    
+    gen_shadowmap_mat(near_shadowmap_mat, p->cam, near_shadowmap_size, NEARPLANE_DEFAULT);
+    gen_shadowmap_mat(far_shadowmap_mat,  p->cam, far_shadowmap_size,  NEARPLANE_DEFAULT);
+
+    vec4 near_planes[6], far_planes[6];
+    gen_shadowmap_planes(near_planes, p->cam, near_shadowmap_size);
+    gen_shadowmap_planes(far_planes,  p->cam, far_shadowmap_size);
+    
+    glEnable(GL_DEPTH_CLAMP);
+    glEnable(GL_POLYGON_OFFSET_FILL);
+
+    render_shadowmap(near_shadowmap_mat, near_planes, g_window->fb->near_shadowmap_w, FBTYPE_SHADOW_NEAR, 4.0f);
+    render_shadowmap(far_shadowmap_mat,  far_planes,  g_window->fb->far_shadowmap_w,  FBTYPE_SHADOW_FAR,  8.0f);
+
+    glDisable(GL_POLYGON_OFFSET_FILL);
+    glDisable(GL_DEPTH_CLAMP);
+}
+
+static void render_game(Player* p)
+{
+    glViewport(0, 0, g_window->width, g_window->height);
+    
     framebuffer_use(g_window->fb, FBTYPE_TEXTURE);
     glClear(GL_DEPTH_BUFFER_BIT);
 
@@ -151,7 +254,7 @@ void render_game(Player* p)
     {
         map_render_sky(p->cam);
         map_render_sun_moon(p->cam);
-        map_render_chunks(p->cam);
+        map_render_chunks(p->cam, near_shadowmap_mat, far_shadowmap_mat);
     }
 
     framebuffer_use_texture(TEX_UI);
@@ -164,7 +267,7 @@ void render_game(Player* p)
 }
 
 // Apply depth of field and render to texture
-void render_first_pass(float dt)
+static void render_first_pass(float dt)
 {
     shader_use(shader_deferred1);
 
@@ -173,20 +276,16 @@ void render_first_pass(float dt)
     shader_set_texture_2d(shader_deferred1, "texture_depth",
                           g_window->fb->gbuf_tex_depth, 1);
 
-    if (!DOF_ENABLED)
+    shader_set_int1(shader_deferred1, "u_dof_enabled", DOF_ENABLED);
+    if (DOF_ENABLED)
     {
-        shader_set_int1(shader_deferred1, "u_dof_enabled", 0);
-    }
-    else
-    {
-        float curr_depth = DOF_SMOOTH ? get_current_dof_depth(dt) : 0.0f;
-
-        shader_set_int1(shader_deferred1, "u_dof_enabled", 1);
         shader_set_int1(shader_deferred1, "u_dof_smooth", DOF_SMOOTH);
         shader_set_float1(shader_deferred1, "u_max_blur", DOF_MAX_BLUR);
         shader_set_float1(shader_deferred1, "u_aperture", DOF_APERTURE);
         shader_set_float1(shader_deferred1, "u_aspect_ratio", 
                           (float)g_window->width / g_window->height);
+
+        float curr_depth = DOF_SMOOTH ? get_current_dof_depth(dt) : 0.0f;
         shader_set_float1(shader_deferred1, "u_depth", curr_depth);
     }
 
@@ -197,7 +296,7 @@ void render_first_pass(float dt)
 }
 
 // Apply motion blur, gamma correction, saturation and render to screen
-void render_second_pass(Player* p, float dt)
+static void render_second_pass(Player* p, float dt)
 {
     shader_use(shader_deferred2);
 
@@ -208,14 +307,9 @@ void render_second_pass(Player* p, float dt)
     shader_set_texture_2d(shader_deferred2, "texture_depth",
                           g_window->fb->gbuf_tex_depth, 2);
 
-    if (!MOTION_BLUR_ENABLED)
+    shader_set_int1(shader_deferred2, "u_motion_blur_enabled", MOTION_BLUR_ENABLED);
+    if (MOTION_BLUR_ENABLED)
     {
-        shader_set_int1(shader_deferred2, "u_motion_blur_enabled", 0);
-    }
-    else
-    {
-        shader_set_int1(shader_deferred2, "u_motion_blur_enabled", 1);
-        
         mat4 matrix;
         glm_mat4_inv(p->cam->proj_matrix, matrix);
         shader_set_mat4(shader_deferred2, "u_projection_inv_matrix", matrix);
@@ -246,12 +340,26 @@ void render_second_pass(Player* p, float dt)
     glBindVertexArray(g_window->fb->quad_vao);
     glDepthFunc(GL_ALWAYS);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    // =============== Debug picture in picture shadowmaps ==================
+    
+    shader_use(shader_pip);
+    shader_set_texture_2d(shader_pip, "u_texture", g_window->fb->gbuf_shadow_near_map, 0);
+    int w = 325;
+    int h = 325;
+    glViewport(10, g_window->height - h - 10, w, h);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    shader_set_texture_2d(shader_pip, "u_texture", g_window->fb->gbuf_shadow_far_map, 0);
+    glViewport(g_window->width - w - 10, g_window->height - h - 10, w, h);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    
 }
 
-void render(Player* p, float dt)
-{
+static void render(Player* p, float dt)
+{ 
+    render_all_shadowmaps(p);
     render_game(p);
-
     render_first_pass(dt);
     render_second_pass(p, dt);
 }
@@ -274,9 +382,8 @@ int main()
     glViewport(0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
     glEnable(GL_MULTISAMPLE);
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-    glCullFace(GL_BACK);
     glEnable(GL_BLEND);
+    glEnable(GL_CULL_FACE);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 

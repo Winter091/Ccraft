@@ -65,6 +65,10 @@ vec3 saturation(vec3 rgb)
 
 void main()
 {   
+	// float d = texture(texture_shadow_depth, v_texcoord).r;
+	// out_color = vec4(vec3(d), 1.0);
+	// return;
+	
 	// Handle UI elements
     vec4 ui_color = texture(texture_ui, v_texcoord);
     if (ui_color.a > 0.5)

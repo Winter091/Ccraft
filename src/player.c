@@ -35,10 +35,11 @@ static void regenerate_item_buffer(Player* p)
 
     p->VAO_item = opengl_create_vao();
     p->VBO_item = opengl_create_vbo(vertices, curr_vertex_count * sizeof(Vertex));
-    opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), 0);
-    opengl_vbo_layout(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), 3 * sizeof(float));
-    opengl_vbo_layout(3, 1, GL_FLOAT, GL_FALSE, sizeof(Vertex), 5 * sizeof(float));
-    opengl_vbo_layout(2, 1, GL_UNSIGNED_BYTE, GL_FALSE,  sizeof(Vertex), 6 * sizeof(float));
+    opengl_vbo_layout(0, 3, GL_FLOAT,         GL_FALSE, sizeof(Vertex), 0);
+    opengl_vbo_layout(1, 2, GL_FLOAT,         GL_FALSE, sizeof(Vertex), 3 * sizeof(float));
+    opengl_vbo_layout(2, 1, GL_FLOAT,         GL_FALSE, sizeof(Vertex), 5 * sizeof(float));
+    opengl_vbo_layout(3, 1, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(Vertex), 6 * sizeof(float));
+    opengl_vbo_layout(4, 1, GL_UNSIGNED_BYTE, GL_FALSE, sizeof(Vertex), 6 * sizeof(float) + 1);
 
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -716,13 +717,10 @@ void player_render_item(Player* p)
     mat4 mvp;
     glm_mat4_mulN((mat4* []){&projection, &view, &p->model_mat_item}, 3, mvp);
 
-    glUseProgram(shader_block);
-    shader_set_mat4(shader_block, "mvp_matrix", mvp);
-    shader_set_texture_array(shader_block, "texture_sampler", texture_blocks, 0);
-
-    // Remove fog effect
-    shader_set_float3(shader_block, "cam_pos", (vec3){0.0f, 0.0f, 0.0f});
-    shader_set_float1(shader_block, "fog_dist", 100000.0f);
+    glUseProgram(shader_handitem);
+    shader_set_mat4(shader_handitem, "mvp_matrix", mvp);
+    shader_set_texture_array(shader_handitem, "texture_sampler", texture_blocks, 0);
+    shader_set_float1(shader_handitem, "block_light", map_get_blocks_light());
 
     glDisable(GL_BLEND);
     glBindVertexArray(p->VAO_item);
