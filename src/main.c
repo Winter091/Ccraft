@@ -163,8 +163,16 @@ static void gen_shadowmap_mat(mat4 res, Camera* cam,
     vec3 light_dir;
     map_get_light_dir(light_dir);
 
+    vec3 light_pos;
+    glm_vec3_copy(cam->pos, light_pos);
+
+    // Minigate shadow edge flickering
+    float const discrete_step = BLOCK_SIZE / 2.0f;
+    for (int i = 0; i < 3; i++)
+        light_pos[i] = roundf(light_pos[i] / discrete_step) * discrete_step;
+
     mat4 light_view_mat;
-    glm_look(cam->pos, light_dir, cam->up, light_view_mat);
+    glm_look(light_pos, light_dir, cam->up, light_view_mat);
 
     float ortho_right  =  size_blocks / 2.0f * BLOCK_SIZE;
     float ortho_left   = -ortho_right;
