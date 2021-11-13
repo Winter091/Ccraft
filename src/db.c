@@ -130,7 +130,15 @@ void db_init()
     char db_path[256];
     sprintf(db_path, "maps/%s", MAP_NAME);
     
-    sqlite3_open(db_path, &db);
+    int result = sqlite3_open(db_path, &db);
+    if (result != SQLITE_OK)
+    {
+        fprintf(stderr, "Error trying to open database %s:\n", db_path);
+        const char* msg = sqlite3_errmsg(db);
+        fprintf(stderr, msg);
+        exit(EXIT_FAILURE);
+    }
+
     mtx_init(&db_mtx, mtx_plain);
 
     db_create_tables();
