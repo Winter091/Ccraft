@@ -138,7 +138,7 @@ void map_init()
     if (NUM_WORKERS)
         map->num_workers = NUM_WORKERS;
     else
-        map->num_workers = MAX(1, thread_hardware_concurrency() - 1);
+        map->num_workers = MAX(1, thread_hardware_concurrency());
     
     fprintf(stdout, "Using %d worker(s)\n", map->num_workers);
 
