@@ -364,11 +364,20 @@ static void render(Player* p, float dt)
     render_second_pass(p, dt);
 }
 
-int main()
+int main(int argc, const char** argv)
 {
     srand(time(0));
+
+    const char* config_path;
+    if (argc >= 2)
+        config_path = argv[1];
+    else
+    {
+        fprintf(stdout, "No arg was provided. Using default config path: config.cfg\n");
+        config_path = "config.cfg";
+    }
+    config_load(config_path);
     
-    config_init();
     window_init();
     
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -446,7 +455,6 @@ int main()
     db_free();
 
     window_free();
-    config_free();
 
     return 0;
 }

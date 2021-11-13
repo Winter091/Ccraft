@@ -124,4 +124,12 @@ static inline void opengl_vbo_layout(
     glEnableVertexAttribArray(index);
 }
 
+static inline const char* my_strdup(const char* src)
+{
+    const size_t buf_size = strlen(src) + 1;
+    const char* new_str = malloc(buf_size);
+    memcpy((void*)new_str, src, buf_size);
+    return new_str;
+}
+
 #endif

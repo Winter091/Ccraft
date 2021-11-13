@@ -2,8 +2,10 @@
 
 #include "stdio.h"
 #include "string.h"
+#include "stdlib.h"
 
 #include "ini.h"
+#include "utils.h"
 
 // [GRAPHICS] (default values)
 int   CHUNK_RENDER_RADIUS      = 16;
@@ -77,17 +79,8 @@ int   CHUNK_RENDER_RADIUS2          = 16 * 16;
 int   CHUNK_WIDTH_REAL              = 32 + 2;
 int   CHUNK_HEIGHT_REAL             = 256 + 2;
 
-static ini_t* cfg;
-
-static void create_default_cfg_file()
+static void create_default_cfg_file(const char* config_path)
 {
-    FILE* f = fopen("config.ini", "w");
-    if (!f)
-    {
-        fprintf(stderr, "Failed to create new '%s' file\n", "config.ini");
-        return;
-    }
-
     const char* content = 
     "; Configuration file for Ccraft\n"
     "; If you've messed something up, you can\n"
@@ -183,7 +176,14 @@ static void create_default_cfg_file()
     "gravity                   = 27.44\n"
     "gravity_water             = 9.14\n";
 
-    printf("Creating new '%s' file...\n", "config.ini");
+    FILE* f = fopen(config_path, "w");
+    if (!f)
+    {
+        fprintf(stderr, "Failed to create new '%s' file\n", config_path);
+        return;
+    }
+
+    printf("Creating new config file: %s\n", config_path);
     fprintf(f, "%s", content);
     fclose(f);
 }
@@ -206,88 +206,99 @@ static void normalize_player_physics()
     GRAVITY_WATER             *= BLOCK_SIZE;
 }
 
-static void try_load(const char* section, const char* key, const char* fmt, void* dst)
+static void print_value_to_stderr(const char* fmt, void* value)
 {
-    if (!ini_sget(cfg, section, key, fmt, dst))
+    if (!fmt)
+        fprintf(stderr, "%s\n", *(const char**)value);
+    else if (!strcmp(fmt, "%d"))
+        fprintf(stderr, "%d\n", *(int*)value);
+    else
+        fprintf(stderr, "%f\n", *(float*)value);
+}
+
+static void try_load(ini_t* cfg, const char* section, const char* key, const char* fmt, void* dst)
+{
+    const char* val = ini_get(cfg, section, key);
+    if (!val) 
     {
         fprintf(stderr, "\nFailed to load '%s' parameter!\n", key);
         fprintf(stderr, "Using default value: ");
-
-        if (!fmt)
-            fprintf(stderr, "%s\n", *(const char**)dst);
-        else if (!strcmp(fmt, "%d"))
-            fprintf(stderr, "%d\n", *(int*)dst);
-        else
-            fprintf(stderr, "%f\n", *(float*)dst);
+        print_value_to_stderr(fmt, dst);
+        return;
     }
+
+    if (fmt)
+        sscanf(val, fmt, dst);
+    else
+        *(const char**)dst = my_strdup(val);
 }
 
-void config_init()
+void config_load(const char* config_path)
 {
-    cfg = ini_load("config.ini");
-    if (!cfg)
+    ini_t* cfg = ini_load(config_path);
+    if (cfg)
     {
-        fprintf(stderr, "Config file '%s' was not found.\n", "config.ini");
-        fprintf(stderr, "Using default settings.\n");
-
-        create_default_cfg_file();
-        normalize_player_physics();
-        return;
+        printf("Loading settings from '%s'...\n", config_path);
     }
     else
     {
-        printf("Loading settings from '%s'...\n", "config.ini");
+        fprintf(stderr, "Config file '%s' was not found.\n", config_path);
+        fprintf(stderr, "Using default settings.\n");
+
+        create_default_cfg_file(config_path);
+        normalize_player_physics();
+        return;
     }
 
-    try_load("GRAPHICS", "chunk_render_radius", "%d", &CHUNK_RENDER_RADIUS);
-    try_load("GRAPHICS", "anisotropic_filter_level", "%d", &ANISOTROPIC_FILTER_LEVEL);
-    try_load("GRAPHICS", "motion_blur_enabled", "%d", &MOTION_BLUR_ENABLED);
-    try_load("GRAPHICS", "motion_blur_strength", "%f", &MOTION_BLUR_STRENGTH);
-    try_load("GRAPHICS", "motion_blur_samples", "%d", &MOTION_BLUR_SAMPLES);
-    try_load("GRAPHICS", "depth_of_field_enabled", "%d", &DOF_ENABLED);
-    try_load("GRAPHICS", "depth_of_field_smooth", "%d", &DOF_SMOOTH);
-    try_load("GRAPHICS", "depth_of_field_max_blur", "%f", &DOF_MAX_BLUR);
-    try_load("GRAPHICS", "depth_of_field_aperture", "%f", &DOF_APERTURE);
-    try_load("GRAPHICS", "depth_of_field_speed", "%f", &DOF_SPEED);
-    try_load("GRAPHICS", "fov", "%d", &FOV);
-    try_load("GRAPHICS", "fov_zoom", "%d", &FOV_ZOOM);
-    try_load("GRAPHICS", "gamma", "%f", &GAMMA);
-    try_load("GRAPHICS", "saturation", "%f", &SATURATION);
+    try_load(cfg, "GRAPHICS", "chunk_render_radius", "%d", &CHUNK_RENDER_RADIUS);
+    try_load(cfg, "GRAPHICS", "anisotropic_filter_level", "%d", &ANISOTROPIC_FILTER_LEVEL);
+    try_load(cfg, "GRAPHICS", "motion_blur_enabled", "%d", &MOTION_BLUR_ENABLED);
+    try_load(cfg, "GRAPHICS", "motion_blur_strength", "%f", &MOTION_BLUR_STRENGTH);
+    try_load(cfg, "GRAPHICS", "motion_blur_samples", "%d", &MOTION_BLUR_SAMPLES);
+    try_load(cfg, "GRAPHICS", "depth_of_field_enabled", "%d", &DOF_ENABLED);
+    try_load(cfg, "GRAPHICS", "depth_of_field_smooth", "%d", &DOF_SMOOTH);
+    try_load(cfg, "GRAPHICS", "depth_of_field_max_blur", "%f", &DOF_MAX_BLUR);
+    try_load(cfg, "GRAPHICS", "depth_of_field_aperture", "%f", &DOF_APERTURE);
+    try_load(cfg, "GRAPHICS", "depth_of_field_speed", "%f", &DOF_SPEED);
+    try_load(cfg, "GRAPHICS", "fov", "%d", &FOV);
+    try_load(cfg, "GRAPHICS", "fov_zoom", "%d", &FOV_ZOOM);
+    try_load(cfg, "GRAPHICS", "gamma", "%f", &GAMMA);
+    try_load(cfg, "GRAPHICS", "saturation", "%f", &SATURATION);
 
-    try_load("WINDOW", "title", NULL, &WINDOW_TITLE);
-    try_load("WINDOW", "width", "%d", &WINDOW_WIDTH);
-    try_load("WINDOW", "height", "%d", &WINDOW_HEIGHT);
-    try_load("WINDOW", "fullscreen", "%d", &FULLSCREEN);
-    try_load("WINDOW", "vsync", "%d", &VSYNC);
+    try_load(cfg, "WINDOW", "title", NULL, &WINDOW_TITLE);
+    try_load(cfg, "WINDOW", "width", "%d", &WINDOW_WIDTH);
+    try_load(cfg, "WINDOW", "height", "%d", &WINDOW_HEIGHT);
+    try_load(cfg, "WINDOW", "fullscreen", "%d", &FULLSCREEN);
+    try_load(cfg, "WINDOW", "vsync", "%d", &VSYNC);
 
-    try_load("GAMEPLAY", "map_name", NULL, &MAP_NAME);
-    try_load("GAMEPLAY", "mouse_sens", "%f", &MOUSE_SENS);
-    try_load("GAMEPLAY", "block_break_radius", "%d", &BLOCK_BREAK_RADIUS);
-    try_load("GAMEPLAY", "day_length", "%d", &DAY_LENGTH);
-    try_load("GAMEPLAY", "disable_time_flow", "%d", &DISABLE_TIME_FLOW);
-    try_load("GAMEPLAY", "day_light", "%f", &DAY_LIGHT);
-    try_load("GAMEPLAY", "evening_light", "%f", &EVENING_LIGHT);
-    try_load("GAMEPLAY", "night_light", "%f", &NIGHT_LIGHT);
+    try_load(cfg, "GAMEPLAY", "map_name", NULL, &MAP_NAME);
+    try_load(cfg, "GAMEPLAY", "mouse_sens", "%f", &MOUSE_SENS);
+    try_load(cfg, "GAMEPLAY", "block_break_radius", "%d", &BLOCK_BREAK_RADIUS);
+    try_load(cfg, "GAMEPLAY", "day_length", "%d", &DAY_LENGTH);
+    try_load(cfg, "GAMEPLAY", "disable_time_flow", "%d", &DISABLE_TIME_FLOW);
+    try_load(cfg, "GAMEPLAY", "day_light", "%f", &DAY_LIGHT);
+    try_load(cfg, "GAMEPLAY", "evening_light", "%f", &EVENING_LIGHT);
+    try_load(cfg, "GAMEPLAY", "night_light", "%f", &NIGHT_LIGHT);
 
-    try_load("CORE", "num_workers", "%d", &NUM_WORKERS);
-    try_load("CORE", "chunk_width", "%d", &CHUNK_WIDTH);
-    try_load("CORE", "chunk_height", "%d", &CHUNK_HEIGHT);
-    try_load("CORE", "block_size", "%f", &BLOCK_SIZE);
+    try_load(cfg, "CORE", "num_workers", "%d", &NUM_WORKERS);
+    try_load(cfg, "CORE", "chunk_width", "%d", &CHUNK_WIDTH);
+    try_load(cfg, "CORE", "chunk_height", "%d", &CHUNK_HEIGHT);
+    try_load(cfg, "CORE", "block_size", "%f", &BLOCK_SIZE);
 
-    try_load("PHYSICS", "max_run_speed", "%f", &MAX_RUN_SPEED);
-    try_load("PHYSICS", "max_move_speed", "%f", &MAX_MOVE_SPEED);
-    try_load("PHYSICS", "max_sneak_speed", "%f", &MAX_SNEAK_SPEED);
-    try_load("PHYSICS", "max_swim_speed", "%f", &MAX_SWIM_SPEED);
-    try_load("PHYSICS", "max_fall_speed", "%f", &MAX_FALL_SPEED);
-    try_load("PHYSICS", "max_dive_speed", "%f", &MAX_DIVE_SPEED);
-    try_load("PHYSICS", "max_emerge_speed", "%f", &MAX_EMERGE_SPEED);
-    try_load("PHYSICS", "jump_power", "%f", &JUMP_POWER);
+    try_load(cfg, "PHYSICS", "max_run_speed", "%f", &MAX_RUN_SPEED);
+    try_load(cfg, "PHYSICS", "max_move_speed", "%f", &MAX_MOVE_SPEED);
+    try_load(cfg, "PHYSICS", "max_sneak_speed", "%f", &MAX_SNEAK_SPEED);
+    try_load(cfg, "PHYSICS", "max_swim_speed", "%f", &MAX_SWIM_SPEED);
+    try_load(cfg, "PHYSICS", "max_fall_speed", "%f", &MAX_FALL_SPEED);
+    try_load(cfg, "PHYSICS", "max_dive_speed", "%f", &MAX_DIVE_SPEED);
+    try_load(cfg, "PHYSICS", "max_emerge_speed", "%f", &MAX_EMERGE_SPEED);
+    try_load(cfg, "PHYSICS", "jump_power", "%f", &JUMP_POWER);
 
-    try_load("PHYSICS", "acceleration_water_emerge", "%f", &ACCELERATION_WATER_EMERGE);
-    try_load("PHYSICS", "acceleration_horizontal", "%f", &ACCELERATION_HORIZONTAL);
-    try_load("PHYSICS", "deceleration_horizontal", "%f", &DECELERATION_HORIZONTAL);
-    try_load("PHYSICS", "gravity", "%f", &GRAVITY);
-    try_load("PHYSICS", "gravity_water", "%f", &GRAVITY_WATER);
+    try_load(cfg, "PHYSICS", "acceleration_water_emerge", "%f", &ACCELERATION_WATER_EMERGE);
+    try_load(cfg, "PHYSICS", "acceleration_horizontal", "%f", &ACCELERATION_HORIZONTAL);
+    try_load(cfg, "PHYSICS", "deceleration_horizontal", "%f", &DECELERATION_HORIZONTAL);
+    try_load(cfg, "PHYSICS", "gravity", "%f", &GRAVITY);
+    try_load(cfg, "PHYSICS", "gravity_water", "%f", &GRAVITY_WATER);
 
     normalize_player_physics();
 
@@ -303,14 +314,6 @@ void config_init()
     CHUNK_WIDTH_REAL  = CHUNK_WIDTH + 2;
     CHUNK_HEIGHT_REAL = CHUNK_HEIGHT + 2;
 
-    printf("Loaded everything.\n");
-}
-
-void config_free()
-{
-    if (cfg)
-    {
-        ini_free(cfg);
-        cfg = NULL;
-    }
+    printf("End of loading settings from '%s'\n", config_path);
+    ini_free(cfg);
 }
