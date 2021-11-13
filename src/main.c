@@ -353,8 +353,8 @@ int main(int argc, const char** argv)
         config_path = argv[1];
     else
     {
-        fprintf(stdout, "No arg was provided. Using default config path: config.cfg\n");
-        config_path = "config.cfg";
+        config_path = "config.ini";
+        fprintf(stdout, "No arg was provided. Using default config path: %s\n", config_path);
     }
     config_load(config_path);
     
