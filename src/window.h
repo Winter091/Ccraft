@@ -34,6 +34,8 @@ void window_init_fb();
 
 int window_is_key_pressed(int glfw_keycode);
 
+void window_update_title_fps();
+
 void window_free();
 
 #endif

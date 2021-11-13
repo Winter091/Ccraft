@@ -87,26 +87,6 @@ static void opengl_debug_callback(GLenum source, GLenum type, GLuint id, GLenum 
             id, _type, _severity, _source, message);
 }
 
-static void window_title_update_fps()
-{
-    static double last_time = -1.0;
-    if (last_time < 0)
-        last_time = glfwGetTime();
-
-    static int frames = 0;
-    frames++;
-
-    double curr_time = glfwGetTime();
-    if (curr_time - last_time >= 1.0)
-    {
-        char title[128];
-        sprintf(title, "%s - %d FPS", WINDOW_TITLE, frames);
-        glfwSetWindowTitle(g_window->glfw, title);
-        frames = 0;
-        last_time = curr_time;
-    }
-}
-
 static double get_dt()
 {
     static double last_time = -1.0;
@@ -435,7 +415,7 @@ int main(int argc, const char** argv)
 
     while (!glfwWindowShouldClose(g_window->glfw))
     {
-        window_title_update_fps();
+        window_update_title_fps();
 
         float dt = get_dt();
 

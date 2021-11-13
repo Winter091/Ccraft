@@ -158,6 +158,31 @@ int window_is_key_pressed(int glfw_keycode)
     return glfwGetKey(g_window->glfw, glfw_keycode) == GLFW_PRESS;
 }
 
+void window_update_title_fps()
+{
+    const float update_interval_secs = 0.5f;
+    
+    static double last_time = -1.0;
+    if (last_time < 0)
+        last_time = glfwGetTime();
+
+    static int num_frames = 0;
+    num_frames++;
+
+    double curr_time = glfwGetTime();
+    if (curr_time - last_time >= update_interval_secs)
+    {
+        int fps = (int)lroundf((float)num_frames / update_interval_secs);
+
+        char title[128];
+        sprintf(title, "%s - %d FPS", WINDOW_TITLE, fps);
+        glfwSetWindowTitle(g_window->glfw, title);
+        
+        num_frames = 0;
+        last_time = curr_time;
+    }
+}
+
 void window_free()
 {
     framebuffers_destroy(g_window->fb);
