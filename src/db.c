@@ -2,6 +2,7 @@
 
 #include "stdio.h"
 #include "string.h"
+#include "assert.h"
 
 #include "tinycthread.h"
 #include "sqlite3.h"
@@ -9,6 +10,7 @@
 #include "map.h"
 
 static sqlite3* db;
+static int s_has_player_info;
 
 static sqlite3_stmt* db_compile_statement(const char* statement)
 {
@@ -68,15 +70,10 @@ static void db_insert_default_map_info()
 
 static void db_insert_default_player_info()
 {
-    // Insert negative y pos; that way we can check
-    // it during player creation and know whether it's
-    // newly generated map and we should place the player
-    // manually or it's already existing map and we 
-    // should do nothing
     sqlite3_stmt* stmt = db_compile_statement(
         "INSERT INTO "
         "player_info (pos_x, pos_y, pos_z, pitch, yaw, build_block) "
-        "VALUES (0.0, -1.0, 0.0, 0.0, -90.0, 1)"
+        "VALUES (0.0, 0.0, 0.0, 0.0, 0.0, 0)"
     );
 
     sqlite3_step(stmt);
@@ -120,8 +117,8 @@ static void db_create_tables()
         ")"
     );
 
-    if (db_is_table_empty("player_info"))
-        db_insert_default_player_info();
+    if (!db_is_table_empty("player_info"))
+        s_has_player_info = 1;
 }
 
 void db_init()
@@ -204,8 +201,14 @@ void db_get_blocks_for_chunk(Chunk* c)
     }
 }
 
-void db_insert_player_info(Player* p)
+void db_save_player_info(Player* p)
 {
+    if (!s_has_player_info)
+    {
+        db_insert_default_player_info();
+        s_has_player_info = 1;
+    }
+
     sqlite3_stmt* stmt = db_compile_statement(
         "UPDATE player_info " 
         "SET pos_x = ?, pos_y = ?, pos_z = ?, " 
@@ -223,8 +226,10 @@ void db_insert_player_info(Player* p)
     sqlite3_step(stmt);
 }
 
-void db_get_player_info(Player* p)
+void db_load_player_info(Player* p)
 {
+    assert(s_has_player_info);
+    
     sqlite3_stmt* stmt = db_compile_statement(
         "SELECT pos_x, pos_y, pos_z, pitch, yaw, build_block "
         "FROM player_info "
@@ -239,6 +244,11 @@ void db_get_player_info(Player* p)
     p->cam->pitch  = sqlite3_column_double(stmt, 3);
     p->cam->yaw    = sqlite3_column_double(stmt, 4);
     p->build_block = sqlite3_column_int(stmt, 5);
+}
+
+int db_has_player_info()
+{
+    return s_has_player_info;
 }
 
 void db_insert_map_info()

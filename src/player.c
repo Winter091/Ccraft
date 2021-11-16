@@ -107,17 +107,17 @@ Player* player_create()
     p->cam = camera_create();
     p->build_block = BLOCK_PLAYER_HAND;
 
-    // overwrite some parameters
-    db_get_player_info(p);
-
     p->pointing_at_block = 0;
     my_glm_ivec3_set(p->block_pointed_at, 0, 0, 0);
 
+    int db_has_entry = db_has_player_info();
+    if (db_has_entry)
+        db_load_player_info(p);
+
     map_force_chunks_near_player(p->cam);
 
-    // If it's newly created world (default pos[1] is -1.0),
-    // put player on ground level
-    if (p->cam->pos[1] < 0)
+    // Put player on ground level
+    if (!db_has_entry)
     {
         int bx = CHUNK_WIDTH / 2;
         int bz = CHUNK_WIDTH / 2;
@@ -729,7 +729,7 @@ void player_render_item(Player* p)
 
 void player_save(Player* p)
 {
-    db_insert_player_info(p);
+    db_save_player_info(p);
 }
 
 void player_destroy(Player* p)
