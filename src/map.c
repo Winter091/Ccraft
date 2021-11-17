@@ -132,8 +132,16 @@ void map_init()
     opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0);
     opengl_vbo_layout(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 3 * sizeof(float));
 
-    map->seed = 0;
-    db_get_map_info();
+    if (db_has_map_info())
+    {
+        db_load_map_info();
+        fprintf(stdout, "Using existing map: %s\n", MAP_NAME);
+    }
+    else
+    {
+        map_set_seed(rand());
+        fprintf(stdout, "Creating new map: %s\n", MAP_NAME);
+    }
 
     if (NUM_WORKERS)
         map->num_workers = NUM_WORKERS;
@@ -737,7 +745,7 @@ void map_get_light_dir(vec3 res)
 
 void map_save()
 {
-    db_insert_map_info();
+    db_save_map_info();
 }
 
 void map_free()

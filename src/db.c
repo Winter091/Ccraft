@@ -11,6 +11,7 @@
 
 static sqlite3* db;
 static int s_has_player_info;
+static int s_has_map_info;
 
 static sqlite3_stmt* db_compile_statement(const char* statement)
 {
@@ -49,37 +50,6 @@ static int db_is_table_empty(const char* table)
     return row_count == 0;
 }
 
-static void db_insert_default_map_info()
-{
-    sqlite3_stmt* stmt = db_compile_statement(
-        "INSERT INTO "
-        "map_info (seed, curr_time, chunk_width, chunk_height) "
-        "VALUES (?, 0, ?, ?)"
-    );
-
-    int seed = rand();
-    printf("Created new map with seed: %d, chunk_width = %d and "
-           "chunk_height = %d\n", seed, CHUNK_WIDTH, CHUNK_HEIGHT);
-
-    sqlite3_bind_int(stmt, 1, seed);
-    sqlite3_bind_int(stmt, 2, CHUNK_WIDTH);
-    sqlite3_bind_int(stmt, 3, CHUNK_HEIGHT);
-    sqlite3_step(stmt);
-    sqlite3_finalize(stmt);
-}
-
-static void db_insert_default_player_info()
-{
-    sqlite3_stmt* stmt = db_compile_statement(
-        "INSERT INTO "
-        "player_info (pos_x, pos_y, pos_z, pitch, yaw, build_block) "
-        "VALUES (0.0, 0.0, 0.0, 0.0, 0.0, 0)"
-    );
-
-    sqlite3_step(stmt);
-    sqlite3_finalize(stmt);
-}
-
 static void db_create_tables()
 {
     db_compile_run_statement(
@@ -103,9 +73,6 @@ static void db_create_tables()
         ")"
     );
 
-    if (db_is_table_empty("map_info"))
-        db_insert_default_map_info();
-
     db_compile_run_statement(
         "CREATE TABLE IF NOT EXISTS player_info("
             "pos_x REAL NOT NULL, "
@@ -117,15 +84,15 @@ static void db_create_tables()
         ")"
     );
 
+    if (!db_is_table_empty("map_info"))
+        s_has_map_info = 1;
+
     if (!db_is_table_empty("player_info"))
         s_has_player_info = 1;
 }
 
-void db_init()
+void db_init(const char* db_path)
 {
-    char db_path[256];
-    sprintf(db_path, "maps/%s", MAP_NAME);
-    
     int result = sqlite3_open(db_path, &db);
     if (result != SQLITE_OK)
     {
@@ -203,18 +170,24 @@ void db_get_blocks_for_chunk(Chunk* c)
 
 void db_save_player_info(Player* p)
 {
-    if (!s_has_player_info)
+    sqlite3_stmt* stmt;
+    if (s_has_player_info)
     {
-        db_insert_default_player_info();
-        s_has_player_info = 1;
+        stmt = db_compile_statement(
+            "UPDATE player_info " 
+            "SET pos_x = ?, pos_y = ?, pos_z = ?, " 
+            "pitch = ?, yaw = ?, "
+            "build_block = ?"
+        );
     }
-
-    sqlite3_stmt* stmt = db_compile_statement(
-        "UPDATE player_info " 
-        "SET pos_x = ?, pos_y = ?, pos_z = ?, " 
-        "pitch = ?, yaw = ?, "
-        "build_block = ?"
-    );
+    else
+    {
+        stmt = db_compile_statement(
+            "INSERT INTO player_info (pos_x, pos_y, pos_z, "
+            "pitch, yaw, build_block) "
+            "VALUES (?, ?, ?, ?, ?, ?)"
+        );
+    }
 
     sqlite3_bind_double(stmt, 1, p->cam->pos[0]);
     sqlite3_bind_double(stmt, 2, p->cam->pos[1]);
@@ -224,6 +197,8 @@ void db_save_player_info(Player* p)
     sqlite3_bind_int(stmt, 6, p->build_block);
 
     sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+    s_has_player_info = 1;
 }
 
 void db_load_player_info(Player* p)
@@ -244,6 +219,8 @@ void db_load_player_info(Player* p)
     p->cam->pitch  = sqlite3_column_double(stmt, 3);
     p->cam->yaw    = sqlite3_column_double(stmt, 4);
     p->build_block = sqlite3_column_int(stmt, 5);
+
+    sqlite3_finalize(stmt);
 }
 
 int db_has_player_info()
@@ -251,19 +228,37 @@ int db_has_player_info()
     return s_has_player_info;
 }
 
-void db_insert_map_info()
+void db_save_map_info()
 {
-    sqlite3_stmt* stmt = db_compile_statement(
-        "UPDATE map_info SET curr_time = ?"
-    );
+    sqlite3_stmt* stmt;
+    if (s_has_map_info)
+    {
+        stmt = db_compile_statement(
+            "UPDATE map_info SET curr_time = ?"
+        );
+        sqlite3_bind_double(stmt, 1, map_get_time());
+    }
+    else
+    {
+        stmt = db_compile_statement(
+            "INSERT INTO map_info (seed, curr_time, chunk_width, chunk_height) "
+            "VALUES (?, ?, ?, ?)"
+        );
+        sqlite3_bind_int(stmt, 1, map_get_seed());
+        sqlite3_bind_double(stmt, 2, map_get_time());
+        sqlite3_bind_int(stmt, 3, CHUNK_WIDTH);
+        sqlite3_bind_int(stmt, 4, CHUNK_HEIGHT);
+    }
 
-    sqlite3_reset(stmt);
-    sqlite3_bind_double(stmt, 1, map_get_time());
     sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+    s_has_map_info = 1;
 }
 
-void db_get_map_info()
+void db_load_map_info()
 {
+    assert(s_has_map_info);
+    
     sqlite3_stmt* stmt = db_compile_statement(
         "SELECT seed, curr_time, chunk_width, chunk_height "
         "FROM map_info"
@@ -292,6 +287,12 @@ void db_get_map_info()
 
     map_set_seed(seed);
     map_set_time(curr_time);
+    sqlite3_finalize(stmt);
+}
+
+int db_has_map_info()
+{
+    return s_has_map_info;
 }
 
 void db_free()
