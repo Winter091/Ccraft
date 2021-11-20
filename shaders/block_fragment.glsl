@@ -18,8 +18,6 @@ in vec4 v_near_shadowmap_coord;
 in vec4 v_far_shadowmap_coord;
 uniform sampler2DShadow u_near_shadowmap;
 uniform sampler2DShadow u_far_shadowmap;
-uniform float u_near_plane;
-uniform float u_far_plane;
 uniform vec3  u_light_dir;
 uniform float u_near_shadow_dist;
 uniform float u_shadow_blend_dist;

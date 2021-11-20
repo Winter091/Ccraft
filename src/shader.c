@@ -143,8 +143,8 @@ void shaders_init()
 static GLint get_attrib_location(GLuint shader, char* name)
 {
     GLint location = glGetUniformLocation(shader, name);
-    //if (location == -1)
-    //    fprintf(stderr, "Shader attrib location is -1: %s\n", name);
+    if (location == -1)
+       fprintf(stderr, "Shader attrib location is -1: %s\n", name);
     return location;
 }
 

@@ -401,7 +401,7 @@ int main(int argc, const char** argv)
     window_init_fb();
 
     char map_path[256];
-    sprintf_s(map_path, 256, "maps/%s", MAP_NAME);
+    sprintf(map_path, "maps/%s", MAP_NAME);
     db_init(map_path);
     shaders_init();
     textures_init();

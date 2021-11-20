@@ -395,9 +395,6 @@ void map_render_chunks(Camera* cam, mat4 near_shadowmap_mat, mat4 far_shadowmap_
     shader_set_texture_2d(shader_block, "u_far_shadowmap", 
         g_window->fb->gbuf_shadow_far_map, 2);
 
-    shader_set_float1(shader_block, "u_near_plane", cam->clip_near);
-    shader_set_float1(shader_block, "u_far_plane", cam->clip_far);
-
     vec3 light_dir;
     map_get_light_dir(light_dir);
     shader_set_float3(shader_block, "u_light_dir", light_dir);
