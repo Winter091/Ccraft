@@ -201,17 +201,17 @@ static void render_shadowmap(mat4 light_mat, vec4 frustum_planes[6], int shadowm
     map_render_chunks_raw(frustum_planes);
 }
 
-static void render_all_shadowmaps(Player* p)
+static void render_all_shadowmaps(Camera* cam)
 {
     near_shadowmap_size = 50.0f;
     far_shadowmap_size  = (CHUNK_RENDER_RADIUS + 3) * CHUNK_WIDTH;
     
-    gen_shadowmap_mat(near_shadowmap_mat, p->cam, near_shadowmap_size, NEARPLANE_DEFAULT);
-    gen_shadowmap_mat(far_shadowmap_mat,  p->cam, far_shadowmap_size,  NEARPLANE_DEFAULT);
+    gen_shadowmap_mat(near_shadowmap_mat, cam, near_shadowmap_size, NEARPLANE_DEFAULT);
+    gen_shadowmap_mat(far_shadowmap_mat,  cam, far_shadowmap_size,  NEARPLANE_DEFAULT);
 
     vec4 near_planes[6], far_planes[6];
-    gen_shadowmap_planes(near_planes, p->cam, near_shadowmap_size);
-    gen_shadowmap_planes(far_planes,  p->cam, far_shadowmap_size);
+    gen_shadowmap_planes(near_planes, cam, near_shadowmap_size);
+    gen_shadowmap_planes(far_planes,  cam, far_shadowmap_size);
     
     glEnable(GL_DEPTH_CLAMP);
     glEnable(GL_POLYGON_OFFSET_FILL);
@@ -338,7 +338,7 @@ static void render_second_pass(Player* p, float dt)
 
 static void render(Player* p, float dt)
 { 
-    render_all_shadowmaps(p);
+    render_all_shadowmaps(p->cam);
     render_game(p);
     render_first_pass(dt);
     render_second_pass(p, dt);
@@ -424,6 +424,7 @@ int main(int argc, const char** argv)
 
         update(player, dt);
         render(player, dt);
+        // printf("%.2f %.2f %.2f\n", player->cam->object_pos[0], player->cam->object_pos[1], player->cam->object_pos[2]);
 
         glfwSwapBuffers(g_window->glfw);
         glfwPollEvents();

@@ -91,10 +91,10 @@ static void map_delete_chunk(int chunk_x, int chunk_z)
     }
 }
 
-static void try_delete_far_chunks(Camera* cam)
+static void try_delete_far_chunks(vec3 curr_pos)
 {
-    int player_cx = chunked_cam(cam->pos[0]);
-    int player_cz = chunked_cam(cam->pos[2]);
+    int player_cx = chunked_cam(curr_pos[0]);
+    int player_cz = chunked_cam(curr_pos[2]);
     
     LinkedList_chunks* chunks_to_delete = list_chunks_create();
 
@@ -646,12 +646,12 @@ static void load_chunk(int cx, int cz)
     hashmap_chunks_insert(map->chunks_active, c);
 }
 
-void map_force_chunks_near_player(Camera* cam)
+void map_force_chunks_near_player(vec3 curr_pos)
 {
     int const dist = 1;
 
-    int player_cx = chunked_cam(cam->pos[0]);
-    int player_cz = chunked_cam(cam->pos[2]);
+    int player_cx = chunked_cam(curr_pos[0]);
+    int player_cz = chunked_cam(curr_pos[2]);
 
     for (int dx = -dist; dx <= dist; dx++)
     for (int dz = -dist; dz <= dist; dz++)
@@ -676,9 +676,9 @@ static void add_chunks_to_render_list(Camera* cam)
 
 void map_update(Camera* cam)
 {
-    try_delete_far_chunks(cam);
+    try_delete_far_chunks(cam->pos);
     handle_workers(cam);
-    map_force_chunks_near_player(cam);
+    map_force_chunks_near_player(cam->pos);
     add_chunks_to_render_list(cam);
 }
 

@@ -7,7 +7,15 @@
 
 typedef struct
 {
+    vec3 pos;
     Camera* cam;
+
+    vec3 front;
+    vec3 up;
+    vec3 speed;
+
+    float yaw;
+    float pitch;
 
     unsigned char build_block;
     int pointing_at_block;

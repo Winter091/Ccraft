@@ -213,11 +213,11 @@ void db_load_player_info(Player* p)
     sqlite3_reset(stmt);
     sqlite3_step(stmt);
 
-    p->cam->pos[0] = sqlite3_column_double(stmt, 0);
-    p->cam->pos[1] = sqlite3_column_double(stmt, 1);
-    p->cam->pos[2] = sqlite3_column_double(stmt, 2);
-    p->cam->pitch  = sqlite3_column_double(stmt, 3);
-    p->cam->yaw    = sqlite3_column_double(stmt, 4);
+    p->pos[0] = sqlite3_column_double(stmt, 0);
+    p->pos[1] = sqlite3_column_double(stmt, 1);
+    p->pos[2] = sqlite3_column_double(stmt, 2);
+    p->pitch  = sqlite3_column_double(stmt, 3);
+    p->yaw    = sqlite3_column_double(stmt, 4);
     p->build_block = sqlite3_column_int(stmt, 5);
 
     sqlite3_finalize(stmt);

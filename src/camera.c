@@ -8,7 +8,7 @@
 #include "block.h"
 #include "window.h"
 
-Camera* camera_create()
+Camera* camera_create(vec3 pos, float* pitch, float* yaw, vec3 front)
 {
     Camera* cam = malloc(sizeof(Camera));
 
@@ -16,15 +16,21 @@ Camera* camera_create()
     cam->is_fly_mode = 0;
     cam->is_first_frame = 1;
 
-    glm_vec3_fill(cam->pos, 0.0f);
-    glm_vec3_fill(cam->prev_pos, 0.0f);
-    glm_vec3_fill(cam->speed, 0.0f);
+    cam->is_attached_to_object = 1;
+    cam->object_pos = (float*)pos;
+    cam->object_pitch = pitch;
+    cam->object_yaw = yaw;
+    cam->object_front = (float*)front;
 
-    my_glm_vec3_set(cam->front, 0.0f, 0.0f, -1.0f);
-    my_glm_vec3_set(cam->up,    0.0f, 1.0f,  0.0f);
+    glm_vec3_copy(pos, cam->pos);
+    glm_vec3_copy(pos, cam->prev_pos);
+    // glm_vec3_fill(cam->speed, 0.0f);
 
-    cam->pitch = 0.0;
-    cam->yaw = 0.0;
+    glm_vec3_copy(front, cam->front);
+    my_glm_vec3_set(cam->up, 0.0f, 1.0f, 0.0f);
+
+    cam->pitch = *pitch;
+    cam->yaw = *yaw;
 
     cam->fov = FOV;
     cam->sens = MOUSE_SENS;
@@ -82,6 +88,10 @@ void camera_update_view_dir(Camera* cam)
     cam->front[1] = sinf(glm_rad(cam->pitch));
     cam->front[2] = sinf(glm_rad(cam->yaw)) * cosf(glm_rad(cam->pitch));
     glm_vec3_normalize(cam->front);
+
+    *cam->object_pitch = cam->pitch;
+    *cam->object_yaw = cam->yaw;
+    glm_vec3_copy(cam->front, cam->object_front);
 }
 
 void camera_update_parameters(Camera* cam, float dt)
@@ -128,6 +138,9 @@ void camera_update_parameters(Camera* cam, float dt)
 
 void camera_update_matrices(Camera* cam)
 {
+    // TODO: Should not be here
+    glm_vec3_copy(cam->object_pos, cam->pos);
+
     // update vp matrices
     glm_mat4_copy(cam->view_matrix, cam->prev_view_matrix);
     glm_look(cam->pos, cam->front, cam->up, cam->view_matrix);

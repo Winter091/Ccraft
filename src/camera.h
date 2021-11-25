@@ -5,15 +5,23 @@
 #define GLFW_INCLUDE_NONE
 #include "GLFW/glfw3.h"
 
+// void on_mouse_update(CamBase* cam, double dx, double dy, vec3 desired_pos_out, vec3 desired_front_out)
+// void on_kb_update(CamBase* cam, vec3 desired_pos_out, vec3 desired_front_out)
+
 typedef struct
 {
     int is_active;
     int is_fly_mode;
     int is_first_frame;
 
+    int is_attached_to_object;
+    float* object_pos;
+    float* object_pitch;
+    float* object_yaw;
+    float* object_front;
+    
     vec3 pos;
     vec3 prev_pos;
-    vec3 speed;
 
     vec3 front;
     vec3 up;
@@ -40,7 +48,7 @@ typedef struct
 }
 Camera;
 
-Camera* camera_create();
+Camera* camera_create(vec3 pos, float* pitch, float* yaw, vec3 front);
 
 int camera_looks_at_block(Camera* cam, int x, int y, int z, unsigned char block_type);
 

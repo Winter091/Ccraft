@@ -20,7 +20,7 @@ void map_render_chunks(Camera* cam, mat4 near_shadowmap_mat, mat4 far_shadowmap_
 
 void map_render_chunks_raw(vec4 frustum_planes[6]);
 
-void map_force_chunks_near_player(Camera* cam);
+void map_force_chunks_near_player(vec3 curr_pos);
 
 void map_set_block(int x, int y, int z, unsigned char block);
 
