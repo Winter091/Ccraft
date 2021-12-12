@@ -41,15 +41,15 @@ void cameracontroller_set_track_object(CameraController* cc, ObjectLocationInfo*
 
 void cameracontroller_set_tracking(CameraController* cc, int is_tracking);
 
-void cc_set_pos_delegate(CameraController* cc, camera_position_delegate delegate);
+void cc_set_pos_update_delegate(CameraController* cc, camera_position_delegate delegate);
 
-void cc_set_rot_delegate(CameraController* cc, camera_rotation_delegate delegate);
+void cc_set_rot_update_delegate(CameraController* cc, camera_rotation_delegate delegate);
 
 void cc_do_control(CameraController* cc);
 
-void cc_1p_pos_delegate(void* cc);
+void cc_first_person_pos_update(void* cc);
 
-void cc_1p_rot_delegate(void* cc);
+void cc_first_person_rot_update(void* cc);
 
 void cameracontroller_destroy(CameraController* cc);
 

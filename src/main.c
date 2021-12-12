@@ -412,8 +412,8 @@ int main(int argc, const char** argv)
     PlayerController* pc = playercontroller_create(player);
     CameraController* cc = cameracontroller_create(cam);
 
-    cc_set_pos_delegate(cc, cc_1p_pos_delegate);
-    cc_set_rot_delegate(cc, cc_1p_rot_delegate);
+    cc_set_pos_update_delegate(cc, cc_first_person_pos_update);
+    cc_set_rot_update_delegate(cc, cc_first_person_rot_update);
 
     ObjectLocationInfo info = 
     {

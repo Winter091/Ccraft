@@ -42,13 +42,13 @@ void cameracontroller_set_tracking(CameraController* cc, int is_tracking)
     cc->is_tracking = is_tracking;
 }
 
-void cc_set_pos_delegate(CameraController* cc, camera_position_delegate delegate)
+void cc_set_pos_update_delegate(CameraController* cc, camera_position_delegate delegate)
 {
     assert(delegate);
     cc->pos_delegate = delegate;
 }
 
-void cc_set_rot_delegate(CameraController* cc, camera_rotation_delegate delegate)
+void cc_set_rot_update_delegate(CameraController* cc, camera_rotation_delegate delegate)
 {
     assert(delegate);
     cc->rot_delegate = delegate;
@@ -111,14 +111,14 @@ void cc_do_control(CameraController* cc)
     camera_update_matrices(cc->camera);
 }
 
-void cc_1p_pos_delegate(void* cc)
+void cc_first_person_pos_update(void* cc)
 {
     CameraController* controller = (CameraController*)cc;
 
     glm_vec3_copy(controller->tracked_object_info.pos, controller->camera->pos);
 }
 
-void cc_1p_rot_delegate(void* cc)
+void cc_first_person_rot_update(void* cc)
 {
     CameraController* controller = (CameraController*)cc;
 
