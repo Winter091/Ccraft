@@ -383,8 +383,7 @@ static void gen_motion_vector_fly(PlayerController* pc, double dt, vec3 res)
     glm_vec3_copy(total_move, p->speed);
     glm_vec3_copy(total_move, res);
 
-    // TODO: variable for fly speed
-    glm_vec3_scale(res, dt * 5.0f, res);
+    glm_vec3_scale(res, dt * pc->fly_speed, res);
 }
 
 static void gen_frame_motion(PlayerController* pc, vec3 out)
@@ -441,6 +440,7 @@ PlayerController* playercontroller_create(Player* p)
     pc->last_mouse_x = 0.0;
     pc->last_mouse_y = 0.0;
     pc->mouse_sens = 0.1f;
+    pc->fly_speed = 20.0f * BLOCK_SIZE;
     
     register_mouse_button_key_press_callback(pc, pc_on_mouse_button_callback);
     register_mouse_scroll_callback(pc, pc_on_mouse_scroll_callback);

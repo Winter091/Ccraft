@@ -19,6 +19,7 @@ typedef struct
     double last_mouse_x;
     double last_mouse_y;
     float mouse_sens;
+    float fly_speed;
 }
 PlayerController;
 
