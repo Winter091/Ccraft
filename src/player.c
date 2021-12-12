@@ -90,7 +90,7 @@ static void regenerate_item(Player* p)
     regenerate_item_model_matrix(p);
 }
 
-static void update_hitbox(Player* p)
+void player_update_hitbox(Player* p)
 {
     p->hitbox[0][0] = p->pos[0] - BLOCK_SIZE * 0.3f;
     p->hitbox[0][1] = p->pos[1] - BLOCK_SIZE * 1.625f;
@@ -121,8 +121,6 @@ Player* player_create()
     if (db_has_entry)
         db_load_player_info(p);
 
-    p->cam = camera_create(p->pos, &p->pitch, &p->yaw, p->front);
-
     map_force_chunks_near_player(p->pos);
 
     // Put player on ground level
@@ -136,7 +134,7 @@ Player* player_create()
         p->pos[2] = bz * BLOCK_SIZE + BLOCK_SIZE / 2;
     }
 
-    update_hitbox(p);
+    player_update_hitbox(p);
 
     p->on_ground = 0;
     p->in_water = 0;
@@ -153,9 +151,9 @@ Player* player_create()
 // TODO: Move to camera class
 static void update_block_pointing_at(Player* p)
 {
-    float cam_x = blocked(p->cam->pos[0]);
-    float cam_y = blocked(p->cam->pos[1]);
-    float cam_z = blocked(p->cam->pos[2]);
+    float cam_x = blocked(p->pos[0]);
+    float cam_y = blocked(p->pos[1]);
+    float cam_z = blocked(p->pos[2]);
     int icam_x = (int)cam_x;
     int icam_y = (int)cam_y;
     int icam_z = (int)cam_z;
@@ -179,7 +177,7 @@ static void update_block_pointing_at(Player* p)
             if (!block_is_solid(block))
                 continue;
             
-            if (camera_looks_at_block(p->cam, x, y, z, block))
+            if (camera_looks_at_block(p->pos, p->front, x, y, z, block))
             {
                 float distance = block_player_dist2(x, y, z, cam_x, cam_y, cam_z);
                 if (distance < best_dist)
@@ -226,366 +224,6 @@ void player_set_build_block(Player* p, int new_block)
     regenerate_item(p);
 }
 
-// Almost like glm_aabb_aabb(), but >= and <= are replaced with > and <
-static inline int aabb_collide(vec3 box[2], vec3 other[2]) 
-{
-    return (box[0][0] < other[1][0] && box[1][0] > other[0][0])
-        && (box[0][1] < other[1][1] && box[1][1] > other[0][1])
-        && (box[0][2] < other[1][2] && box[1][2] > other[0][2]);
-}
-
-#define FOREACH_SOLID_BLOCK_AROUND()                            \
-for (int y = -3; y <= 3; y++)                                   \
-{                                                               \
-    int by = cam_y + y;                                         \
-    if (by < 0 || by >= CHUNK_HEIGHT)                           \
-        continue;                                               \
-                                                                \
-    for (int x = -3; x <= 3; x++)                               \
-    for (int z = -3; z <= 3; z++)                               \
-    {                                                           \
-        int bx = cam_x + x;                                     \
-        int bz = cam_z + z;                                     \
-                                                                \
-        unsigned char block = map_get_block(bx, by, bz);        \
-        if (!block_is_solid(block) || block_is_plant(block))    \
-            continue;                                           \
-                                                                \
-        vec3 block_hitbox[2];                                   \
-        block_gen_aabb(bx, by, bz, block_hitbox);            
-
-#define FOREACH_SOLID_BLOCK_AROUND_END() }}
-
-static void collision_x(Player* p, vec3 block_hitbox[2])
-{
-    int const moving_to_plus_x = (p->speed[0] >= 0);
-    
-    if (moving_to_plus_x)
-        p->pos[0] -= (p->hitbox[1][0] - block_hitbox[0][0]) + 0.00001f;
-    else
-        p->pos[0] += (block_hitbox[1][0] - p->hitbox[0][0]) + 0.00001f;
-    
-    p->speed[0] = 0.0f;
-}
-
-static void collision_y(Player* p, vec3 block_hitbox[2])
-{
-    int const moving_to_plus_y = (p->speed[1] >= 0);
-    
-    if (moving_to_plus_y)
-        p->pos[1] -= (p->hitbox[1][1] - block_hitbox[0][1]) + 0.00001f;
-    else
-    {
-        p->pos[1] += (block_hitbox[1][1] - p->hitbox[0][1]) + 0.00001f;
-        p->on_ground = 1;
-    }
-
-    p->speed[1] = 0.0f;
-}
-
-static void collision_z(Player* p, vec3 block_hitbox[2])
-{
-    int const moving_to_plus_z = (p->speed[2] >= 0);
-    
-    if (moving_to_plus_z)
-        p->pos[2] -= (p->hitbox[1][2] - block_hitbox[0][2]) + 0.00001f;
-    else
-        p->pos[2] += (block_hitbox[1][2] - p->hitbox[0][2]) + 0.00001f;
-
-    p->speed[2] = 0.0f;
-}
-
-static int collide_one_axis(void (*collision_handler)
-                            (Player*, vec3 block_hitbox[2]), Player* p)
-{
-    // TODO: Fix namings
-    int cam_x = (int)blocked(p->pos[0]);
-    int cam_y = (int)blocked(p->pos[1]);
-    int cam_z = (int)blocked(p->pos[2]);
-
-    update_hitbox(p);
-
-    FOREACH_SOLID_BLOCK_AROUND()
-        if (aabb_collide(p->hitbox, block_hitbox))
-        {
-            collision_handler(p, block_hitbox);
-            update_hitbox(p);
-            return 1;
-        }
-    FOREACH_SOLID_BLOCK_AROUND_END()
-
-    return 0;
-}
-
-static void collide_all_axes(Player* p, vec3 motion, ivec3 do_collide)
-{
-    if (do_collide[1])
-    {
-        p->on_ground = 0;
-        p->pos[1] += motion[1];
-        do_collide[1] = !collide_one_axis(collision_y, p);
-    }
-    if (do_collide[0])
-    {
-        p->pos[0] += motion[0];
-        do_collide[0] = !collide_one_axis(collision_x, p);
-    }
-    if (do_collide[2])
-    {
-        p->pos[2] += motion[2];
-        do_collide[2] = !collide_one_axis(collision_z, p);
-    }
-}
-
-static void collide_with_map(Player* p, vec3 motion)
-{
-    
-    float const max_step_size = 0.25f * BLOCK_SIZE;
-
-    float magnitude = glm_vec3_norm(motion);
-    if (magnitude < 0.00001f)
-        return;
-    
-    int num_steps = 1 + (magnitude / max_step_size);
-    float step_size = magnitude / num_steps;
-
-    vec3 step_motion;
-    glm_vec3_copy(motion, step_motion);
-    glm_vec3_scale(step_motion, (1.0f / magnitude) * step_size, step_motion);
-
-    ivec3 do_collide;
-    my_glm_ivec3_set(do_collide, 1, 1, 1);
-
-    for (int i = 0; i < num_steps; i++)
-        collide_all_axes(p, step_motion, do_collide);
-}
-
-static void decelerate(Player* p, vec3 frame_accel)
-{
-    vec3 accel;
-
-    glm_vec3_copy(p->speed, accel);
-    accel[1] = 0.0f;
-    glm_vec3_normalize(accel);
-    glm_vec3_scale(accel, -1.0f, accel);
-    glm_vec3_scale(accel, DECELERATION_HORIZONTAL, accel);
-
-    glm_vec3_add(frame_accel, accel, frame_accel);
-}
-
-static void accelerate_wasd(Player* p, vec3 frame_accel)
-{
-    int const key_w = window_is_key_pressed(GLFW_KEY_W);
-    int const key_s = window_is_key_pressed(GLFW_KEY_S);
-    int const key_a = window_is_key_pressed(GLFW_KEY_A);
-    int const key_d = window_is_key_pressed(GLFW_KEY_D);
-
-    // generate front & right vectors
-    vec3 front, right;
-    front[0] = cosf(glm_rad(p->yaw));
-    front[1] = 0.0f;
-    front[2] = sinf(glm_rad(p->yaw));
-    glm_vec3_normalize(front);
-    glm_vec3_crossn(front, p->up, right);
-
-    vec3 accel = {0.0f};
-    
-    if (key_w || key_s)
-    {
-        vec3 a = {front[0], 0.0f, front[2]};
-        if (key_s) glm_vec3_negate(a);
-
-        glm_vec3_add(accel, a, accel);
-    }
-
-    if (key_a || key_d)
-    {
-        vec3 a = {right[0], 0.0f, right[2]};
-        if (key_a) glm_vec3_negate(a);
-        
-        glm_vec3_add(accel, a, accel);
-    }
-
-    float s = ACCELERATION_HORIZONTAL;
-    if (!p->on_ground && !p->in_water)
-        s = ACCELERATION_HORIZONTAL / 6.0f;
-    glm_vec3_scale(accel, s, accel);
-
-    glm_vec3_add(frame_accel, accel, frame_accel);
-}
-
-static void gen_motion_vector_walk(Player* p, double dt, vec3 res)
-{
-    int const key_w     = window_is_key_pressed(GLFW_KEY_W);
-    int const key_s     = window_is_key_pressed(GLFW_KEY_S);
-    int const key_a     = window_is_key_pressed(GLFW_KEY_A);
-    int const key_d     = window_is_key_pressed(GLFW_KEY_D);
-    int const key_space = window_is_key_pressed(GLFW_KEY_SPACE);
-    int const key_shift = window_is_key_pressed(GLFW_KEY_LEFT_SHIFT);
-    int const key_ctrl  = window_is_key_pressed(GLFW_KEY_LEFT_CONTROL);
-
-    vec3 frame_accel = {0.0f};
-    vec3 frame_speed = {0.0f};
-    static int done_decelerating_sneak = 0;
-    static int done_decelerating_run = 0;
-    int decelerated_no_keys = 0;
-
-    p->is_sneaking = key_shift;
-    p->is_running = key_ctrl;
-
-    if (p->is_sneaking && p->is_running)
-        p->is_running = 0;
-
-    float xz_speed = glm_vec2_norm((vec2){ p->speed[0], p->speed[2] });
-
-    if (p->is_sneaking && xz_speed > MAX_SNEAK_SPEED 
-        && !done_decelerating_sneak && p->on_ground)
-    {
-        decelerate(p, frame_accel);
-    }
-    else if (!p->is_running && xz_speed > MAX_MOVE_SPEED
-             && !done_decelerating_run && p->on_ground)
-    {
-        decelerate(p, frame_accel);
-    }
-    else if (key_w || key_s || key_a || key_d)
-    {
-        accelerate_wasd(p, frame_accel);
-    }
-    else if (p->on_ground || p->in_water)
-    {
-        decelerate(p, frame_accel);
-        decelerated_no_keys = 1;
-    }
-
-    // Sneak & run logic
-    if (!done_decelerating_sneak && xz_speed <= MAX_SNEAK_SPEED)
-        done_decelerating_sneak = 1;
-    else if (done_decelerating_sneak && !key_shift)
-        done_decelerating_sneak = 0;
-    
-    if (!done_decelerating_run && xz_speed <= MAX_MOVE_SPEED)
-        done_decelerating_run = 1;
-    else if (done_decelerating_run && p->is_running)
-        done_decelerating_run = 0;
-
-    // Gravity, jumps
-    if (p->in_water)
-        frame_accel[1] -= GRAVITY_WATER;
-    else
-        frame_accel[1] -= GRAVITY;
-    
-    if (key_space)
-    {
-        if (p->on_ground)
-            frame_speed[1] = JUMP_POWER;
-        else if (p->in_water)
-            frame_accel[1] += ACCELERATION_WATER_EMERGE;
-    }
-
-    // Calculate frame speed, add it to camera's speed
-    vec3 speed_from_accel;
-    glm_vec3_copy(frame_accel, speed_from_accel);
-    glm_vec3_scale(speed_from_accel, dt, speed_from_accel);
-    glm_vec3_add(speed_from_accel, frame_speed, frame_speed);
-
-    vec3 old_cam_speed;
-    glm_vec3_copy(p->speed, old_cam_speed);
-    glm_vec3_add(frame_speed, p->speed, p->speed);
-
-    // Stop player completely if he was decelerating and
-    // speed has changed its direction almost by 180 degrees
-    float angle = glm_vec3_angle(
-        (vec3){p->speed[0], 0.0f, p->speed[2]},
-        (vec3){old_cam_speed[0], 0.0f, old_cam_speed[2]});
-    
-    float const margin = GLM_PIf / 16.0f;
-    if (angle > GLM_PIf - margin && angle < GLM_PIf + margin
-        && decelerated_no_keys)
-    {
-        glm_vec3_zero(p->speed);
-    }
-
-    // Clamp horizontal speed
-    float max_xz_speed;
-    if (p->in_water)
-        max_xz_speed = MAX_SWIM_SPEED;
-    else if (p->is_running || !done_decelerating_run)
-        max_xz_speed = MAX_RUN_SPEED;
-    else if (p->is_sneaking && done_decelerating_sneak)
-        max_xz_speed = MAX_SNEAK_SPEED;
-    else
-        max_xz_speed = MAX_MOVE_SPEED;
-
-    xz_speed = glm_vec2_norm((vec2){ p->speed[0], p->speed[2] });
-    if (xz_speed > max_xz_speed)
-    {
-        float const s = max_xz_speed / xz_speed;
-        p->speed[0] *= s;
-        p->speed[2] *= s;
-    }
-
-    // Clamp vertical speed
-    if (p->in_water)
-    {
-        if (p->speed[1] > MAX_EMERGE_SPEED)
-            p->speed[1] = MAX_EMERGE_SPEED;
-        else if (p->speed[1] < -MAX_DIVE_SPEED)
-            p->speed[1] = -MAX_DIVE_SPEED;
-    }
-    else
-    {
-        if (p->speed[1] < -MAX_FALL_SPEED)
-            p->speed[1] = -MAX_FALL_SPEED;
-    }
-
-    // Calculate frame motion, add it to camera's position
-    vec3 frame_motion;
-    glm_vec3_copy(p->speed, frame_motion);
-    glm_vec3_scale(frame_motion, dt, frame_motion);
-    glm_vec3_copy(frame_motion, res);
-}
-
-static void gen_motion_vector_fly(Player* p, double dt, vec3 res)
-{   
-    int const key_w     = window_is_key_pressed(GLFW_KEY_W);
-    int const key_s     = window_is_key_pressed(GLFW_KEY_S);
-    int const key_a     = window_is_key_pressed(GLFW_KEY_A);
-    int const key_d     = window_is_key_pressed(GLFW_KEY_D);
-    int const key_shift = window_is_key_pressed(GLFW_KEY_LEFT_SHIFT);
-    int const key_ctrl  = window_is_key_pressed(GLFW_KEY_LEFT_CONTROL);
-
-    vec3 front, right, up;
-
-    // generate front, right, up vectors
-    glm_vec3_copy(p->front, front);
-    glm_vec3_crossn(front, p->up, right);
-    glm_vec3_copy(p->up, up);
-
-    vec3 total_move = {0.0f};
-
-    if (key_w)
-        glm_vec3_add(total_move, front, total_move);
-    if (key_s)
-        glm_vec3_sub(total_move, front, total_move);
-
-    if (key_d)
-        glm_vec3_add(total_move, right, total_move);
-    if (key_a)
-        glm_vec3_sub(total_move, right, total_move);
-
-    if (key_shift)
-        glm_vec3_add(total_move, up, total_move);
-    if (key_ctrl)
-        glm_vec3_sub(total_move, up, total_move);
-    
-    glm_vec3_copy(total_move, p->speed);
-    glm_vec3_copy(total_move, res);
-
-    // TODO: variable for fly speed
-    glm_vec3_scale(res, dt * 5.0f, res);
-}
-
 static void check_if_in_water(Player* p)
 {
     // TODO: Fix namings
@@ -625,107 +263,30 @@ static void check_if_in_water(Player* p)
     p->in_water = 0;
 }
 
+void player_set_viewdir(Player* p, float pitch, float yaw)
+{
+    p->pitch = pitch;
+    p->yaw = yaw;
+
+    p->front[0] = cosf(glm_rad(yaw)) * cosf(glm_rad(pitch));
+    p->front[1] = sinf(glm_rad(pitch));
+    p->front[2] = sinf(glm_rad(yaw)) * cosf(glm_rad(pitch));
+    glm_vec3_normalize(p->front);
+}
+
 void player_update(Player* p, double dt)
 {
-    // TODO: Fix activity check logic
-    // if (!p->cam->is_active)
-    //     return;
-    
-    camera_update_view_dir(p->cam);
-    camera_update_parameters(p->cam, dt);
     check_if_in_water(p);
-
-    vec3 motion;
-    
-    // TODO: Fix fly mode
-    /*
-    if (p->cam->is_fly_mode)
-    {
-        gen_motion_vector_fly(p, dt, motion);
-        glm_vec3_add(p->cam->pos, motion, p->cam->pos);
-    }
-    else
-    */
-    {
-        gen_motion_vector_walk(p, dt, motion);
-        collide_with_map(p, motion);
-    }
-
     update_block_pointing_at(p);
-    camera_update_matrices(p->cam);
-}
-
-void player_handle_left_mouse_click(Player* p)
-{
-    if (!p->pointing_at_block)
-        return;
-
-    int x = p->block_pointed_at[0];
-    int y = p->block_pointed_at[1];
-    int z = p->block_pointed_at[2];
-
-    map_set_block(x, y, z, BLOCK_AIR);
-    p->pointing_at_block = 0;
-}
-
-// Helper function for player_handle_right_mouse_click()
-static void find_best_spot_to_place_block(Player* player, int x, int y, int z, int* best_x, 
-                                          int* best_y, int* best_z, float* best_dist)
-{
-    // TODO: Fix namings
-    float cam_x = blocked(player->pos[0]);
-    float cam_y = blocked(player->pos[1]);
-    float cam_z = blocked(player->pos[2]);
-    
-    if (camera_looks_at_block(player->cam, x, y, z, BLOCK_AIR) 
-        && !block_is_solid(map_get_block(x, y, z)))
-    {
-        float dist = block_player_dist2(x, y, z, cam_x, cam_y, cam_z);
-        if (dist < *best_dist)
-        {
-            *best_dist = dist;
-            *best_x = x;
-            *best_y = y;
-            *best_z = z;
-        }
-    }
-}
-
-void player_handle_right_mouse_click(Player* p)
-{
-    if (!p->pointing_at_block || p->build_block == BLOCK_PLAYER_HAND)
-        return;
-
-    int x = p->block_pointed_at[0];
-    int y = p->block_pointed_at[1];
-    int z = p->block_pointed_at[2];
-
-    int best_x = 0, best_y = 0, best_z = 0;
-    float best_dist = BLOCK_BREAK_RADIUS2 * 2;
-
-    // 6 potential spots around active block
-    find_best_spot_to_place_block(p, x - 1, y, z, &best_x, &best_y, &best_z, &best_dist);
-    find_best_spot_to_place_block(p, x + 1, y, z, &best_x, &best_y, &best_z, &best_dist);
-    find_best_spot_to_place_block(p, x, y - 1, z, &best_x, &best_y, &best_z, &best_dist);
-    find_best_spot_to_place_block(p, x, y + 1, z, &best_x, &best_y, &best_z, &best_dist);
-    find_best_spot_to_place_block(p, x, y, z - 1, &best_x, &best_y, &best_z, &best_dist);
-    find_best_spot_to_place_block(p, x, y, z + 1, &best_x, &best_y, &best_z, &best_dist);
-
-    if ((best_dist > BLOCK_BREAK_RADIUS2) || best_y < 0 || best_y >= CHUNK_HEIGHT)
-        return;
-
-    vec3 block_hitbox[2];
-    block_gen_aabb(best_x, best_y, best_z, block_hitbox);
-    if (aabb_collide(p->hitbox, block_hitbox))
-        return;
-
-    map_set_block(best_x, best_y, best_z, p->build_block);
 }
 
 void player_render_item(Player* p)
 {
+    // TODO:  Restore item rendering
+    return;
     // Render item using additional camera created here;
     // The camera is at (0, 0, -1) and looks at (0, 0, 0)
+    /*
     mat4 view, projection;
     glm_look((vec3){0.0f, 0.0f, 1.0f}, (vec3){0.0f, 0.0f, -1.0f}, 
              (vec3){0.0f, 1.0f, 0.0f}, view);
@@ -742,6 +303,7 @@ void player_render_item(Player* p)
     glDisable(GL_BLEND);
     glBindVertexArray(p->VAO_item);
     glDrawArrays(GL_TRIANGLES, 0, 36);
+    */
 }
 
 void player_save(Player* p)
@@ -752,6 +314,5 @@ void player_save(Player* p)
 void player_destroy(Player* p)
 {
     player_save(p);
-    free(p->cam);
     free(p);
 }

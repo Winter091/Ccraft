@@ -189,11 +189,11 @@ void db_save_player_info(Player* p)
         );
     }
 
-    sqlite3_bind_double(stmt, 1, p->cam->pos[0]);
-    sqlite3_bind_double(stmt, 2, p->cam->pos[1]);
-    sqlite3_bind_double(stmt, 3, p->cam->pos[2]);
-    sqlite3_bind_double(stmt, 4, p->cam->pitch);
-    sqlite3_bind_double(stmt, 5, p->cam->yaw);
+    sqlite3_bind_double(stmt, 1, p->pos[0]);
+    sqlite3_bind_double(stmt, 2, p->pos[1]);
+    sqlite3_bind_double(stmt, 3, p->pos[2]);
+    sqlite3_bind_double(stmt, 4, p->pitch);
+    sqlite3_bind_double(stmt, 5, p->yaw);
     sqlite3_bind_int(stmt, 6, p->build_block);
 
     sqlite3_step(stmt);

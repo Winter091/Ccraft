@@ -8,19 +8,17 @@
 #include "block.h"
 #include "window.h"
 
-Camera* camera_create(vec3 pos, float* pitch, float* yaw, vec3 front)
+static void camera_framebuffer_size_change_callback(void* this_object, int new_width, int new_height)
+{
+    Camera* cam = (Camera*)this_object;
+    camera_set_aspect_ratio(cam, new_width / new_height);
+}
+
+Camera* camera_create(vec3 pos, float pitch, float yaw, vec3 front)
 {
     Camera* cam = malloc(sizeof(Camera));
 
-    cam->is_active = 1;
-    cam->is_fly_mode = 0;
-    cam->is_first_frame = 1;
-
-    cam->is_attached_to_object = 1;
-    cam->object_pos = (float*)pos;
-    cam->object_pitch = pitch;
-    cam->object_yaw = yaw;
-    cam->object_front = (float*)front;
+    register_framebuffer_size_change_callback(cam, camera_framebuffer_size_change_callback);
 
     glm_vec3_copy(pos, cam->pos);
     glm_vec3_copy(pos, cam->prev_pos);
@@ -29,15 +27,12 @@ Camera* camera_create(vec3 pos, float* pitch, float* yaw, vec3 front)
     glm_vec3_copy(front, cam->front);
     my_glm_vec3_set(cam->up, 0.0f, 1.0f, 0.0f);
 
-    cam->pitch = *pitch;
-    cam->yaw = *yaw;
+    cam->pitch = pitch;
+    cam->yaw = yaw;
 
     cam->fov = FOV;
     cam->sens = MOUSE_SENS;
     cam->fly_speed = 20.0f * BLOCK_SIZE;
-
-    cam->mouse_last_x = 0.0f;
-    cam->mouse_last_y = 0.0f;
 
     cam->clip_near = BLOCK_SIZE / 10.0f;
     cam->clip_far = MAX((CHUNK_RENDER_RADIUS * 1.2f) * CHUNK_SIZE,
@@ -54,105 +49,18 @@ Camera* camera_create(vec3 pos, float* pitch, float* yaw, vec3 front)
     return cam;
 }
 
-void camera_update_view_dir(Camera* cam)
-{
-    double mouse_x, mouse_y;
-    glfwGetCursorPos(g_window->glfw, &mouse_x, &mouse_y);
-
-    if (cam->is_first_frame)
-    {
-        cam->is_first_frame = 0;
-        cam->mouse_last_x = mouse_x;
-        cam->mouse_last_y = mouse_y;
-        return;
-    }
-
-    float dx = mouse_x - cam->mouse_last_x;
-    float dy = mouse_y - cam->mouse_last_y;
-
-    cam->mouse_last_x = mouse_x;
-    cam->mouse_last_y = mouse_y;
-
-    cam->yaw += dx * cam->sens;
-    cam->pitch -= dy * cam->sens;
-
-    if (cam->pitch < -89.5f)
-        cam->pitch = -89.5f;
-    else if (cam->pitch > 89.5f)
-        cam->pitch = 89.5f;
-
-    if (cam->yaw > 360.0f) cam->yaw -= 360.0f;
-    if (cam->yaw < 0.0f) cam->yaw += 360.0f;
-
-    cam->front[0] = cosf(glm_rad(cam->yaw)) * cosf(glm_rad(cam->pitch));
-    cam->front[1] = sinf(glm_rad(cam->pitch));
-    cam->front[2] = sinf(glm_rad(cam->yaw)) * cosf(glm_rad(cam->pitch));
-    glm_vec3_normalize(cam->front);
-
-    *cam->object_pitch = cam->pitch;
-    *cam->object_yaw = cam->yaw;
-    glm_vec3_copy(cam->front, cam->object_front);
-}
-
-void camera_update_parameters(Camera* cam, float dt)
-{
-    glm_vec3_copy(cam->pos, cam->prev_pos);
-
-    if (!cam->is_active)
-        return;
-
-    int const key_c        = window_is_key_pressed(GLFW_KEY_C);
-    int const key_pageup   = window_is_key_pressed(GLFW_KEY_PAGE_UP);
-    int const key_pagedown = window_is_key_pressed(GLFW_KEY_PAGE_DOWN);
-    int const key_tab      = window_is_key_pressed(GLFW_KEY_TAB);
-    static int tab_already_pressed = 0;
-
-    // Handle fly speed
-    if (key_pageup)
-        cam->fly_speed *= (1.0f + dt);
-    else if (key_pagedown)
-        cam->fly_speed /= (1.0f + dt);
-
-    // Handle zoom mode
-    if (key_c && cam->fov == FOV)
-        camera_set_fov(cam, FOV_ZOOM);
-    else if (!key_c && cam->fov == FOV_ZOOM)
-        camera_set_fov(cam, FOV);
-    
-    // Little hack to prevent changing fly/walk move
-    // every frame when tab is pressed
-    if (!key_tab && tab_already_pressed)
-        tab_already_pressed = 0;
-
-    // Handle fly/walk mode
-    if (key_tab && !tab_already_pressed)
-    {
-        if (cam->is_fly_mode == 1)
-            cam->is_fly_mode = 0;
-        else
-            cam->is_fly_mode = 1;
-        
-        tab_already_pressed = 1;
-    }
-}
-
 void camera_update_matrices(Camera* cam)
 {
-    // TODO: Should not be here
-    glm_vec3_copy(cam->object_pos, cam->pos);
-
-    // update vp matrices
     glm_mat4_copy(cam->view_matrix, cam->prev_view_matrix);
     glm_look(cam->pos, cam->front, cam->up, cam->view_matrix);
     glm_mat4_mul(cam->proj_matrix, cam->view_matrix, cam->vp_matrix);
 
-    // update frustum planes
     glm_frustum_planes(cam->vp_matrix, cam->frustum_planes);
 }
 
 // ray - aabb hit detection, see
 // https://medium.com/@bromanz/another-view-on-the-classic-ray-aabb-intersection-algorithm-for-bvh-traversal-41125138b525
-int camera_looks_at_block(Camera* cam, int x, int y, int z, unsigned char block_type)
+int camera_looks_at_block(vec3 pos, vec3 front, int x, int y, int z, unsigned char block_type)
 {
     vec3 min = { x * BLOCK_SIZE, y * BLOCK_SIZE, z * BLOCK_SIZE };
     vec3 max = { min[0] + BLOCK_SIZE, min[1] + BLOCK_SIZE, min[2] + BLOCK_SIZE };
@@ -173,15 +81,15 @@ int camera_looks_at_block(Camera* cam, int x, int y, int z, unsigned char block_
 
     vec3 invD;
     for (int i = 0; i < 3; i++)
-        invD[i] = 1.0f / cam->front[i];
+        invD[i] = 1.0f / front[i];
 
     vec3 t0s;
     for (int i = 0; i < 3; i++)
-        t0s[i] = (min[i] - cam->pos[i]) * invD[i];
+        t0s[i] = (min[i] - pos[i]) * invD[i];
 
     vec3 t1s;
     for (int i = 0; i < 3; i++)
-        t1s[i] = (max[i] - cam->pos[i]) * invD[i];
+        t1s[i] = (max[i] - pos[i]) * invD[i];
 
     vec3 tsmaller = {0};
     glm_vec3_minadd(t0s, t1s, tsmaller);

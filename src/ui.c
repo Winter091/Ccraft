@@ -7,6 +7,7 @@
 #include "config.h"
 #include "block.h"
 #include "map.h"
+#include "window.h"
 
 typedef struct
 {
@@ -20,9 +21,16 @@ UI;
 
 static UI* ui;
 
+static void ui_framebuffer_size_change_callback(void* this_object, int new_width, int new_height)
+{
+    ui_update_aspect_ratio((float)new_width / new_height);
+}
+
 void ui_init(float aspect_ratio)
 {
     ui = malloc(sizeof(UI));
+
+    register_framebuffer_size_change_callback(ui, ui_framebuffer_size_change_callback);
 
     // Crosshair buffer
     float center = 0.0f;
@@ -126,7 +134,7 @@ void ui_render_crosshair()
     glDrawArrays(GL_LINES, 0, 4);
 }
 
-void ui_render_block_wireframe(Player* p)
+void ui_render_block_wireframe(Player* p, Camera* cam)
 {
     glBindVertexArray(ui->VAO_block_wireframe);
 
@@ -150,7 +158,7 @@ void ui_render_block_wireframe(Player* p)
     }
 
     mat4 mvp;
-    glm_mat4_mul(p->cam->vp_matrix, model, mvp);
+    glm_mat4_mul(cam->vp_matrix, model, mvp);
 
     glUseProgram(shader_line);
     shader_set_mat4(shader_line, "mvp_matrix", mvp);

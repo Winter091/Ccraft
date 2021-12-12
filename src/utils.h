@@ -133,4 +133,12 @@ static inline const char* my_strdup(const char* src)
     return new_str;
 }
 
+// Almost like glm_aabb_aabb(), but >= and <= are replaced with > and <
+static inline int aabb_collide(vec3 box[2], vec3 other[2]) 
+{
+    return (box[0][0] < other[1][0] && box[1][0] > other[0][0])
+        && (box[0][1] < other[1][1] && box[1][1] > other[0][1])
+        && (box[0][2] < other[1][2] && box[1][2] > other[0][2]);
+}
+
 #endif

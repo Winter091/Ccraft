@@ -8,7 +8,6 @@
 typedef struct
 {
     vec3 pos;
-    Camera* cam;
 
     vec3 front;
     vec3 up;
@@ -45,6 +44,10 @@ void player_handle_left_mouse_click(Player* p);
 void player_handle_right_mouse_click(Player* p);
 
 void player_render_item(Player* p);
+
+void player_update_hitbox(Player* p);
+
+void player_set_viewdir(Player* p, float pitch, float yaw);
 
 void player_save(Player* p);
 
