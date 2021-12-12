@@ -16,8 +16,7 @@ typedef struct
 }
 ObjectLocationInfo;
 
-typedef void (*camera_position_delegate)(void* cc);
-typedef void (*camera_rotation_delegate)(void* cc);
+typedef void (*camera_update_func)(void* cc);
 
 typedef struct
 {
@@ -27,8 +26,7 @@ typedef struct
     ObjectLocationInfo tracked_object_info;
     int is_tracking;
 
-    camera_position_delegate pos_delegate;
-    camera_rotation_delegate rot_delegate;
+    camera_update_func update_func;
 } 
 CameraController;
 
@@ -41,15 +39,11 @@ void cameracontroller_set_track_object(CameraController* cc, ObjectLocationInfo*
 
 void cameracontroller_set_tracking(CameraController* cc, int is_tracking);
 
-void cc_set_pos_update_delegate(CameraController* cc, camera_position_delegate delegate);
+void cameracontroller_set_update_func(CameraController* cc, camera_update_func func);
 
-void cc_set_rot_update_delegate(CameraController* cc, camera_rotation_delegate delegate);
+void cameracontroller_do_control(CameraController* cc);
 
-void cc_do_control(CameraController* cc);
-
-void cc_first_person_pos_update(void* cc);
-
-void cc_first_person_rot_update(void* cc);
+void cameracontroller_first_person_update(void* cc);
 
 void cameracontroller_destroy(CameraController* cc);
 

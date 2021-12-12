@@ -110,7 +110,7 @@ static void update(PlayerController* pc, CameraController* cc, float dt)
 {
     playercontroller_do_control(pc);
     player_update(pc->player, dt);
-    cc_do_control(cc);
+    cameracontroller_do_control(cc);
     map_update(cc->camera);
 }
 
@@ -411,9 +411,7 @@ int main(int argc, const char** argv)
 
     PlayerController* pc = playercontroller_create(player);
     CameraController* cc = cameracontroller_create(cam);
-
-    cc_set_pos_update_delegate(cc, cc_first_person_pos_update);
-    cc_set_rot_update_delegate(cc, cc_first_person_rot_update);
+    cameracontroller_set_update_func(cc, cameracontroller_first_person_update);
 
     ObjectLocationInfo info = 
     {

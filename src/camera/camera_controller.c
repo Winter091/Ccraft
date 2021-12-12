@@ -18,8 +18,7 @@ CameraController* cameracontroller_create(Camera* camera)
     memset(&cc->tracked_object_info, 0, sizeof(ObjectLocationInfo));
     cc->is_tracking = 0;
 
-    cc->pos_delegate = NULL;
-    cc->rot_delegate = NULL;
+    cc->update_func = NULL;
 
     return cc;
 }
@@ -42,16 +41,10 @@ void cameracontroller_set_tracking(CameraController* cc, int is_tracking)
     cc->is_tracking = is_tracking;
 }
 
-void cc_set_pos_update_delegate(CameraController* cc, camera_position_delegate delegate)
+void cameracontroller_set_update_func(CameraController* cc, camera_update_func func)
 {
-    assert(delegate);
-    cc->pos_delegate = delegate;
-}
-
-void cc_set_rot_update_delegate(CameraController* cc, camera_rotation_delegate delegate)
-{
-    assert(delegate);
-    cc->rot_delegate = delegate;
+    assert(func);
+    cc->update_func = func;
 }
 
 static void do_kb_input(CameraController* cc)
@@ -97,31 +90,26 @@ static void do_kb_input(CameraController* cc)
     */
 }
 
-void cc_do_control(CameraController* cc)
+void cameracontroller_do_control(CameraController* cc)
 {
-    assert(cc->pos_delegate);
-    assert(cc->rot_delegate);
+    assert(cc->update_func);
 
     glm_vec3_copy(cc->camera->pos, cc->camera->prev_pos);
     do_kb_input(cc);
 
-    cc->pos_delegate(cc);
-    cc->rot_delegate(cc);
+    cc->update_func(cc);
 
     camera_update_matrices(cc->camera);
 }
 
-void cc_first_person_pos_update(void* cc)
+void cameracontroller_first_person_update(void* cc)
 {
     CameraController* controller = (CameraController*)cc;
 
+    // Pos
     glm_vec3_copy(controller->tracked_object_info.pos, controller->camera->pos);
-}
 
-void cc_first_person_rot_update(void* cc)
-{
-    CameraController* controller = (CameraController*)cc;
-
+    // Rotation
     glm_vec3_copy(controller->tracked_object_info.front, controller->camera->front);
     controller->camera->pitch = *controller->tracked_object_info.pitch;
     controller->camera->yaw = *controller->tracked_object_info.yaw;
