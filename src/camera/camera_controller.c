@@ -7,6 +7,19 @@
 #include <config.h>
 #include <window.h>
 
+static void on_keyboard_key(void* this_object, int glfw_keycode, int glfw_action_code)
+{
+    CameraController* cc = (CameraController*)this_object;
+
+    if (glfw_keycode == GLFW_KEY_C)
+    {
+        if (glfw_action_code == GLFW_PRESS && cc->camera->fov == FOV)
+            camera_set_fov(cc->camera, FOV_ZOOM);
+        else if (glfw_action_code == GLFW_RELEASE && cc->camera->fov == FOV_ZOOM)
+            camera_set_fov(cc->camera, FOV);
+    }
+}
+
 CameraController* cameracontroller_create(Camera* camera)
 {
     CameraController* cc = malloc(sizeof(CameraController));
@@ -19,6 +32,8 @@ CameraController* cameracontroller_create(Camera* camera)
     cc->is_tracking = 0;
 
     cc->update_func = NULL;
+
+    register_keyboard_key_press_callback(cc, on_keyboard_key);
 
     return cc;
 }
@@ -51,43 +66,15 @@ static void do_kb_input(CameraController* cc)
 {
     Camera* cam = cc->camera;
 
-    int const key_c        = window_is_key_pressed(GLFW_KEY_C);
     int const key_pageup   = window_is_key_pressed(GLFW_KEY_PAGE_UP);
     int const key_pagedown = window_is_key_pressed(GLFW_KEY_PAGE_DOWN);
-    int const key_tab      = window_is_key_pressed(GLFW_KEY_TAB);
-    static int tab_already_pressed = 0;
-
-    float dt = dt_get();
+    float const dt = dt_get();
 
     // Handle fly speed
     if (key_pageup)
         cam->fly_speed *= (1.0f + dt);
     else if (key_pagedown)
         cam->fly_speed /= (1.0f + dt);
-
-    // Handle zoom mode
-    if (key_c && cam->fov == FOV)
-        camera_set_fov(cam, FOV_ZOOM);
-    else if (!key_c && cam->fov == FOV_ZOOM)
-        camera_set_fov(cam, FOV);
-    
-    // Little hack to prevent changing fly/walk move
-    // every frame when tab is pressed
-    if (!key_tab && tab_already_pressed)
-        tab_already_pressed = 0;
-
-    /*
-    // Handle fly/walk mode
-    if (key_tab && !tab_already_pressed)
-    {
-        if (cam->is_fly_mode == 1)
-            cam->is_fly_mode = 0;
-        else
-            cam->is_fly_mode = 1;
-        
-        tab_already_pressed = 1;
-    }
-    */
 }
 
 void cameracontroller_do_control(CameraController* cc)
