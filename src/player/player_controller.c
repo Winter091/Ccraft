@@ -406,10 +406,19 @@ static void gen_frame_motion(PlayerController* pc, vec3 out)
 
 static void pc_on_keyboard_key_callback(void* this_object, int glfw_keycode, int glfw_action_code)
 {
-    if (glfw_keycode == GLFW_KEY_ESCAPE && glfw_action_code == GLFW_PRESS)
+    if (glfw_action_code != GLFW_PRESS)
+        return;
+
+    PlayerController* pc = (PlayerController*)this_object;
+    
+    switch (glfw_keycode)
     {
-        PlayerController* pc = (PlayerController*)this_object;
-        pc->is_controlling = 0;
+        case GLFW_KEY_ESCAPE:
+            pc->is_controlling = 0;
+            break;
+        case GLFW_KEY_TAB:
+            pc->is_fly_mode = !pc->is_fly_mode;
+            break;
     }
 }
 
