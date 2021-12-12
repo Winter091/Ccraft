@@ -1,7 +1,8 @@
-#include "time_measure.h"
+#include <time_measure.h>
 
-#include "assert.h"
-#include "GLFW/glfw3.h"
+#include <assert.h>
+
+#include <GLFW/glfw3.h>
 
 static int no_last_time = 1;
 static double last_time = 0.0;

@@ -1,11 +1,12 @@
-#include "texture.h"
+#include <texture.h>
 
-#include "string.h"
+#include <string.h>
 
 #define GLFW_INCLUDE_NONE
-#include "GLFW/glfw3.h"
-#include "stb_image.h"
-#include "config.h"
+#include <GLFW/glfw3.h>
+#include <stb_image.h>
+
+#include <config.h>
 
 GLuint texture_blocks;
 GLuint texture_skybox_day;

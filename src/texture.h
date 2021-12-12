@@ -1,7 +1,7 @@
 #ifndef TEXTURE_H_
 #define TEXTURE_H_
 
-#include "glad/glad.h"
+#include <glad/glad.h>
 
 // Global variables for other files to access
 extern GLuint texture_blocks;

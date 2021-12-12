@@ -1,7 +1,7 @@
 #ifndef BLOCK_H_
 #define BLOCK_H_
 
-#include "utils.h"
+#include <utils.h>
 
 // Block ids
 #define BLOCK_AIR                0

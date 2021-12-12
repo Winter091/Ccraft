@@ -1,11 +1,11 @@
-#include "chunk.h"
+#include <map/chunk.h>
 
-#include "stdlib.h"
+#include <stdlib.h>
 
-#include "block.h"
-#include "utils.h"
-#include "db.h"
-#include "worldgen.h"
+#include <map/block.h>
+#include <utils.h>
+#include <db.h>
+#include <worldgen.h>
 
 Chunk* chunk_init(int cx, int cz)
 {

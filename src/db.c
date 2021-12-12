@@ -1,13 +1,14 @@
-#include "db.h"
+#include <db.h>
 
-#include "stdio.h"
-#include "string.h"
-#include "assert.h"
+#include <stdio.h>
+#include <string.h>
+#include <assert.h>
 
-#include "tinycthread.h"
-#include "sqlite3.h"
-#include "config.h"
-#include "map.h"
+#include <tinycthread.h>
+#include <sqlite3.h>
+
+#include <config.h>
+#include <map/map.h>
 
 static sqlite3* db;
 static int s_has_player_info;

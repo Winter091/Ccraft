@@ -1,9 +1,9 @@
-#include "shader.h"
+#include <shader.h>
 
-#include "stdio.h"
-#include "stdlib.h"
+#include <stdio.h>
+#include <stdlib.h>
 
-#include "texture.h"
+#include <texture.h>
 
 GLuint shader_block;
 GLuint shader_line;

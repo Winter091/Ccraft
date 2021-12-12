@@ -1,9 +1,10 @@
 #ifndef UI_H_
 #define UI_H_
 
-#include "glad/glad.h"
-#include "camera.h"
-#include "player.h"
+#include <glad/glad.h>
+
+#include <camera/camera.h>
+#include <player/player.h>
 
 void ui_init(float aspect_ratio);
 

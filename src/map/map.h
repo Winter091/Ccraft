@@ -1,12 +1,13 @@
 #ifndef MAP_H_
 #define MAP_H_
 
-#include "chunk.h"
-#include "linked_list.h"
-#include "hashmap.h"
-#include "camera.h"
-#include "player.h"
-#include "glad/glad.h"
+#include <glad/glad.h>
+
+#include <linked_list.h>
+#include <hashmap.h>
+#include <map/chunk.h>
+#include <camera/camera.h>
+#include <player/player.h>
 
 void map_init();
 

@@ -7,8 +7,8 @@
 #ifndef HASH_MAP_H_
 #define HASH_MAP_H_
 
-#include "stdlib.h"
-#include "stdint.h"
+#include <stdlib.h>
+#include <stdint.h>
 
 #define HASHMAP_DECLARATION(TYPE, TYPENAME)                                  \
                                                                             \

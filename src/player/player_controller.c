@@ -1,16 +1,17 @@
-#include "player_controller.h"
-#include "map.h"
-#include "block.h"
-#include "utils.h"
-#include "window.h"
-#include "time_measure.h"
-#include "player_physics.h"
+#include <player/player_controller.h>
 
-#include "stdlib.h"
-#include "assert.h"
+#include <stdlib.h>
+#include <assert.h>
 
 #define GLFW_INCLUDE_NONE
-#include "GLFW/glfw3.h"
+#include <GLFW/glfw3.h>
+
+#include <map/map.h>
+#include <map/block.h>
+#include <utils.h>
+#include <window.h>
+#include <time_measure.h>
+#include <player/player_physics.h>
 
 
 static void on_left_mouse_button(PlayerController* pc)

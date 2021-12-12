@@ -1,11 +1,11 @@
 #ifndef THREAD_WORKER_H_
 #define THREAD_WORKER_H_
 
-#include "tinycthread.h"
+#include <tinycthread.h>
 
-#include "map.h"
-#include "chunk.h"
-#include "linked_list.h"
+#include <map/map.h>
+#include <map/chunk.h>
+#include <linked_list.h>
 
 typedef enum
 {

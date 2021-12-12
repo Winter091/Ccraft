@@ -1,7 +1,7 @@
 #ifndef WORLDGEN_H_
 #define WORLDGEN_H_
 
-#include "chunk.h"
+#include <map/chunk.h>
 
 void worldgen_generate_chunk(Chunk* c);
 

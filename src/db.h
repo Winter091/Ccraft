@@ -1,8 +1,8 @@
 #ifndef DB_H_
 #define DB_H_
 
-#include "chunk.h"
-#include "player.h"
+#include <map/chunk.h>
+#include <player/player.h>
 
 void db_init(const char* db_path);
 

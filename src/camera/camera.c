@@ -1,12 +1,12 @@
-#include "camera.h"
+#include <camera/camera.h>
 
-#include "stdlib.h"
-#include "math.h"
+#include <stdlib.h>
+#include <math.h>
 
-#include "config.h"
-#include "utils.h"
-#include "block.h"
-#include "window.h"
+#include <config.h>
+#include <utils.h>
+#include <map/block.h>
+#include <window.h>
 
 static void camera_framebuffer_size_change_callback(void* this_object, int new_width, int new_height)
 {

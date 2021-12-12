@@ -1,7 +1,8 @@
-#include "stdlib.h"
+#include <noise_generator.h>
 
-#include "noise_generator.h"
-#include "map.h"
+#include <stdlib.h>
+
+#include <map/map.h>
 
 unsigned my_rand(unsigned* prev_value)
 {

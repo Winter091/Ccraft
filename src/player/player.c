@@ -1,12 +1,12 @@
-#include "player.h"
+#include <player/player.h>
 
-#include "block.h"
-#include "utils.h"
-#include "map.h"
-#include "shader.h"
-#include "texture.h"
-#include "db.h"
-#include "window.h"
+#include <map/block.h>
+#include <utils.h>
+#include <map/map.h>
+#include <shader.h>
+#include <texture.h>
+#include <db.h>
+#include <window.h>
 
 // Update VAO & VBO to match current build block
 static void regenerate_item_buffer(Player* p)

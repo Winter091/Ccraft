@@ -1,10 +1,10 @@
-#include "framebuffer.h"
+#include <framebuffer.h>
 
-#include "stdio.h"
+#include <stdio.h>
 
-#include "utils.h"
-#include "texture.h"
-#include "window.h"
+#include <utils.h>
+#include <texture.h>
+#include <window.h>
 
 static void fb_callback(void* this_object, int new_width, int new_height)
 {

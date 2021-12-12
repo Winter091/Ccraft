@@ -1,10 +1,10 @@
-#include "window.h"
+#include <window.h>
 
-#include "stdio.h"
-#include "stdlib.h"
+#include <stdio.h>
+#include <stdlib.h>
 
-#include "config.h"
-#include "framebuffer.h"
+#include <config.h>
+#include <framebuffer.h>
 
 Window* g_window;
 

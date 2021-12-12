@@ -1,9 +1,10 @@
 #ifndef PLAYER_H_
 #define PLAYER_H_
 
-#include "camera.h"
-#include "cglm/cglm.h"
-#include "glad/glad.h"
+#include <cglm/cglm.h>
+#include <glad/glad.h>
+
+#include <camera/camera.h>
 
 typedef struct
 {

@@ -1,12 +1,13 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
-#include "stdlib.h"
-#include "string.h"
+#include <stdlib.h>
+#include <string.h>
 
-#include "cglm/cglm.h"
-#include "glad/glad.h"
-#include "config.h"
+#include <cglm/cglm.h>
+#include <glad/glad.h>
+
+#include <config.h>
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(__WINDOWS__)
     #define PLATFORM_WINDOWS

@@ -1,13 +1,13 @@
-#include "ui.h"
+#include <ui.h>
 
-#include "stdlib.h"
+#include <stdlib.h>
 
-#include "utils.h"
-#include "shader.h"
-#include "config.h"
-#include "block.h"
-#include "map.h"
-#include "window.h"
+#include <utils.h>
+#include <shader.h>
+#include <config.h>
+#include <map/block.h>
+#include <map/map.h>
+#include <window.h>
 
 typedef struct
 {

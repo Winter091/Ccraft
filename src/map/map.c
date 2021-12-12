@@ -1,17 +1,18 @@
-#include "map.h"
+#include <map/map.h>
 
-#include "stdlib.h"
-#include "limits.h"
-#include "math.h"
+#include <stdlib.h>
+#include <limits.h>
+#include <math.h>
 
-#include "shader.h"
-#include "texture.h"
-#include "fastnoiselite.h"
-#include "utils.h"
-#include "db.h"
-#include "block.h"
-#include "thread_worker.h"
-#include "window.h"
+#include <fastnoiselite.h>
+
+#include <shader.h>
+#include <texture.h>
+#include <utils.h>
+#include <db.h>
+#include <map/block.h>
+#include <map/thread_worker.h>
+#include <window.h>
 
 // Define data structures for chunks
 LINKEDLIST_DECLARATION(Chunk*, chunks);

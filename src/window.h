@@ -2,13 +2,13 @@
 #define WINDOW_H_
 
 #define GLFW_INCLUDE_NONE
-#include "GLFW/glfw3.h"
+#include <GLFW/glfw3.h>
 
-#include "camera.h"
-#include "map.h"
-#include "ui.h"
-#include "player.h"
-#include "framebuffer.h"
+#include <camera/camera.h>
+#include <map/map.h>
+#include <ui.h>
+#include <player/player.h>
+#include <framebuffer.h>
 
 typedef void (*on_framebuffer_size_change)(void* this_object, int new_width, int new_height);
 typedef void (*on_keyboard_key_press)(void* this_object, int glfw_keycode, int glfw_action_code);

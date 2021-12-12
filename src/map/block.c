@@ -1,4 +1,4 @@
-#include "block.h"
+#include <map/block.h>
 
 unsigned char block_textures[][6] = 
 {

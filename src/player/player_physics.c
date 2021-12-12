@@ -1,7 +1,8 @@
-#include "player_physics.h"
-#include "map.h"
-#include "block.h"
-#include "utils.h"
+#include <player/player_physics.h>
+
+#include <map/map.h>
+#include <map/block.h>
+#include <utils.h>
 
 #define FOREACH_SOLID_BLOCK_AROUND()                            \
 for (int y = -3; y <= 3; y++)                                   \

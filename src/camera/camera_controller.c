@@ -1,10 +1,11 @@
-#include "camera_controller.h"
+#include <camera/camera_controller.h>
 
-#include "assert.h"
-#include "string.h"
-#include "time_measure.h"
-#include "config.h"
-#include "window.h"
+#include <assert.h>
+
+#include <string.h>
+#include <time_measure.h>
+#include <config.h>
+#include <window.h>
 
 CameraController* cameracontroller_create(Camera* camera)
 {

@@ -1,14 +1,14 @@
 #ifndef CHUNK_H_
 #define CHUNK_H_
 
-#include "stdlib.h"
+#include <stdlib.h>
 
-#include "cglm/cglm.h"
-#include "glad/glad.h"
-#include "tinycthread.h"
+#include <cglm/cglm.h>
+#include <glad/glad.h>
+#include <tinycthread.h>
 
-#include "utils.h"
-#include "config.h"
+#include <utils.h>
+#include <config.h>
 
 // Access block by 3 coords from 1-dimensional array
 #define XYZ(x, y, z)   (((x) + 1) * CHUNK_WIDTH_REAL * CHUNK_HEIGHT_REAL) \

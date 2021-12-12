@@ -1,8 +1,8 @@
 #ifndef SHADER_H_
 #define SHADER_H_
 
-#include "glad/glad.h"
-#include "cglm/cglm.h"
+#include <glad/glad.h>
+#include <cglm/cglm.h>
 
 // Global variables for other files to access
 extern GLuint shader_block;

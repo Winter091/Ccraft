@@ -2,11 +2,11 @@
 #define PLAYER_CONTROLLER_H_
 
 #define GLFW_INCLUDE_NONE
-#include "GLFW/glfw3.h"
+#include <GLFW/glfw3.h>
 
-#include "player.h"
-#include "block.h"
-#include "map.h"
+#include <player/player.h>
+#include <map/block.h>
+#include <map/map.h>
 
 typedef struct
 {

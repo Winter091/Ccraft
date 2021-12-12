@@ -1,9 +1,9 @@
 #ifndef CAMERA_H_
 #define CAMERA_H_
 
-#include "cglm/cglm.h"
+#include <cglm/cglm.h>
 #define GLFW_INCLUDE_NONE
-#include "GLFW/glfw3.h"
+#include <GLFW/glfw3.h>
 
 // void on_mouse_update(CamBase* cam, double dx, double dy, vec3 desired_pos_out, vec3 desired_front_out)
 // void on_kb_update(CamBase* cam, vec3 desired_pos_out, vec3 desired_front_out)

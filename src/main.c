@@ -1,19 +1,19 @@
-#include "stdio.h"
-#include "stdlib.h"
+#include <stdio.h>
+#include <stdlib.h>
 
-#include "glad/glad.h"
-#define GLFW_INCLUDE_NONE
-#include "GLFW/glfw3.h"
-#include "cglm/cglm.h"
+#include <glad/glad.h>
+#define  GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+#include <cglm/cglm.h>
 
-#include "config.h"
-#include "shader.h"
-#include "window.h"
-#include "texture.h"
-#include "db.h"
-#include "time_measure.h"
-#include "player_controller.h"
-#include "camera_controller.h"
+#include <config.h>
+#include <shader.h>
+#include <window.h>
+#include <texture.h>
+#include <db.h>
+#include <time_measure.h>
+#include <player/player_controller.h>
+#include <camera/camera_controller.h>
 
 // Print OpenGL warnings and errors
 static void opengl_debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity,

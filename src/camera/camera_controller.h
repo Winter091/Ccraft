@@ -1,8 +1,9 @@
 #ifndef CAMERA_CONTROLLER_H_
 #define CAMERA_CONTROLLER_H_
 
-#include "cglm/cglm.h"
-#include "camera.h"
+#include <cglm/cglm.h>
+
+#include <camera/camera.h>
 
 typedef struct 
 {
