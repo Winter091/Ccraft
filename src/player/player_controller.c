@@ -104,15 +104,6 @@ static void pc_on_mouse_button_callback(void* this_object, int glfw_keycode, int
         on_right_mouse_button(pc);
 }
 
-static float loop_between(float var, float min, float max)
-{
-    if (var > max)
-        return min + (var - max);
-    if (var < min)
-        return max - (min - var);
-    return var;
-}
-
 static void update_dir(PlayerController* pc)
 {
     if (!pc->is_controlling)

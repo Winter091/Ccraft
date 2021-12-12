@@ -79,6 +79,15 @@ static inline void my_glm_ivec3_set(ivec3 vec, int i0, int i1, int i2)
     vec[2] = i2;
 }
 
+static inline float loop_between(float var, float min, float max)
+{
+    if (var > max)
+        return min + (var - max);
+    if (var < min)
+        return max - (min - var);
+    return var;
+}
+
 static inline int chunked_block(int world_block_coord)
 {
     if (world_block_coord >= 0) 
