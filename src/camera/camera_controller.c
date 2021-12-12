@@ -27,6 +27,7 @@ CameraController* cameracontroller_create(Camera* camera)
     assert(camera);
     cc->camera = camera;
     cc->is_controlling = 1;
+    cc->fly_speed = 20.0f * BLOCK_SIZE;
 
     memset(&cc->tracked_object_info, 0, sizeof(ObjectLocationInfo));
     cc->is_tracking = 0;
@@ -62,28 +63,24 @@ void cameracontroller_set_update_func(CameraController* cc, camera_update_func f
     cc->update_func = func;
 }
 
-static void do_kb_input(CameraController* cc)
+static void update_fly_speed(CameraController* cc)
 {
-    Camera* cam = cc->camera;
-
     int const key_pageup   = window_is_key_pressed(GLFW_KEY_PAGE_UP);
     int const key_pagedown = window_is_key_pressed(GLFW_KEY_PAGE_DOWN);
     float const dt = dt_get();
 
-    // Handle fly speed
     if (key_pageup)
-        cam->fly_speed *= (1.0f + dt);
+        cc->fly_speed *= (1.0f + dt);
     else if (key_pagedown)
-        cam->fly_speed /= (1.0f + dt);
+        cc->fly_speed /= (1.0f + dt);
 }
 
 void cameracontroller_do_control(CameraController* cc)
 {
-    assert(cc->update_func);
-
     glm_vec3_copy(cc->camera->pos, cc->camera->prev_pos);
-    do_kb_input(cc);
+    update_fly_speed(cc);
 
+    assert(cc->update_func);
     cc->update_func(cc);
 
     camera_update_matrices(cc->camera);

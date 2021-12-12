@@ -22,6 +22,7 @@ typedef struct
 {
     Camera* camera;
     int is_controlling;
+    float fly_speed;
 
     ObjectLocationInfo tracked_object_info;
     int is_tracking;

@@ -21,7 +21,6 @@ typedef struct
 
     int fov;
     float sens;
-    float fly_speed;
 
     float clip_near;
     float clip_far;

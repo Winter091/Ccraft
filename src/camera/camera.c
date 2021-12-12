@@ -32,7 +32,6 @@ Camera* camera_create(vec3 pos, float pitch, float yaw, vec3 front)
 
     cam->fov = FOV;
     cam->sens = MOUSE_SENS;
-    cam->fly_speed = 20.0f * BLOCK_SIZE;
 
     cam->clip_near = BLOCK_SIZE / 10.0f;
     cam->clip_far = MAX((CHUNK_RENDER_RADIUS * 1.2f) * CHUNK_SIZE,
