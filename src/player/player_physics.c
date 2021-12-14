@@ -4,18 +4,18 @@
 #include <map/block.h>
 #include <utils.h>
 
-#define FOREACH_SOLID_BLOCK_AROUND()                            \
+#define FOREACH_SOLID_BLOCK_AROUND(PX, PY, PZ)                  \
 for (int y = -3; y <= 3; y++)                                   \
 {                                                               \
-    int by = cam_y + y;                                         \
+    int by = PY + y;                                            \
     if (by < 0 || by >= CHUNK_HEIGHT)                           \
         continue;                                               \
                                                                 \
     for (int x = -3; x <= 3; x++)                               \
     for (int z = -3; z <= 3; z++)                               \
     {                                                           \
-        int bx = cam_x + x;                                     \
-        int bz = cam_z + z;                                     \
+        int bx = PX + x;                                        \
+        int bz = PZ + z;                                        \
                                                                 \
         unsigned char block = map_get_block(bx, by, bz);        \
         if (!block_is_solid(block) || block_is_plant(block))    \
@@ -68,14 +68,13 @@ static void collision_z(Player* p, vec3 block_hitbox[2])
 static int collide_one_axis(void (*collision_handler)
                             (Player*, vec3 block_hitbox[2]), Player* p)
 {
-    // TODO: Fix namings
-    int cam_x = (int)blocked(p->pos[0]);
-    int cam_y = (int)blocked(p->pos[1]);
-    int cam_z = (int)blocked(p->pos[2]);
+    int player_x = (int)blocked(p->pos[0]);
+    int player_y = (int)blocked(p->pos[1]);
+    int player_z = (int)blocked(p->pos[2]);
 
     player_update_hitbox(p);
 
-    FOREACH_SOLID_BLOCK_AROUND()
+    FOREACH_SOLID_BLOCK_AROUND(player_x, player_y, player_z)
         if (aabb_collide(p->hitbox, block_hitbox))
         {
             collision_handler(p, block_hitbox);

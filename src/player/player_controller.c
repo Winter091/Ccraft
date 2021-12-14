@@ -32,15 +32,14 @@ static void on_left_mouse_button(PlayerController* pc)
 static void find_best_spot_to_place_block(Player* player, int x, int y, int z, int* best_x, 
                                           int* best_y, int* best_z, float* best_dist)
 {
-    // TODO: Fix namings
-    float cam_x = blocked(player->pos[0]);
-    float cam_y = blocked(player->pos[1]);
-    float cam_z = blocked(player->pos[2]);
+    float player_x = blocked(player->pos[0]);
+    float player_y = blocked(player->pos[1]);
+    float player_z = blocked(player->pos[2]);
     
     if (camera_looks_at_block(player->pos, player->front, x, y, z, BLOCK_AIR) 
         && !block_is_solid(map_get_block(x, y, z)))
     {
-        float dist = block_player_dist2(x, y, z, cam_x, cam_y, cam_z);
+        float dist = block_player_dist2(x, y, z, player_x, player_y, player_z);
         if (dist < *best_dist)
         {
             *best_dist = dist;

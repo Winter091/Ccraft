@@ -100,11 +100,22 @@ void player_update_hitbox(Player* p)
     p->hitbox[1][2] = p->pos[2] + BLOCK_SIZE * 0.3f;
 }
 
+static void player_put_on_ground_level(Player* p)
+{
+    int bx = CHUNK_WIDTH / 2;
+    int bz = CHUNK_WIDTH / 2;
+    int by = map_get_highest_block(bx, bz);
+
+    p->pos[0] = bx * BLOCK_SIZE + BLOCK_SIZE / 2;
+    p->pos[1] = by * BLOCK_SIZE + BLOCK_SIZE * 3;
+    p->pos[2] = bz * BLOCK_SIZE + BLOCK_SIZE / 2;
+    player_update_hitbox(p);
+}
+
 Player* player_create()
 {
     Player* p = malloc(sizeof(Player));
 
-    // TODO: Think about starting values
     my_glm_vec3_set(p->front, 1.0f, 0.0f, 1.0f);
     my_glm_vec3_set(p->up, 0.0f, 1.0f, 0.0f);
     my_glm_vec3_set(p->speed, 0.0f, 0.0f, 0.0f);
@@ -117,22 +128,14 @@ Player* player_create()
     my_glm_ivec3_set(p->block_pointed_at, 0, 0, 0);
 
     glm_vec3_fill(p->pos, 0.0f);
-    int db_has_entry = db_has_player_info();
-    if (db_has_entry)
+    int is_player_in_db = db_has_player_info();
+    if (is_player_in_db)
         db_load_player_info(p);
 
     map_force_chunks_near_player(p->pos);
 
-    // Put player on ground level
-    if (!db_has_entry)
-    {
-        int bx = CHUNK_WIDTH / 2;
-        int bz = CHUNK_WIDTH / 2;
-        int by = map_get_highest_block(bx, bz);
-        p->pos[0] = bx * BLOCK_SIZE + BLOCK_SIZE / 2;
-        p->pos[1] = by * BLOCK_SIZE + BLOCK_SIZE * 3;
-        p->pos[2] = bz * BLOCK_SIZE + BLOCK_SIZE / 2;
-    }
+    if (!is_player_in_db)
+        player_put_on_ground_level(p);
 
     player_update_hitbox(p);
 
@@ -226,14 +229,13 @@ void player_set_build_block(Player* p, int new_block)
 
 static void check_if_in_water(Player* p)
 {
-    // TODO: Fix namings
-    int cam_x = (int)blocked(p->pos[0]);
-    int cam_y = (int)blocked(p->pos[1]);
-    int cam_z = (int)blocked(p->pos[2]);
+    int player_x = (int)blocked(p->pos[0]);
+    int player_y = (int)blocked(p->pos[1]);
+    int player_z = (int)blocked(p->pos[2]);
 
     for (int y = -1; y <= 1; y++)
     {
-        int by = cam_y + y;
+        int by = player_y + y;
         
         if (by < 0 || by >= CHUNK_HEIGHT)
             continue;
@@ -241,8 +243,8 @@ static void check_if_in_water(Player* p)
         for (int x = -1; x <= 1; x++)
         for (int z = -1; z <= 1; z++)
         {
-            int bx = cam_x + x;
-            int bz = cam_z + z;
+            int bx = player_x + x;
+            int bz = player_z + z;
             
             unsigned char block = map_get_block(bx, by, bz);
             if (block != BLOCK_WATER)
