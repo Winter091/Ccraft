@@ -36,8 +36,6 @@ Camera;
 
 Camera* camera_create(vec3 pos, float pitch, float yaw, vec3 front);
 
-int camera_looks_at_block(vec3 pos, vec3 front, int x, int y, int z, unsigned char block_type);
-
 void camera_update_view_dir(Camera* cam);
 
 void camera_update_parameters(Camera* cam, float dt);

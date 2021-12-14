@@ -180,7 +180,7 @@ static void update_block_pointing_at(Player* p)
             if (!block_is_solid(block))
                 continue;
             
-            if (camera_looks_at_block(p->pos, p->front, x, y, z, block))
+            if (block_ray_intersection(p->pos, p->front, x, y, z, block))
             {
                 float distance = block_player_dist2(x, y, z, cam_x, cam_y, cam_z);
                 if (distance < best_dist)

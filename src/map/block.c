@@ -67,6 +67,8 @@ void gen_cube_vertices(Vertex* vertices, int* curr_vertex_count, int x, int y, i
         { {0, 0, a}, {0, 1, a}, {1, 0, a}, {1, 1, a} }, // back
         { {0, 0, b}, {0, 1, b}, {1, 0, b}, {1, 1, b} }  // front
     };
+#undef a
+#undef b
 
     static const int indices[6][6] =
     {
@@ -237,4 +239,49 @@ int block_is_plant(unsigned char block)
         default:
             return 0;
     }
+}
+
+// ray - aabb hit detection, see
+// https://medium.com/@bromanz/another-view-on-the-classic-ray-aabb-intersection-algorithm-for-bvh-traversal-41125138b525
+int block_ray_intersection(vec3 ray_pos, vec3 ray_dir, int bx, int by, int bz, unsigned char b_type)
+{
+    vec3 min = { bx * BLOCK_SIZE, by * BLOCK_SIZE, bz * BLOCK_SIZE };
+    vec3 max = { min[0] + BLOCK_SIZE, min[1] + BLOCK_SIZE, min[2] + BLOCK_SIZE };
+
+    // make hitbox smaller
+    if (block_is_plant(b_type))
+    {
+        float a = BLOCK_SIZE * 0.25f;
+        min[0] += a;
+        min[2] += a;
+        max[0] -= a;
+        max[1] -= 2 * a;
+        max[2] -= a;
+    }
+
+    float tmin = 0.00001f;
+    float tmax = 10000.0f;
+
+    vec3 invD;
+    for (int i = 0; i < 3; i++)
+        invD[i] = 1.0f / ray_dir[i];
+
+    vec3 t0s;
+    for (int i = 0; i < 3; i++)
+        t0s[i] = (min[i] - ray_pos[i]) * invD[i];
+
+    vec3 t1s;
+    for (int i = 0; i < 3; i++)
+        t1s[i] = (max[i] - ray_pos[i]) * invD[i];
+
+    vec3 tsmaller = {0};
+    glm_vec3_minadd(t0s, t1s, tsmaller);
+
+    vec3 tbigger = {0};
+    glm_vec3_maxadd(t0s, t1s, tbigger);
+
+    tmin = MAX(tmin, MAX(tsmaller[0], MAX(tsmaller[1], tsmaller[2])));
+    tmax = MIN(tmax, MIN(tbigger[0], MIN(tbigger[1], tbigger[2])));
+
+    return (tmin < tmax);
 }

@@ -36,7 +36,7 @@ static void find_best_spot_to_place_block(Player* player, int x, int y, int z, i
     float player_y = blocked(player->pos[1]);
     float player_z = blocked(player->pos[2]);
     
-    if (camera_looks_at_block(player->pos, player->front, x, y, z, BLOCK_AIR) 
+    if (block_ray_intersection(player->pos, player->front, x, y, z, BLOCK_AIR) 
         && !block_is_solid(map_get_block(x, y, z)))
     {
         float dist = block_player_dist2(x, y, z, player_x, player_y, player_z);

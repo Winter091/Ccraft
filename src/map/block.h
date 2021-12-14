@@ -67,4 +67,8 @@ int block_is_plant(unsigned char block);
 
 void block_gen_aabb(int x, int y, int z, vec3 aabb[2]);
 
+// ray - aabb hit detection, see
+// https://medium.com/@bromanz/another-view-on-the-classic-ray-aabb-intersection-algorithm-for-bvh-traversal-41125138b525
+int block_ray_intersection(vec3 ray_pos, vec3 ray_dir, int bx, int by, int bz, unsigned char b_type);
+
 #endif
