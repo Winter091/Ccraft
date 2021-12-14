@@ -1,19 +1,17 @@
 #ifndef CAMERA_H_
 #define CAMERA_H_
 
-#include "cglm/cglm.h"
+#include <cglm/cglm.h>
 #define GLFW_INCLUDE_NONE
-#include "GLFW/glfw3.h"
+#include <GLFW/glfw3.h>
+
+// void on_mouse_update(CamBase* cam, double dx, double dy, vec3 desired_pos_out, vec3 desired_front_out)
+// void on_kb_update(CamBase* cam, vec3 desired_pos_out, vec3 desired_front_out)
 
 typedef struct
-{
-    int is_active;
-    int is_fly_mode;
-    int is_first_frame;
-
+{    
     vec3 pos;
     vec3 prev_pos;
-    vec3 speed;
 
     vec3 front;
     vec3 up;
@@ -23,10 +21,6 @@ typedef struct
 
     int fov;
     float sens;
-    float fly_speed;
-
-    float mouse_last_x;
-    float mouse_last_y;
 
     float clip_near;
     float clip_far;
@@ -40,9 +34,7 @@ typedef struct
 }
 Camera;
 
-Camera* camera_create();
-
-int camera_looks_at_block(Camera* cam, int x, int y, int z, unsigned char block_type);
+Camera* camera_create(vec3 pos, float pitch, float yaw, vec3 front);
 
 void camera_update_view_dir(Camera* cam);
 

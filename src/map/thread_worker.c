@@ -1,5 +1,6 @@
-#include "thread_worker.h"
-#include "map.h"
+#include <map/thread_worker.h>
+
+#include <map/map.h>
 
 int worker_loop(void* _data)
 {

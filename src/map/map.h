@@ -1,12 +1,13 @@
 #ifndef MAP_H_
 #define MAP_H_
 
-#include "chunk.h"
-#include "linked_list.h"
-#include "hashmap.h"
-#include "camera.h"
-#include "player.h"
-#include "glad/glad.h"
+#include <glad/glad.h>
+
+#include <linked_list.h>
+#include <hashmap.h>
+#include <map/chunk.h>
+#include <camera/camera.h>
+#include <player/player.h>
 
 void map_init();
 
@@ -20,7 +21,7 @@ void map_render_chunks(Camera* cam, mat4 near_shadowmap_mat, mat4 far_shadowmap_
 
 void map_render_chunks_raw(vec4 frustum_planes[6]);
 
-void map_force_chunks_near_player(Camera* cam);
+void map_force_chunks_near_player(vec3 curr_pos);
 
 void map_set_block(int x, int y, int z, unsigned char block);
 

@@ -1,7 +1,7 @@
 #ifndef FRAMEBUFFER_H_
 #define FRAMEBUFFER_H_
 
-#include "glad/glad.h"
+#include <glad/glad.h>
 
 typedef enum
 {

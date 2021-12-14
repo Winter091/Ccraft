@@ -1,9 +1,16 @@
-#include "framebuffer.h"
+#include <framebuffer.h>
 
-#include "stdio.h"
+#include <stdio.h>
 
-#include "utils.h"
-#include "texture.h"
+#include <utils.h>
+#include <texture.h>
+#include <window.h>
+
+static void fb_callback(void* this_object, int new_width, int new_height)
+{
+    Framebuffers* fb = (Framebuffers*)this_object;
+    framebuffers_rebuild(fb, new_width, new_height);
+}
 
 static void create_gbuf(Framebuffers* fb, int window_w, int window_h)
 {
@@ -38,6 +45,8 @@ static void delete_gbuf(Framebuffers* fb)
 Framebuffers* framebuffers_create(int window_w, int window_h)
 {
     Framebuffers* fb = malloc(sizeof(Framebuffers));
+
+    register_framebuffer_size_change_callback(fb, fb_callback);
 
     // 0 is default-created fbo which is 
     // bound to glfw window

@@ -1,14 +1,80 @@
-#include "window.h"
+#include <window.h>
 
-#include "stdio.h"
-#include "stdlib.h"
+#include <stdio.h>
+#include <stdlib.h>
 
-#include "config.h"
-#include "framebuffer.h"
+#include <config.h>
+#include <framebuffer.h>
 
 Window* g_window;
 
-static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+typedef struct
+{
+    void* object;
+    void* callback_func;
+}
+UserCallbackEntry;
+
+
+#define MAX_CALLBACKS 16
+
+typedef struct
+{
+    UserCallbackEntry entries[MAX_CALLBACKS];
+    size_t size;
+}
+UserCallbackArray;
+
+
+static UserCallbackArray framebuffer_callbacks;
+static UserCallbackArray keyboard_key_callbacks;
+static UserCallbackArray mouse_button_callbacks;
+static UserCallbackArray mouse_scroll_callbacks;
+
+
+void register_framebuffer_size_change_callback(void* this_object, on_framebuffer_size_change user_callback)
+{
+    if (framebuffer_callbacks.size == MAX_CALLBACKS - 1)
+        assert(false), "Max callbacks number is reached";
+    
+    UserCallbackEntry* curr_entry = &framebuffer_callbacks.entries[framebuffer_callbacks.size++];
+    curr_entry->object = this_object;
+    curr_entry->callback_func = user_callback;
+}
+
+void register_keyboard_key_press_callback(void* this_object, on_keyboard_key_press user_callback)
+{
+    if (keyboard_key_callbacks.size == MAX_CALLBACKS - 1)
+        assert(false), "Max callbacks number is reached";
+    
+    UserCallbackEntry* curr_entry = &keyboard_key_callbacks.entries[keyboard_key_callbacks.size++];
+    curr_entry->object = this_object;
+    curr_entry->callback_func = user_callback;
+}
+
+void register_mouse_button_key_press_callback(void* this_object, on_mouse_button_key_press user_callback)
+{
+    if (mouse_button_callbacks.size == MAX_CALLBACKS - 1)
+        assert(false), "Max callbacks number is reached";
+    
+    UserCallbackEntry* curr_entry = &mouse_button_callbacks.entries[mouse_button_callbacks.size++];
+    curr_entry->object = this_object;
+    curr_entry->callback_func = user_callback;
+}
+
+void register_mouse_scroll_callback(void* this_object, on_mouse_scroll user_callback)
+{
+    if (mouse_scroll_callbacks.size == MAX_CALLBACKS - 1)
+        assert(false), "Max callbacks number is reached";
+    
+    UserCallbackEntry* curr_entry = &mouse_scroll_callbacks.entries[mouse_scroll_callbacks.size++];
+    curr_entry->object = this_object;
+    curr_entry->callback_func = user_callback;
+}
+
+
+/*
+static void glfw_framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
     GameObjectRefs* game = glfwGetWindowUserPointer(window);
     Player* p = game->player;
@@ -23,7 +89,7 @@ static void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     if (action == GLFW_RELEASE)
         return;
@@ -40,7 +106,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     };
 }
 
-static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+static void glfw_mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
     if (action != GLFW_PRESS)
         return;
@@ -72,7 +138,7 @@ static void mouse_button_callback(GLFWwindow* window, int button, int action, in
     };
 }
 
-static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+static void glfw_scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     GameObjectRefs* game = glfwGetWindowUserPointer(window);
     Player* p = game->player;
@@ -81,6 +147,73 @@ static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
         player_set_build_block(p, p->build_block + 1);
     else
         player_set_build_block(p, p->build_block - 1);
+}
+*/
+
+static void set_focused(int is_focused)
+{
+    g_window->is_focused = is_focused;
+    
+    const int cursor_mode = is_focused ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL;
+    glfwSetInputMode(g_window->glfw, GLFW_CURSOR, cursor_mode);
+}
+
+static void glfw_framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+    g_window->width  = width;
+    g_window->height = height;
+    glViewport(0, 0, width, height);
+
+    for (int i = 0; i < framebuffer_callbacks.size; i++)
+    {
+        UserCallbackEntry* entry = &framebuffer_callbacks.entries[i];
+        ((on_framebuffer_size_change)entry->callback_func)(entry->object, width, height);
+    }
+}
+
+static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+    if (!g_window->is_focused)
+        return;
+    
+    switch (key)
+    {
+        case GLFW_KEY_ESCAPE:
+            set_focused(0);
+    };
+    
+    for (int i = 0; i < keyboard_key_callbacks.size; i++)
+    {
+        UserCallbackEntry* entry = &keyboard_key_callbacks.entries[i];
+        ((on_keyboard_key_press)entry->callback_func)(entry->object, key, action);
+    }
+}
+
+static void glfw_mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+    if (action == GLFW_PRESS) 
+        set_focused(1);
+
+    if (!g_window->is_focused)
+        return;
+    
+    for (int i = 0; i < mouse_button_callbacks.size; i++)
+    {
+        UserCallbackEntry* entry = &mouse_button_callbacks.entries[i];
+        ((on_mouse_button_key_press)entry->callback_func)(entry->object, button, action);
+    }
+}
+
+static void glfw_scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    if (!g_window->is_focused)
+        return;
+    
+    for (int i = 0; i < mouse_scroll_callbacks.size; i++)
+    {
+        UserCallbackEntry* entry = &mouse_scroll_callbacks.entries[i];
+        ((on_mouse_scroll)entry->callback_func)(entry->object, (float)xoffset, (float)yoffset);
+    }
 }
 
 void window_init()
@@ -137,15 +270,17 @@ void window_init()
     glfwSwapInterval(VSYNC);
 
     // Set callbacks
-    glfwSetFramebufferSizeCallback(g_window->glfw, framebuffer_size_callback);
-    glfwSetKeyCallback(g_window->glfw, key_callback);
-    glfwSetMouseButtonCallback(g_window->glfw, mouse_button_callback);
-    glfwSetScrollCallback(g_window->glfw, scroll_callback);
+    glfwSetFramebufferSizeCallback(g_window->glfw, glfw_framebuffer_size_callback);
+    glfwSetKeyCallback(g_window->glfw, glfw_key_callback);
+    glfwSetMouseButtonCallback(g_window->glfw, glfw_mouse_button_callback);
+    glfwSetScrollCallback(g_window->glfw, glfw_scroll_callback);
 
     g_window->fb = NULL;
 
     g_window->width  = WINDOW_WIDTH;
     g_window->height = WINDOW_HEIGHT;
+
+    g_window->is_focused = 1;
 }
 
 void window_init_fb()
@@ -181,6 +316,11 @@ void window_update_title_fps()
         num_frames = 0;
         last_time = curr_time;
     }
+}
+
+void window_poll_events()
+{
+    glfwPollEvents();
 }
 
 void window_free()

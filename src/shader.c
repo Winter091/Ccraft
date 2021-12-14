@@ -1,9 +1,9 @@
-#include "shader.h"
+#include <shader.h>
 
-#include "stdio.h"
-#include "stdlib.h"
+#include <stdio.h>
+#include <stdlib.h>
 
-#include "texture.h"
+#include <texture.h>
 
 GLuint shader_block;
 GLuint shader_line;
@@ -143,8 +143,8 @@ void shaders_init()
 static GLint get_attrib_location(GLuint shader, char* name)
 {
     GLint location = glGetUniformLocation(shader, name);
-    //if (location == -1)
-    //    fprintf(stderr, "Shader attrib location is -1: %s\n", name);
+    if (location == -1)
+       fprintf(stderr, "Shader attrib location is -1: %s\n", name);
     return location;
 }
 

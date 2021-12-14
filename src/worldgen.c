@@ -1,11 +1,11 @@
-#include "worldgen.h"
+#include <worldgen.h>
 
-#include "assert.h"
-#include "stdlib.h"
+#include <assert.h>
+#include <stdlib.h>
 
-#include "config.h"
-#include "block.h"
-#include "noise_generator.h"
+#include <config.h>
+#include <map/block.h>
+#include <noise_generator.h>
 
 static const int water_level = 50;
 

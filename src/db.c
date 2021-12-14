@@ -1,13 +1,14 @@
-#include "db.h"
+#include <db.h>
 
-#include "stdio.h"
-#include "string.h"
-#include "assert.h"
+#include <stdio.h>
+#include <string.h>
+#include <assert.h>
 
-#include "tinycthread.h"
-#include "sqlite3.h"
-#include "config.h"
-#include "map.h"
+#include <tinycthread.h>
+#include <sqlite3.h>
+
+#include <config.h>
+#include <map/map.h>
 
 static sqlite3* db;
 static int s_has_player_info;
@@ -189,11 +190,11 @@ void db_save_player_info(Player* p)
         );
     }
 
-    sqlite3_bind_double(stmt, 1, p->cam->pos[0]);
-    sqlite3_bind_double(stmt, 2, p->cam->pos[1]);
-    sqlite3_bind_double(stmt, 3, p->cam->pos[2]);
-    sqlite3_bind_double(stmt, 4, p->cam->pitch);
-    sqlite3_bind_double(stmt, 5, p->cam->yaw);
+    sqlite3_bind_double(stmt, 1, p->pos[0]);
+    sqlite3_bind_double(stmt, 2, p->pos[1]);
+    sqlite3_bind_double(stmt, 3, p->pos[2]);
+    sqlite3_bind_double(stmt, 4, p->pitch);
+    sqlite3_bind_double(stmt, 5, p->yaw);
     sqlite3_bind_int(stmt, 6, p->build_block);
 
     sqlite3_step(stmt);
@@ -213,11 +214,11 @@ void db_load_player_info(Player* p)
     sqlite3_reset(stmt);
     sqlite3_step(stmt);
 
-    p->cam->pos[0] = sqlite3_column_double(stmt, 0);
-    p->cam->pos[1] = sqlite3_column_double(stmt, 1);
-    p->cam->pos[2] = sqlite3_column_double(stmt, 2);
-    p->cam->pitch  = sqlite3_column_double(stmt, 3);
-    p->cam->yaw    = sqlite3_column_double(stmt, 4);
+    p->pos[0] = sqlite3_column_double(stmt, 0);
+    p->pos[1] = sqlite3_column_double(stmt, 1);
+    p->pos[2] = sqlite3_column_double(stmt, 2);
+    p->pitch  = sqlite3_column_double(stmt, 3);
+    p->yaw    = sqlite3_column_double(stmt, 4);
     p->build_block = sqlite3_column_int(stmt, 5);
 
     sqlite3_finalize(stmt);

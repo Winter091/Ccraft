@@ -1,11 +1,13 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
-#include "stdlib.h"
+#include <stdlib.h>
+#include <string.h>
 
-#include "cglm/cglm.h"
-#include "glad/glad.h"
-#include "config.h"
+#include <cglm/cglm.h>
+#include <glad/glad.h>
+
+#include <config.h>
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(__WINDOWS__)
     #define PLATFORM_WINDOWS
@@ -77,6 +79,15 @@ static inline void my_glm_ivec3_set(ivec3 vec, int i0, int i1, int i2)
     vec[2] = i2;
 }
 
+static inline float loop_between(float var, float min, float max)
+{
+    if (var > max)
+        return min + (var - max);
+    if (var < min)
+        return max - (min - var);
+    return var;
+}
+
 static inline int chunked_block(int world_block_coord)
 {
     if (world_block_coord >= 0) 
@@ -130,6 +141,14 @@ static inline const char* my_strdup(const char* src)
     const char* new_str = malloc(buf_size);
     memcpy((void*)new_str, src, buf_size);
     return new_str;
+}
+
+// Almost like glm_aabb_aabb(), but >= and <= are replaced with > and <
+static inline int aabb_collide(vec3 box[2], vec3 other[2]) 
+{
+    return (box[0][0] < other[1][0] && box[1][0] > other[0][0])
+        && (box[0][1] < other[1][1] && box[1][1] > other[0][1])
+        && (box[0][2] < other[1][2] && box[1][2] > other[0][2]);
 }
 
 #endif

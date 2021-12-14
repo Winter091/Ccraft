@@ -25,15 +25,15 @@ uniform mat4 u_near_shadowmap_mat;
 uniform mat4 u_far_shadowmap_mat;
 // =================================
 
-const vec3 normals[7] = {
-    { -1.0,  0.0,  0.0 }, // 0 left
-    {  1.0,  0.0,  0.0 }, // 1 right
-    {  0.0,  1.0,  0.0 }, // 2 top
-    {  0.0, -1.0,  0.0 }, // 3 bottom
-    {  0.0,  0.0, -1.0 }, // 4 back
-    {  0.0,  0.0,  1.0 }, // 5 front
-    {  1.0,  1.0,  1.0 }  // 6 undefined
-};
+const vec3 normals[7] = vec3[](
+    vec3(-1.0,  0.0,  0.0), // 0 left
+    vec3( 1.0,  0.0,  0.0), // 1 right
+    vec3( 0.0,  1.0,  0.0), // 2 top
+    vec3( 0.0, -1.0,  0.0), // 3 bottom
+    vec3( 0.0,  0.0, -1.0), // 4 back
+    vec3( 0.0,  0.0,  1.0), // 5 front
+    vec3( 1.0,  1.0,  1.0)  // 6 undefined
+);
 
 void main()
 {

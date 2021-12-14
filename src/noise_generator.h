@@ -1,7 +1,7 @@
 #ifndef NOISE_GENERATOR_H_
 #define NOISE_GENERATOR_H_
 
-#include "fastnoiselite.h"
+#include <fastnoiselite.h>
 
 // Very simple thread-safe rand()
 unsigned my_rand(unsigned* prev_value);

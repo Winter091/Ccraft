@@ -1,11 +1,12 @@
-#include "config.h"
+#include <config.h>
 
-#include "stdio.h"
-#include "string.h"
-#include "stdlib.h"
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
-#include "ini.h"
-#include "utils.h"
+#include <ini.h>
+
+#include <utils.h>
 
 // [GRAPHICS] (default values)
 int   CHUNK_RENDER_RADIUS      = 16;

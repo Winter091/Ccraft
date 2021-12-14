@@ -1,17 +1,18 @@
-#include "map.h"
+#include <map/map.h>
 
-#include "stdlib.h"
-#include "limits.h"
-#include "math.h"
+#include <stdlib.h>
+#include <limits.h>
+#include <math.h>
 
-#include "shader.h"
-#include "texture.h"
-#include "fastnoiselite.h"
-#include "utils.h"
-#include "db.h"
-#include "block.h"
-#include "thread_worker.h"
-#include "window.h"
+#include <fastnoiselite.h>
+
+#include <shader.h>
+#include <texture.h>
+#include <utils.h>
+#include <db.h>
+#include <map/block.h>
+#include <map/thread_worker.h>
+#include <window.h>
 
 // Define data structures for chunks
 LINKEDLIST_DECLARATION(Chunk*, chunks);
@@ -91,10 +92,10 @@ static void map_delete_chunk(int chunk_x, int chunk_z)
     }
 }
 
-static void try_delete_far_chunks(Camera* cam)
+static void try_delete_far_chunks(vec3 curr_pos)
 {
-    int player_cx = chunked_cam(cam->pos[0]);
-    int player_cz = chunked_cam(cam->pos[2]);
+    int player_cx = chunked_cam(curr_pos[0]);
+    int player_cz = chunked_cam(curr_pos[2]);
     
     LinkedList_chunks* chunks_to_delete = list_chunks_create();
 
@@ -395,9 +396,6 @@ void map_render_chunks(Camera* cam, mat4 near_shadowmap_mat, mat4 far_shadowmap_
     shader_set_texture_2d(shader_block, "u_far_shadowmap", 
         g_window->fb->gbuf_shadow_far_map, 2);
 
-    shader_set_float1(shader_block, "u_near_plane", cam->clip_near);
-    shader_set_float1(shader_block, "u_far_plane", cam->clip_far);
-
     vec3 light_dir;
     map_get_light_dir(light_dir);
     shader_set_float3(shader_block, "u_light_dir", light_dir);
@@ -649,12 +647,12 @@ static void load_chunk(int cx, int cz)
     hashmap_chunks_insert(map->chunks_active, c);
 }
 
-void map_force_chunks_near_player(Camera* cam)
+void map_force_chunks_near_player(vec3 curr_pos)
 {
     int const dist = 1;
 
-    int player_cx = chunked_cam(cam->pos[0]);
-    int player_cz = chunked_cam(cam->pos[2]);
+    int player_cx = chunked_cam(curr_pos[0]);
+    int player_cz = chunked_cam(curr_pos[2]);
 
     for (int dx = -dist; dx <= dist; dx++)
     for (int dz = -dist; dz <= dist; dz++)
@@ -679,9 +677,9 @@ static void add_chunks_to_render_list(Camera* cam)
 
 void map_update(Camera* cam)
 {
-    try_delete_far_chunks(cam);
+    try_delete_far_chunks(cam->pos);
     handle_workers(cam);
-    map_force_chunks_near_player(cam);
+    map_force_chunks_near_player(cam->pos);
     add_chunks_to_render_list(cam);
 }
 

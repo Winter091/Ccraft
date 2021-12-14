@@ -22,15 +22,37 @@ set(CGLM_USE_C99   ON CACHE BOOL "" FORCE)
 set(CGLM_USE_TEST OFF CACHE BOOL "" FORCE)
 add_subdirectory(${CMAKE_SOURCE_DIR}/deps/cglm-0.8.3)
 
-file(GLOB CCRAFT_SOURCES ${CMAKE_SOURCE_DIR}/src/*.c)
 add_executable(
     Ccraft
-    ${CCRAFT_SOURCES}
+
     ${CMAKE_SOURCE_DIR}/deps/glad-0.1.34/src/glad.c
     ${CMAKE_SOURCE_DIR}/deps/stb_image-2.26/src/stb_image.c
     ${CMAKE_SOURCE_DIR}/deps/sqlite-3.34.0/src/sqlite3.c
     ${CMAKE_SOURCE_DIR}/deps/ini-0.1.1/src/ini.c
     ${CMAKE_SOURCE_DIR}/deps/tinycthread-1.2.0/src/tinycthread.c
+
+    ${CMAKE_SOURCE_DIR}/src/camera/camera_controller.c
+    ${CMAKE_SOURCE_DIR}/src/camera/camera.c
+    ${CMAKE_SOURCE_DIR}/src/map/block.c
+    ${CMAKE_SOURCE_DIR}/src/map/chunk.c
+    ${CMAKE_SOURCE_DIR}/src/map/map.c
+    ${CMAKE_SOURCE_DIR}/src/map/thread_worker.c
+    ${CMAKE_SOURCE_DIR}/src/player/player_controller.c
+    ${CMAKE_SOURCE_DIR}/src/player/player_physics.c
+    ${CMAKE_SOURCE_DIR}/src/player/player.c
+    ${CMAKE_SOURCE_DIR}/src/config.c
+    ${CMAKE_SOURCE_DIR}/src/db.c
+    ${CMAKE_SOURCE_DIR}/src/fastnoiselite_impl.c
+    ${CMAKE_SOURCE_DIR}/src/framebuffer.c
+    ${CMAKE_SOURCE_DIR}/src/main.c
+    ${CMAKE_SOURCE_DIR}/src/noise_generator.c
+    ${CMAKE_SOURCE_DIR}/src/shader.c
+    ${CMAKE_SOURCE_DIR}/src/texture.c
+    ${CMAKE_SOURCE_DIR}/src/time_measure.c
+    ${CMAKE_SOURCE_DIR}/src/ui.c
+    ${CMAKE_SOURCE_DIR}/src/utils.c
+    ${CMAKE_SOURCE_DIR}/src/window.c
+    ${CMAKE_SOURCE_DIR}/src/worldgen.c
 )
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -41,7 +63,7 @@ endif()
 if (MSVC)
     target_compile_options(Ccraft PRIVATE /W3)
 else()
-    target_compile_options(Ccraft PRIVATE -Wall -Wno-unused-result)
+    target_compile_options(Ccraft PRIVATE -Wall -Wno-unused-result -Wimplicit)
 endif()
 
 # Link static libs
@@ -49,7 +71,8 @@ target_link_libraries(Ccraft glfw cglm)
 
 # Add include directories
 target_include_directories(
-    Ccraft PRIVATE 
+    Ccraft PRIVATE
+
     ${CMAKE_SOURCE_DIR}/deps/glfw-3.3.2/include
     ${CMAKE_SOURCE_DIR}/deps/cglm-0.8.3/include
     ${CMAKE_SOURCE_DIR}/deps/glad-0.1.34/include
@@ -58,6 +81,8 @@ target_include_directories(
     ${CMAKE_SOURCE_DIR}/deps/fastnoise-1.0.1/include
     ${CMAKE_SOURCE_DIR}/deps/ini-0.1.1/include
     ${CMAKE_SOURCE_DIR}/deps/tinycthread-1.2.0/include
+
+    ${CMAKE_SOURCE_DIR}/src
 )
 
 # # Copy shaders folder to build folder
@@ -67,12 +92,12 @@ target_include_directories(
 #     ${CMAKE_SOURCE_DIR}/shaders $<TARGET_FILE_DIR:Ccraft>/shaders
 # )
 
-# Copy textures folder to build folder
-add_custom_command(
-    TARGET Ccraft POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_SOURCE_DIR}/textures $<TARGET_FILE_DIR:Ccraft>/textures
-)
+# # Copy textures folder to build folder
+# add_custom_command(
+#     TARGET Ccraft POST_BUILD
+#     COMMAND ${CMAKE_COMMAND} -E copy_directory
+#     ${CMAKE_SOURCE_DIR}/textures $<TARGET_FILE_DIR:Ccraft>/textures
+# )
 
 # # Copy maps folder to build folder
 # add_custom_command(

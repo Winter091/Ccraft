@@ -1,13 +1,21 @@
 #ifndef PLAYER_H_
 #define PLAYER_H_
 
-#include "camera.h"
-#include "cglm/cglm.h"
-#include "glad/glad.h"
+#include <cglm/cglm.h>
+#include <glad/glad.h>
+
+#include <camera/camera.h>
 
 typedef struct
 {
-    Camera* cam;
+    vec3 pos;
+
+    vec3 front;
+    vec3 up;
+    vec3 speed;
+
+    float yaw;
+    float pitch;
 
     unsigned char build_block;
     int pointing_at_block;
@@ -37,6 +45,10 @@ void player_handle_left_mouse_click(Player* p);
 void player_handle_right_mouse_click(Player* p);
 
 void player_render_item(Player* p);
+
+void player_update_hitbox(Player* p);
+
+void player_set_viewdir(Player* p, float pitch, float yaw);
 
 void player_save(Player* p);
 
