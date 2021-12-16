@@ -14,6 +14,7 @@
 #include <time_measure.h>
 #include <player/player_controller.h>
 #include <camera/camera_controller.h>
+#include <renderer/hand_item_2d.h>
 
 // Print OpenGL warnings and errors
 static void opengl_debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity,
@@ -234,7 +235,8 @@ static void render_game(Player* p, Camera* cam)
         if (p->pointing_at_block)
             ui_render_block_wireframe(p, cam);
         ui_render_crosshair();
-        player_render_item(p);
+
+        renderer_hand_item_2d_render(p->build_block);
     }
 }
 
@@ -423,6 +425,9 @@ int main(int argc, const char** argv)
     };
     cameracontroller_set_track_object(cc, &info);
 
+    float aspect_ratio = (float)g_window->width / g_window->height;
+    renderer_hand_item_2d_init(aspect_ratio);
+
     while (!glfwWindowShouldClose(g_window->glfw))
     {
         window_update_title_fps();
@@ -440,6 +445,8 @@ int main(int argc, const char** argv)
     }
 
     player_destroy(player);
+
+    renderer_hand_item_2d_free();
 
     ui_free();
     map_free();

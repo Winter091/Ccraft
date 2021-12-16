@@ -27,10 +27,6 @@ typedef struct
     int in_water;
     int is_sneaking;
     int is_running;
-
-    GLuint VAO_item;
-    GLuint VBO_item;
-    mat4 model_mat_item;
 }
 Player;
 
@@ -43,8 +39,6 @@ void player_update(Player* p, double dt);
 void player_handle_left_mouse_click(Player* p);
 
 void player_handle_right_mouse_click(Player* p);
-
-void player_render_item(Player* p);
 
 void player_update_hitbox(Player* p);
 
