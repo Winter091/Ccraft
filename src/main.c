@@ -16,6 +16,7 @@
 #include <camera/camera_controller.h>
 #include <renderer/hand_item_2d.h>
 #include <renderer/crosshair.h>
+#include <renderer/block_wireframe.h>
 
 // Print OpenGL warnings and errors
 static void opengl_debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity,
@@ -217,6 +218,22 @@ static void render_all_shadowmaps(Camera* cam)
     glDisable(GL_DEPTH_CLAMP);
 }
 
+static void render_block_wireframe(Camera* cam, ivec3 block_coord)
+{
+    vec3 block_aabb[2];
+    block_gen_aabb(block_coord[0], block_coord[1], block_coord[2], block_aabb);
+
+    unsigned char block = map_get_block(block_coord[0], block_coord[1], block_coord[2]);
+    // Make wireframe smaller
+    if (block_is_plant(block))
+    {
+        glm_vec3_add(block_aabb[0], (vec3){ BLOCK_SIZE / 4, BLOCK_SIZE / 4, BLOCK_SIZE / 4 }, block_aabb[0]);
+        glm_vec3_sub(block_aabb[1], (vec3){ BLOCK_SIZE / 4, BLOCK_SIZE / 4, BLOCK_SIZE / 4 }, block_aabb[1]);
+    }
+
+    renderer_block_wireframe_render(cam->vp_matrix, block_aabb);
+}
+
 static void render_game(Player* p, Camera* cam)
 {
     glViewport(0, 0, g_window->width, g_window->height);
@@ -234,7 +251,7 @@ static void render_game(Player* p, Camera* cam)
     framebuffer_use_texture(TEX_UI);
     {
         if (p->pointing_at_block)
-            ui_render_block_wireframe(p, cam);
+            render_block_wireframe(cam, p->block_pointed_at);
         renderer_crosshair_render();
         renderer_hand_item_2d_render(p->build_block);
     }
@@ -400,7 +417,6 @@ int main(int argc, const char** argv)
     shaders_init();
     textures_init();
     map_init();
-    ui_init((float)WINDOW_WIDTH / WINDOW_HEIGHT);
 
     Player* player = player_create();
     Camera* cam = camera_create(player->pos, player->pitch, player->yaw, player->front);
@@ -428,6 +444,7 @@ int main(int argc, const char** argv)
     float aspect_ratio = (float)g_window->width / g_window->height;
     renderer_hand_item_2d_init(aspect_ratio);
     renderer_crosshair_init(aspect_ratio);
+    renderer_block_wireframe_init();
 
     while (!glfwWindowShouldClose(g_window->glfw))
     {
@@ -449,8 +466,8 @@ int main(int argc, const char** argv)
 
     renderer_hand_item_2d_free();
     renderer_crosshair_free();
+    renderer_block_wireframe_free();
 
-    ui_free();
     map_free();
     textures_free();
     shaders_free();

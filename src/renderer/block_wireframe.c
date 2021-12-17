@@ -1,32 +1,37 @@
-#include <ui.h>
+#include <renderer/block_wireframe.h>
 
-#include <stdlib.h>
+
+#include "cglm/mat4.h"
+#include "cglm/vec3-ext.h"
+#include "cglm/vec3.h"
+#include "window.h"
+#include <renderer/crosshair.h>
+
+#include <assert.h>
+
+#include <glad/glad.h>
+#include <cglm/cglm.h>
 
 #include <utils.h>
 #include <shader.h>
 #include <config.h>
-#include <map/block.h>
-#include <map/map.h>
-#include <window.h>
 
 typedef struct
 {
-    GLuint VAO_block_wireframe;
-    GLuint VBO_block_wireframe;
+    GLuint VAO;
+    GLuint VBO;
 }
-UI;
+RenderData;
 
-static UI* ui;
+static RenderData s_data;
+static int is_initted = 0;
 
-void ui_init(float aspect_ratio)
+void renderer_block_wireframe_init()
 {
-    ui = malloc(sizeof(UI));
-
-    // Block wireframe buffer
     float x = 0.0f;
     float y = 0.0f;
     float z = 0.0f;
-    float bs = BLOCK_SIZE;
+    float bs = 1.0f;
 
     float offset = 0.001f * BLOCK_SIZE;
     // That's beautiful
@@ -68,36 +73,29 @@ void ui_init(float aspect_ratio)
         x - offset, y + bs + offset, z - offset
     };
 
-    ui->VAO_block_wireframe = opengl_create_vao();
-    ui->VBO_block_wireframe = opengl_create_vbo(vertices_wireframe, sizeof(vertices_wireframe));
+    s_data.VAO = opengl_create_vao();
+    s_data.VAO = opengl_create_vbo(vertices_wireframe, sizeof(vertices_wireframe));
     opengl_vbo_layout(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+
+    is_initted = 1;
 }
 
-void ui_render_block_wireframe(Player* p, Camera* cam)
+void renderer_block_wireframe_render(mat4 cam_vp_matrix, vec3 block_aabb[2])
 {
-    glBindVertexArray(ui->VAO_block_wireframe);
+    assert(is_initted && "Renderer's init was not called prior to render call");
 
-    float x = p->block_pointed_at[0] * BLOCK_SIZE;
-    float y = p->block_pointed_at[1] * BLOCK_SIZE;
-    float z = p->block_pointed_at[2] * BLOCK_SIZE;
+    glBindVertexArray(s_data.VAO);
+
+    vec3 scaling;
+    glm_vec3_sub(block_aabb[1], block_aabb[0], scaling);
 
     mat4 model;
     glm_mat4_identity(model);
-    glm_translate(model, (vec3){ x, y, z });
-
-    unsigned char block = map_get_block(p->block_pointed_at[0], 
-                                        p->block_pointed_at[1],
-                                        p->block_pointed_at[2]);
-
-    // make wireframe smaller
-    if (block_is_plant(block))
-    {
-        glm_scale(model, (vec3){0.5, 0.5f, 0.5f});
-        glm_translate(model, (vec3){BLOCK_SIZE / 2, 0.0f, BLOCK_SIZE / 2});
-    }
+    glm_translate(model, block_aabb[0]);
+    glm_scale(model, scaling);
 
     mat4 mvp;
-    glm_mat4_mul(cam->vp_matrix, model, mvp);
+    glm_mat4_mul(cam_vp_matrix, model, mvp);
 
     glUseProgram(shader_line);
     shader_set_mat4(shader_line, "mvp_matrix", mvp);
@@ -106,15 +104,13 @@ void ui_render_block_wireframe(Player* p, Camera* cam)
     glDrawArrays(GL_LINES, 0, 24);
 }
 
-void ui_free()
-{
-    if (ui == NULL)
-        return;
-    
-    glDeleteVertexArrays(1, (GLuint[1]){  ui->VAO_block_wireframe });
-    
-    glDeleteBuffers(1, (GLuint[2]){ ui->VBO_block_wireframe });
+void renderer_block_wireframe_free()
+{    
+    if (s_data.VAO)
+    {
+        glDeleteVertexArrays(1, &s_data.VAO);
+        glDeleteBuffers(1, &s_data.VBO);
+    }
 
-    free(ui);
-    ui = NULL;
+    is_initted = 0;
 }

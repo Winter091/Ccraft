@@ -40,6 +40,7 @@ add_executable(
     ${CMAKE_SOURCE_DIR}/src/player/player_controller.c
     ${CMAKE_SOURCE_DIR}/src/player/player_physics.c
     ${CMAKE_SOURCE_DIR}/src/player/player.c
+    ${CMAKE_SOURCE_DIR}/src/renderer/block_wireframe.c
     ${CMAKE_SOURCE_DIR}/src/renderer/crosshair.c
     ${CMAKE_SOURCE_DIR}/src/renderer/hand_item_2d.c
     ${CMAKE_SOURCE_DIR}/src/config.c
@@ -51,7 +52,6 @@ add_executable(
     ${CMAKE_SOURCE_DIR}/src/shader.c
     ${CMAKE_SOURCE_DIR}/src/texture.c
     ${CMAKE_SOURCE_DIR}/src/time_measure.c
-    ${CMAKE_SOURCE_DIR}/src/ui.c
     ${CMAKE_SOURCE_DIR}/src/utils.c
     ${CMAKE_SOURCE_DIR}/src/window.c
     ${CMAKE_SOURCE_DIR}/src/worldgen.c

@@ -6,7 +6,6 @@
 
 #include <camera/camera.h>
 #include <map/map.h>
-#include <ui.h>
 #include <player/player.h>
 #include <framebuffer.h>
 
