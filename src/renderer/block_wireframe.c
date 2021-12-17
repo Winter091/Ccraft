@@ -1,12 +1,6 @@
 #include <renderer/block_wireframe.h>
 
 
-#include "cglm/mat4.h"
-#include "cglm/vec3-ext.h"
-#include "cglm/vec3.h"
-#include "window.h"
-#include <renderer/crosshair.h>
-
 #include <assert.h>
 
 #include <glad/glad.h>
@@ -28,49 +22,50 @@ static int is_initted = 0;
 
 void renderer_block_wireframe_init()
 {
-    float x = 0.0f;
-    float y = 0.0f;
-    float z = 0.0f;
-    float bs = 1.0f;
+    const float x1 = 0.0f;
+    const float y1 = 0.0f;
+    const float z1 = 0.0f;
+    const float x2 = 1.0f;
+    const float y2 = 1.0f;
+    const float z2 = 1.0f;
+    const float offset = 0.001f * BLOCK_SIZE;
 
-    float offset = 0.001f * BLOCK_SIZE;
-    // That's beautiful
     float vertices_wireframe[] = {
-        x - offset, y - offset, z - offset,
-        x + bs + offset, y - offset, z - offset,
+        x1 - offset, y1 - offset, z1 - offset,
+        x2 + offset, y1 - offset, z1 - offset,
 
-        x + bs + offset, y - offset, z - offset,
-        x + bs + offset, y + bs + offset, z - offset,
+        x2 + offset, y1 - offset, z1 - offset,
+        x2 + offset, y2 + offset, z1 - offset,
 
-        x + bs + offset, y + bs + offset, z - offset,
-        x - offset, y + bs + offset, z - offset,
+        x2 + offset, y2 + offset, z1 - offset,
+        x1 - offset, y2 + offset, z1 - offset,
 
-        x - offset, y + bs + offset, z - offset,
-        x - offset, y - offset, z - offset,
+        x1 - offset, y2 + offset, z1 - offset,
+        x1 - offset, y1 - offset, z1 - offset,
 
-        x - offset, y - offset, z + bs + offset,
-        x + bs + offset, y - offset, z + bs + offset,
+        x1 - offset, y1 - offset, z2 + offset,
+        x2 + offset, y1 - offset, z2 + offset,
 
-        x + bs + offset, y - offset, z + bs + offset,
-        x + bs + offset, y + bs + offset, z + bs + offset,
+        x2 + offset, y1 - offset, z2 + offset,
+        x2 + offset, y2 + offset, z2 + offset,
 
-        x + bs + offset, y + bs + offset, z + bs + offset,
-        x - offset, y + bs + offset, z + bs + offset,
+        x2 + offset, y2 + offset, z2 + offset,
+        x1 - offset, y2 + offset, z2 + offset,
 
-        x - offset, y + bs + offset, z + bs + offset,
-        x - offset, y - offset, z + bs + offset,
+        x1 - offset, y2 + offset, z2 + offset,
+        x1 - offset, y1 - offset, z2 + offset,
 
-        x - offset, y - offset, z + bs + offset,
-        x - offset, y - offset, z - offset,
+        x1 - offset, y1 - offset, z2 + offset,
+        x1 - offset, y1 - offset, z1 - offset,
 
-        x + bs + offset, y - offset, z + bs + offset,
-        x + bs + offset, y - offset, z - offset,
+        x2 + offset, y1 - offset, z2 + offset,
+        x2 + offset, y1 - offset, z1 - offset,
 
-        x + bs + offset, y + bs + offset, z + bs + offset,
-        x + bs + offset, y + bs + offset, z - offset,
+        x2 + offset, y2 + offset, z2 + offset,
+        x2 + offset, y2 + offset, z1 - offset,
 
-        x - offset, y + bs + offset, z + bs + offset,
-        x - offset, y + bs + offset, z - offset
+        x1 - offset, y2 + offset, z2 + offset,
+        x1 - offset, y2 + offset, z1 - offset
     };
 
     s_data.VAO = opengl_create_vao();
