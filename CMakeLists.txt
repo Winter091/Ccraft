@@ -40,6 +40,7 @@ add_executable(
     ${CMAKE_SOURCE_DIR}/src/player/player_controller.c
     ${CMAKE_SOURCE_DIR}/src/player/player_physics.c
     ${CMAKE_SOURCE_DIR}/src/player/player.c
+    ${CMAKE_SOURCE_DIR}/src/renderer/crosshair.c
     ${CMAKE_SOURCE_DIR}/src/renderer/hand_item_2d.c
     ${CMAKE_SOURCE_DIR}/src/config.c
     ${CMAKE_SOURCE_DIR}/src/db.c
