@@ -134,11 +134,17 @@ static void render()
     glGetBooleanv(GL_BLEND, &old_blend);
     glDisable(GL_BLEND);
 
+    GLboolean old_depth_test;
+    glGetBooleanv(GL_DEPTH_TEST, &old_depth_test);
+    glDisable(GL_DEPTH_TEST);
+
     glBindVertexArray(s_data.VAO);
     glDrawArrays(GL_TRIANGLES, 0, 36);
 
     if (old_blend)
         glEnable(GL_BLEND);
+    if (old_depth_test)
+        glEnable(GL_DEPTH_TEST);
 }
 
 void renderer_hand_item_2d_init(float aspect_ratio)
