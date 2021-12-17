@@ -20,6 +20,8 @@ typedef struct
 
     int current_block;
     float aspect_ratio;
+
+    mat4 camera_mvp;
 }
 RenderData;
 
@@ -94,34 +96,37 @@ static void regenerate_model_matrix(int block)
     glm_translate(s_data.model_matrix, (vec3){-0.5f, -0.5f, -0.5f});
 }
 
-static void regenerate_for_block(int block)
+static void regenerate_camera_matrices(float aspect_ratio)
 {
-    regenerate_opengl_buffers(block);
-    regenerate_model_matrix(block);
-    s_data.current_block = block;
-}
-
-static void on_framebuffer_size_change_callback(void* this_object, int new_width, int new_height)
-{
-    assert(is_initted), "Callback was not unregistered";
-    s_data.aspect_ratio = (float)new_width / new_height;
-}
-
-static void render()
-{
-    // Render item using additional camera created here;
     // The camera is at (0, 0, -1) and looks at (0, 0, 0)
     mat4 view, projection;
     glm_look((vec3){0.0f, 0.0f, 1.0f}, (vec3){0.0f, 0.0f, -1.0f}, 
              (vec3){0.0f, 1.0f, 0.0f}, view);
 
-    glm_perspective(glm_rad(50.0f), s_data.aspect_ratio, 0.01f, 2.0f, projection);
+    glm_perspective(glm_rad(50.0f), aspect_ratio, 0.01f, 2.0f, projection);
 
-    mat4 mvp;
-    glm_mat4_mulN((mat4* []){&projection, &view, &s_data.model_matrix}, 3, mvp);
+    glm_mat4_mulN((mat4* []){&projection, &view, &s_data.model_matrix}, 3, s_data.camera_mvp);
+}
 
+static void regenerate_for_block(int block)
+{
+    regenerate_opengl_buffers(block);
+    regenerate_model_matrix(block);
+    regenerate_camera_matrices(s_data.aspect_ratio);
+    s_data.current_block = block;
+}
+
+static void on_framebuffer_size_change_callback(void* this_object, int new_width, int new_height)
+{
+    assert(is_initted && "Callback was not unregistered");
+    s_data.aspect_ratio = (float)new_width / new_height;
+    regenerate_camera_matrices(s_data.aspect_ratio);
+}
+
+static void render()
+{
     glUseProgram(shader_handitem);
-    shader_set_mat4(shader_handitem, "mvp_matrix", mvp);
+    shader_set_mat4(shader_handitem, "mvp_matrix", s_data.camera_mvp);
     shader_set_texture_array(shader_handitem, "texture_sampler", texture_blocks, 0);
     shader_set_float1(shader_handitem, "block_light", map_get_blocks_light());
 
@@ -143,6 +148,7 @@ void renderer_hand_item_2d_init(float aspect_ratio)
     glm_mat4_identity(s_data.model_matrix);
     s_data.current_block = -1;
     s_data.aspect_ratio = aspect_ratio;
+    regenerate_camera_matrices(aspect_ratio);
 
     register_framebuffer_size_change_callback(NULL, on_framebuffer_size_change_callback);
 
@@ -151,7 +157,7 @@ void renderer_hand_item_2d_init(float aspect_ratio)
 
 void renderer_hand_item_2d_render(int block)
 {
-    assert(is_initted), "Renderer's init was not called prior to render call";
+    assert(is_initted && "Renderer's init was not called prior to render call");
 
     if (s_data.current_block != block)
         regenerate_for_block(block);
