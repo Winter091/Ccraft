@@ -1,4 +1,3 @@
-#include "window.h"
 #include <renderer/crosshair.h>
 
 #include <assert.h>
@@ -8,6 +7,7 @@
 
 #include <utils.h>
 #include <shader.h>
+#include <window.h>
 
 typedef struct
 {
