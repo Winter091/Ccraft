@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include <config.h>
 #include <framebuffer.h>
@@ -35,7 +36,7 @@ static UserCallbackArray mouse_scroll_callbacks;
 void register_framebuffer_size_change_callback(void* this_object, on_framebuffer_size_change user_callback)
 {
     if (framebuffer_callbacks.size == MAX_CALLBACKS - 1)
-        assert(false), "Max callbacks number is reached";
+        assert(false && "Max callbacks number is reached");
     
     UserCallbackEntry* curr_entry = &framebuffer_callbacks.entries[framebuffer_callbacks.size++];
     curr_entry->object = this_object;
@@ -45,7 +46,7 @@ void register_framebuffer_size_change_callback(void* this_object, on_framebuffer
 void register_keyboard_key_press_callback(void* this_object, on_keyboard_key_press user_callback)
 {
     if (keyboard_key_callbacks.size == MAX_CALLBACKS - 1)
-        assert(false), "Max callbacks number is reached";
+        assert(false && "Max callbacks number is reached");
     
     UserCallbackEntry* curr_entry = &keyboard_key_callbacks.entries[keyboard_key_callbacks.size++];
     curr_entry->object = this_object;
@@ -55,7 +56,7 @@ void register_keyboard_key_press_callback(void* this_object, on_keyboard_key_pre
 void register_mouse_button_key_press_callback(void* this_object, on_mouse_button_key_press user_callback)
 {
     if (mouse_button_callbacks.size == MAX_CALLBACKS - 1)
-        assert(false), "Max callbacks number is reached";
+        assert(false && "Max callbacks number is reached");
     
     UserCallbackEntry* curr_entry = &mouse_button_callbacks.entries[mouse_button_callbacks.size++];
     curr_entry->object = this_object;
@@ -65,90 +66,12 @@ void register_mouse_button_key_press_callback(void* this_object, on_mouse_button
 void register_mouse_scroll_callback(void* this_object, on_mouse_scroll user_callback)
 {
     if (mouse_scroll_callbacks.size == MAX_CALLBACKS - 1)
-        assert(false), "Max callbacks number is reached";
+        assert(false && "Max callbacks number is reached");
     
     UserCallbackEntry* curr_entry = &mouse_scroll_callbacks.entries[mouse_scroll_callbacks.size++];
     curr_entry->object = this_object;
     curr_entry->callback_func = user_callback;
 }
-
-
-/*
-static void glfw_framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-    GameObjectRefs* game = glfwGetWindowUserPointer(window);
-    Player* p = game->player;
-
-    camera_set_aspect_ratio(p->cam, (float)width / height);
-    ui_update_aspect_ratio((float)width / height);
-    framebuffers_rebuild(g_window->fb, width, height);
-
-    g_window->width  = width;
-    g_window->height = height;
-
-    glViewport(0, 0, width, height);
-}
-
-static void glfw_key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-    if (action == GLFW_RELEASE)
-        return;
-
-    GameObjectRefs* game = glfwGetWindowUserPointer(window);
-    Player* p = game->player;
-
-    switch (key)
-    {
-        case GLFW_KEY_ESCAPE:
-            p->cam->is_active = 0;
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-            break;
-    };
-}
-
-static void glfw_mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
-{
-    if (action != GLFW_PRESS)
-        return;
-
-    GameObjectRefs* game = glfwGetWindowUserPointer(window);
-    Player* p = game->player;
-
-    if (!p->cam->is_active)
-    {
-        p->cam->is_active = 1;
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-        double x, y;
-        glfwGetCursorPos(window, &x, &y);
-        p->cam->mouse_last_x = x;
-        p->cam->mouse_last_y = y;
-
-        return;
-    }
-
-    switch (button)
-    {
-        case GLFW_MOUSE_BUTTON_LEFT:
-            player_handle_left_mouse_click(p);
-            break;
-        case GLFW_MOUSE_BUTTON_RIGHT:
-            player_handle_right_mouse_click(p);
-            break;
-    };
-}
-
-static void glfw_scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
-{
-    GameObjectRefs* game = glfwGetWindowUserPointer(window);
-    Player* p = game->player;
-    
-    if (yoffset > 0)
-        player_set_build_block(p, p->build_block + 1);
-    else
-        player_set_build_block(p, p->build_block - 1);
-}
-*/
 
 static void set_focused(int is_focused)
 {
