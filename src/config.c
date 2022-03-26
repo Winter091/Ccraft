@@ -97,7 +97,7 @@ static void create_default_cfg_file(const char* config_path)
 
     "[GRAPHICS]\n"
     "; High performance hit\n"
-    "chunk_render_radius = 16\n\n"
+    "chunk_render_radius = 8\n\n"
 
     "; Very low performance hit, huge\n"
     "; image quality boost\n"
