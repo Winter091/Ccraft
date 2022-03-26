@@ -85,23 +85,23 @@ target_include_directories(
     ${CMAKE_SOURCE_DIR}/src
 )
 
-# # Copy shaders folder to build folder
-# add_custom_command(
-#     TARGET Ccraft POST_BUILD
-#     COMMAND ${CMAKE_COMMAND} -E copy_directory
-#     ${CMAKE_SOURCE_DIR}/shaders $<TARGET_FILE_DIR:Ccraft>/shaders
-# )
+# Copy shaders folder to build folder
+add_custom_command(
+    TARGET Ccraft POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/shaders $<TARGET_FILE_DIR:Ccraft>/shaders
+)
 
-# # Copy textures folder to build folder
-# add_custom_command(
-#     TARGET Ccraft POST_BUILD
-#     COMMAND ${CMAKE_COMMAND} -E copy_directory
-#     ${CMAKE_SOURCE_DIR}/textures $<TARGET_FILE_DIR:Ccraft>/textures
-# )
+# Copy textures folder to build folder
+add_custom_command(
+    TARGET Ccraft POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/textures $<TARGET_FILE_DIR:Ccraft>/textures
+)
 
-# # Copy maps folder to build folder
-# add_custom_command(
-#     TARGET Ccraft POST_BUILD
-#     COMMAND ${CMAKE_COMMAND} -E copy_directory
-#     ${CMAKE_SOURCE_DIR}/maps $<TARGET_FILE_DIR:Ccraft>/maps
-# )
+# Copy maps folder to build folder
+add_custom_command(
+    TARGET Ccraft POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+    ${CMAKE_SOURCE_DIR}/maps $<TARGET_FILE_DIR:Ccraft>/maps
+)

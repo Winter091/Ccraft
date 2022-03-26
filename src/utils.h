@@ -151,4 +151,7 @@ static inline int aabb_collide(vec3 box[2], vec3 other[2])
         && (box[0][2] < other[1][2] && box[1][2] > other[0][2]);
 }
 
+void opengl_debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity,
+                           GLsizei length, const GLchar* message, const void* userParam);
+
 #endif

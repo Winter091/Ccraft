@@ -15,81 +15,6 @@
 #include <player/player_controller.h>
 #include <camera/camera_controller.h>
 
-// Print OpenGL warnings and errors
-static void opengl_debug_callback(GLenum source, GLenum type, GLuint id, GLenum severity,
-                           GLsizei length, const GLchar* message, const void* userParam)
-{
-    char* _source;
-    char* _type;
-    char* _severity;
-
-    switch (source)
-    {
-        case GL_DEBUG_SOURCE_API_ARB:
-            _source = "API";
-            break;
-        case GL_DEBUG_SOURCE_WINDOW_SYSTEM_ARB:
-            _source = "WINDOW SYSTEM";
-            break;
-        case GL_DEBUG_SOURCE_SHADER_COMPILER_ARB:
-            _source = "SHADER COMPILER";
-            break;
-        case GL_DEBUG_SOURCE_THIRD_PARTY_ARB:
-            _source = "THIRD PARTY";
-            break;
-        case GL_DEBUG_SOURCE_APPLICATION_ARB:
-            _source = "APPLICATION";
-            break;
-        case GL_DEBUG_SOURCE_OTHER_ARB:
-            _source = "UNKNOWN";
-            break;
-        default:
-            _source = "UNKNOWN";
-    }
-
-    switch (type)
-    {
-        case GL_DEBUG_TYPE_ERROR_ARB:
-            _type = "ERROR";
-            break;
-        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR_ARB:
-            _type = "DEPRECATED BEHAVIOR";
-            break;
-        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR_ARB:
-            _type = "UDEFINED BEHAVIOR";
-            break;
-        case GL_DEBUG_TYPE_PORTABILITY_ARB:
-            _type = "PORTABILITY";
-            break;
-        case GL_DEBUG_TYPE_PERFORMANCE_ARB:
-            _type = "PERFORMANCE";
-            break;
-        case GL_DEBUG_TYPE_OTHER_ARB:
-            _type = "OTHER";
-            break;
-        default:
-            _type = "UNKNOWN";
-    }
-
-    switch (severity)
-    {
-        case GL_DEBUG_SEVERITY_HIGH_ARB:
-            _severity = "HIGH";
-            break;
-        case GL_DEBUG_SEVERITY_MEDIUM_ARB:
-            _severity = "MEDIUM";
-            break;
-        case GL_DEBUG_SEVERITY_LOW_ARB:
-            _severity = "LOW";
-            break;
-        default:
-            _severity = "UNKNOWN";
-    }
-
-    fprintf(stderr,"%d: %s of %s severity, raised from %s: %s\n",
-            id, _type, _severity, _source, message);
-}
-
 static float get_current_dof_depth(float dt)
 {
     // glReadPixels is very slow :(
@@ -312,9 +237,10 @@ static void render_second_pass(Player* p, Camera* cam, float dt)
     glBindVertexArray(g_window->fb->quad_vao);
     glDepthFunc(GL_ALWAYS);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+}
 
-    // =============== Debug picture in picture shadowmaps ==================
-    
+static void render_debug_shadowmaps()
+{
     shader_use(shader_pip);
     shader_set_texture_2d(shader_pip, "u_texture", g_window->fb->gbuf_shadow_near_map, 0);
     int w = 325;
@@ -325,7 +251,6 @@ static void render_second_pass(Player* p, Camera* cam, float dt)
     shader_set_texture_2d(shader_pip, "u_texture", g_window->fb->gbuf_shadow_far_map, 0);
     glViewport(g_window->width - w - 10, g_window->height - h - 10, w, h);
     glDrawArrays(GL_TRIANGLES, 0, 6);
-    
 }
 
 static void render(Player* p, Camera* cam, float dt)
@@ -334,6 +259,10 @@ static void render(Player* p, Camera* cam, float dt)
     render_game(p, cam);
     render_first_pass(dt);
     render_second_pass(p, cam, dt);
+
+#ifdef DEBUG
+    render_debug_shadowmaps();
+#endif
 }
 
 int main(int argc, const char** argv)
