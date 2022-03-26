@@ -237,9 +237,10 @@ static void render_second_pass(Player* p, Camera* cam, float dt)
     glBindVertexArray(g_window->fb->quad_vao);
     glDepthFunc(GL_ALWAYS);
     glDrawArrays(GL_TRIANGLES, 0, 6);
+}
 
-    // =============== Debug picture in picture shadowmaps ==================
-    
+static void render_debug_shadowmaps()
+{
     shader_use(shader_pip);
     shader_set_texture_2d(shader_pip, "u_texture", g_window->fb->gbuf_shadow_near_map, 0);
     int w = 325;
@@ -250,7 +251,6 @@ static void render_second_pass(Player* p, Camera* cam, float dt)
     shader_set_texture_2d(shader_pip, "u_texture", g_window->fb->gbuf_shadow_far_map, 0);
     glViewport(g_window->width - w - 10, g_window->height - h - 10, w, h);
     glDrawArrays(GL_TRIANGLES, 0, 6);
-    
 }
 
 static void render(Player* p, Camera* cam, float dt)
@@ -259,6 +259,10 @@ static void render(Player* p, Camera* cam, float dt)
     render_game(p, cam);
     render_first_pass(dt);
     render_second_pass(p, cam, dt);
+
+#ifdef DEBUG
+    render_debug_shadowmaps();
+#endif
 }
 
 int main(int argc, const char** argv)
